@@ -35,26 +35,121 @@ Every response sounds like you wrote it—because the AI learned your voice.
 
 ## Quick Start
 
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase account (local or cloud)
+- API keys for: Google OAuth, Anthropic Claude, Stripe
+
+### 1. Clone the repository
+
 ```bash
-# Clone the repository
 git clone https://github.com/your-org/replystack.git
 cd replystack
+```
 
-# Install dependencies
-npm install
+### 2. Set up environment variables
 
-# Set up environment variables
+```bash
 cp .env.example .env.local
-# Edit .env.local with your API keys
+```
 
-# Run database migrations
-npm run db:migrate
+Edit `.env.local` and fill in your API keys:
 
-# Start development server
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Google OAuth + Business Profile
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Anthropic
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Stripe
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+
+# Resend
+RESEND_API_KEY=your-resend-api-key
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 3. Set up Supabase
+
+**Option A: Local Development (recommended)**
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Start local Supabase
+supabase start
+
+# Run migrations
+supabase db reset
+```
+
+**Option B: Cloud Supabase**
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to SQL Editor and run the migration file: `supabase/migrations/001_initial_schema.sql`
+3. Copy your project URL and keys to `.env.local`
+
+### 4. Install dependencies
+
+```bash
+npm install
+```
+
+### 5. Start development server
+
+```bash
 npm run dev
 ```
 
-> **Note:** Full setup instructions coming soon. See documentation for API key requirements.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
+
+## Project Structure
+
+```
+replystack/
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── (auth)/             # Auth pages (login, signup)
+│   │   ├── (dashboard)/        # Dashboard pages
+│   │   └── api/                # API routes
+│   ├── components/
+│   │   ├── ui/                 # Reusable UI components
+│   │   ├── reviews/            # Review-related components
+│   │   └── layout/             # Layout components
+│   ├── lib/
+│   │   ├── supabase/           # Supabase client setup
+│   │   ├── anthropic.ts        # Claude AI integration
+│   │   ├── stripe.ts           # Stripe integration
+│   │   └── google.ts           # Google Business Profile API
+│   └── types/                  # TypeScript types
+├── supabase/
+│   └── migrations/             # Database migrations
+├── docs/                       # Documentation
+└── public/                     # Static assets
+```
+
+## Available Scripts
+
+```bash
+npm run dev       # Start development server
+npm run build     # Build for production
+npm run start     # Start production server
+npm run lint      # Run ESLint
+```
 
 ## Documentation
 
