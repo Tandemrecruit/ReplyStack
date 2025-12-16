@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { exchangeCodeForTokens, fetchAccounts, fetchLocations } from '@/lib/google';
 
 /**
- * Google OAuth callback handler
- * Exchanges auth code for tokens and fetches user's business locations
+ * Handle Google OAuth callback, persist the Google refresh token, sync the user's Google Business Profile locations into the database, and redirect to /settings with a status indicator.
+ *
+ * @returns A redirect Response to /settings whose query string contains either `success=google_connected` or an `error` key describing the failure (e.g., `missing_code`, `not_authenticated`, `token_save_failed`, `no_business_accounts`, `no_organization`, `oauth_failed`).
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;

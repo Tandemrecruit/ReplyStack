@@ -14,6 +14,19 @@ export interface ResponseEditorProps {
   maxLength?: number;
 }
 
+/**
+ * Modal editor for composing a response with live character counting, draft saving, and publishing.
+ *
+ * @param isOpen - Whether the modal is visible
+ * @param onClose - Callback invoked to close the modal
+ * @param initialText - Initial text to populate the editor
+ * @param onSave - Callback invoked with the current text when the user saves a draft
+ * @param onPublish - Callback invoked with the current text when the user publishes
+ * @param isSaving - Optional flag indicating a save operation is in progress (default: `false`)
+ * @param isPublishing - Optional flag indicating a publish operation is in progress (default: `false`)
+ * @param maxLength - Optional maximum allowed characters for the response (default: `4096`)
+ * @returns The rendered ResponseEditor modal element
+ */
 export function ResponseEditor({
   isOpen,
   onClose,

@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
 
+/**
+ * Create a Supabase client for server-side use that is bound to Next.js server cookies for session handling.
+ *
+ * @returns A Supabase client (typed with `Database`) initialized with the app's public URL and anon key and configured with cookie handlers that read from Next.js server cookies; attempts to set cookies are performed but any errors during setting are ignored.
+ */
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -29,6 +34,11 @@ export async function createClient() {
   );
 }
 
+/**
+ * Create a Supabase client authenticated with the service role key for privileged admin operations.
+ *
+ * @returns A Supabase client (typed for `Database`) authenticated with the service role key that bypasses Row Level Security
+ */
 export async function createServiceClient() {
   // Service client for admin operations (bypasses RLS)
   const { createClient } = await import('@supabase/supabase-js');

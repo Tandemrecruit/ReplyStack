@@ -12,6 +12,17 @@ export interface ReviewListProps {
   publishingReviewId?: string | null;
 }
 
+/**
+ * Render a reviews list UI that shows loading skeletons, an empty state, or a mapped list of ReviewCard items.
+ *
+ * @param reviews - Array of reviews to render
+ * @param isLoading - When true, show loading skeleton placeholders instead of reviews
+ * @param onGenerateResponse - Callback invoked with a review id to generate a response
+ * @param onPublishResponse - Callback invoked with a review id to publish a response
+ * @param generatingReviewId - When equal to a review's id, that review's card is shown in a generating state
+ * @param publishingReviewId - When equal to a review's id, that review's card is shown in a publishing state
+ * @returns The React element representing the review list UI
+ */
 export function ReviewList({
   reviews,
   isLoading = false,

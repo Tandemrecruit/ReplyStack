@@ -11,6 +11,13 @@ const toneOptions = [
   { id: 'formal', label: 'Formal', description: 'Traditional and respectful' },
 ];
 
+/**
+ * Render the Voice Profile editor for configuring how AI generates responses in your voice.
+ *
+ * The component provides controls for selecting response tone, adding personality notes, configuring sign-off style, specifying words to use or avoid (comma-separated), setting a maximum response length, and supplying example responses. Invoking the save action sets a loading state, simulates persistence with a 1-second delay, and logs a payload containing the current profile (tone, notes, sign-off, parsed word lists, maxLength, and non-empty example responses).
+ *
+ * @returns The React element containing the full voice profile UI and save behavior.
+ */
 export default function VoiceProfilePage() {
   const [tone, setTone] = useState('friendly');
   const [personalityNotes, setPersonalityNotes] = useState('');

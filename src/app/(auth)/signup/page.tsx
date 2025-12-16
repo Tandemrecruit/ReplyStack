@@ -4,6 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button, Input, Card, CardContent } from '@/components/ui';
 
+/**
+ * Client-side signup page that renders a registration form with an optional Google signup action.
+ *
+ * Renders controlled inputs for name, business name, email, and password, shows inline error messages when signup fails, and navigates to `/dashboard` on successful submission. The Google signup button is a placeholder for OAuth integration.
+ *
+ * @returns The React element for the signup page UI.
+ */
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

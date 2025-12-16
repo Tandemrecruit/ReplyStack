@@ -16,7 +16,10 @@ export interface CreateCheckoutSessionParams {
 }
 
 /**
- * Create a Stripe Checkout session for subscription
+ * Creates a Stripe Checkout session configured for a subscription purchase.
+ *
+ * @param params - Parameters for session creation; if `params.customerId` is provided it will be attached to the session, otherwise `params.customerEmail` will be used to prefill the customer. The created subscription includes a 14-day trial and `organizationId` is recorded in both session and subscription metadata.
+ * @returns The created Stripe Checkout Session
  */
 export async function createCheckoutSession(
   params: CreateCheckoutSessionParams
@@ -50,7 +53,11 @@ export async function createCheckoutSession(
 }
 
 /**
- * Create a Stripe Customer Portal session for billing management
+ * Creates a Stripe Billing Portal session that directs a customer to manage billing.
+ *
+ * @param customerId - The Stripe customer ID to create the portal session for.
+ * @param returnUrl - URL the customer is redirected to after leaving the portal.
+ * @returns The created Stripe Billing Portal session.
  */
 export async function createPortalSession(
   customerId: string,
@@ -95,7 +102,9 @@ export async function getOrCreateCustomer(
 }
 
 /**
- * Retrieve subscription details
+ * Retrieve a Stripe subscription by its ID.
+ *
+ * @returns The Stripe subscription matching `subscriptionId`, or `null` if it cannot be retrieved (for example, not found or an error occurs)
  */
 export async function getSubscription(
   subscriptionId: string
@@ -108,7 +117,10 @@ export async function getSubscription(
 }
 
 /**
- * Cancel a subscription at period end
+ * Cancel a subscription at the end of its current billing period.
+ *
+ * @param subscriptionId - The ID of the subscription to cancel at period end
+ * @returns The updated Stripe Subscription
  */
 export async function cancelSubscription(
   subscriptionId: string

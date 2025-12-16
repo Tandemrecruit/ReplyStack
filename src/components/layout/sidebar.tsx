@@ -10,6 +10,13 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 
+/**
+ * Renders the fixed left navigation sidebar used across the app.
+ *
+ * Highlights the active navigation item based on the current pathname and includes a top logo link and a bottom user account panel.
+ *
+ * @returns A React element representing the fixed left sidebar with navigation links and a user panel
+ */
 export function Sidebar() {
   const pathname = usePathname();
 
@@ -67,7 +74,12 @@ export function Sidebar() {
   );
 }
 
-// Simple icon components
+/**
+ * Renders a home-shaped SVG icon.
+ *
+ * @param className - Optional CSS class(es) applied to the `<svg>` element
+ * @returns The SVG element representing a home icon
+ */
 function HomeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,6 +93,12 @@ function HomeIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Renders a chat bubble SVG icon.
+ *
+ * @param className - Optional CSS class applied to the root SVG element
+ * @returns An SVG element representing a chat bubble icon
+ */
 function ChatBubbleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,6 +112,12 @@ function ChatBubbleIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Renders a microphone SVG icon.
+ *
+ * @param className - Optional CSS class names applied to the root `<svg>` element
+ * @returns The SVG element representing a microphone icon
+ */
 function MicrophoneIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,6 +131,12 @@ function MicrophoneIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Renders a gear (settings) SVG icon.
+ *
+ * @param className - Optional CSS class names applied to the root SVG element
+ * @returns The SVG element for a cog/gear icon
+ */
 function CogIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">

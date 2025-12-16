@@ -11,6 +11,14 @@ export interface HeaderProps {
   };
 }
 
+/**
+ * Render a header bar showing a title, an optional description, and an optional action button.
+ *
+ * @param title - Main heading text displayed prominently
+ * @param description - Optional supporting text shown below the title
+ * @param action - Optional action configuration; when provided, a button is rendered with `label` as its content and `onClick` invoked when the button is pressed
+ * @returns A header React element containing the title, optional description, and optional action button
+ */
 export function Header({ title, description, action }: HeaderProps) {
   return (
     <header className="border-b border-gray-200 bg-white px-6 py-4">

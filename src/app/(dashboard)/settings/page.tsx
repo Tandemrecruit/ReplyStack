@@ -4,6 +4,13 @@ import { useState } from 'react';
 import { Header } from '@/components/layout';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 
+/**
+ * Render the account settings page with sections for profile, Google Business Profile, notifications, billing, and account deletion.
+ *
+ * The profile section includes editable fields for name, email, and business name and a Save Profile action that simulates persistence (1 second delay) and logs the profile values.
+ *
+ * @returns The React element for the Settings page UI
+ */
 export default function SettingsPage() {
   const [name, setName] = useState('John Smith');
   const [email, setEmail] = useState('john@example.com');
@@ -161,6 +168,14 @@ export default function SettingsPage() {
   );
 }
 
+/**
+ * Renders a labeled toggle control that manages its own on/off state.
+ *
+ * @param label - The primary label text displayed next to the toggle
+ * @param description - The secondary description text displayed below the label
+ * @param defaultChecked - The initial checked state of the toggle when mounted
+ * @returns A JSX element containing the label, description, and a button-style toggle whose checked state is managed locally
+ */
 function NotificationToggle({
   label,
   description,

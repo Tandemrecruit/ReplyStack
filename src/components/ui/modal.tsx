@@ -10,6 +10,16 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
+/**
+ * Renders an accessible modal dialog with an optional header and configurable width.
+ *
+ * @param isOpen - Whether the modal is visible; when false, nothing is rendered.
+ * @param onClose - Callback invoked to close the modal (triggered by close button, backdrop click, or Escape key).
+ * @param title - Optional header text displayed at the top of the modal.
+ * @param children - Content to render inside the modal body.
+ * @param size - Optional size key to control the modal max width; one of `'sm' | 'md' | 'lg' | 'xl'` (default: `'md'`).
+ * @returns The modal's JSX element when open, or `null` when closed.
+ */
 export function Modal({
   isOpen,
   onClose,
