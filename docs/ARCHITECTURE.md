@@ -1,0 +1,281 @@
+# Technical Architecture
+
+## Stack Overview
+
+| Layer | Choice | Rationale |
+|-------|--------|-----------|
+| Frontend | Next.js 15 (App Router) | Fast, good DX, unified codebase |
+| Backend | Next.js API routes | Edge-ready, no separate server |
+| Database | PostgreSQL via Supabase | Relational fits review data, auth included |
+| Auth | Supabase Auth + Google OAuth | Need Google OAuth for Business Profile API |
+| Payments | Stripe | Subscription-native |
+| AI | Claude API (Sonnet) | Best natural tone for business communication |
+| Deployment | Vercel | Natural Next.js fit |
+| Email | Resend | Simple transactional email |
+
+---
+
+## Database Schema
+
+```sql
+-- Organizations (accounts/tenants)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    plan_tier TEXT DEFAULT 'starter',
+    trial_ends_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Users
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT,
+    role TEXT DEFAULT 'owner',
+    google_refresh_token TEXT, -- Encrypted at rest via Supabase Vault
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Voice Profiles (AI personality configuration)
+CREATE TABLE voice_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT DEFAULT 'Default',
+    tone TEXT DEFAULT 'friendly',
+    personality_notes TEXT,
+    example_responses TEXT[],
+    sign_off_style TEXT,
+    words_to_use TEXT[],
+    words_to_avoid TEXT[],
+    max_length INTEGER DEFAULT 150,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Locations (Google Business Profile locations)
+CREATE TABLE locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    google_account_id TEXT NOT NULL,
+    google_location_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    address TEXT,
+    is_active BOOLEAN DEFAULT true,
+    voice_profile_id UUID REFERENCES voice_profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    UNIQUE(google_account_id, google_location_id)
+);
+
+-- Reviews
+CREATE TABLE reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    location_id UUID REFERENCES locations(id) ON DELETE CASCADE,
+    platform TEXT DEFAULT 'google',
+    external_review_id TEXT UNIQUE NOT NULL,
+    reviewer_name TEXT,
+    reviewer_photo_url TEXT,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    review_text TEXT,
+    review_date TIMESTAMP,
+    has_response BOOLEAN DEFAULT false,
+    status TEXT DEFAULT 'pending', -- pending, responded, ignored
+    sentiment TEXT, -- positive, neutral, negative
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Responses (AI-generated and published responses)
+CREATE TABLE responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
+    generated_text TEXT NOT NULL,
+    edited_text TEXT,
+    final_text TEXT, -- What was actually published
+    status TEXT DEFAULT 'draft', -- draft, published, failed
+    published_at TIMESTAMP,
+    tokens_used INTEGER,
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_reviews_location_status ON reviews(location_id, status);
+CREATE INDEX idx_reviews_location_date ON reviews(location_id, review_date DESC);
+CREATE INDEX idx_responses_review ON responses(review_id);
+CREATE INDEX idx_locations_org ON locations(organization_id);
+```
+
+---
+
+## External Integrations
+
+### Google Business Profile API
+
+**Authentication:**
+- OAuth 2.0 with `https://www.googleapis.com/auth/business.manage` scope
+- Store refresh token encrypted at rest
+- Token refresh handled automatically before API calls
+
+**Endpoints Used:**
+
+| Endpoint | Purpose |
+|----------|---------|
+| `accounts.list` | Get user's GBP accounts |
+| `accounts.locations.list` | Get locations for an account |
+| `accounts.locations.reviews.list` | Fetch reviews for a location |
+| `accounts.locations.reviews.updateReply` | Publish response to a review |
+
+**Polling Strategy:**
+- No webhook available from Google for new reviews
+- Poll every 15 minutes per active location
+- Use Vercel Cron for scheduled polling
+- Store `lastFetchedAt` per location to fetch only new reviews
+- Rate limit: Max 60 requests/minute across all users
+
+**Error Handling:**
+- Retry with exponential backoff on 5xx errors
+- Re-authenticate on 401 (token expired)
+- Alert user on 403 (permissions revoked)
+
+### Claude API
+
+**Model:** `claude-sonnet-4-20250514`
+
+**Cost Estimation:**
+- Average response: ~100 tokens output
+- With context: ~500 tokens input
+- Cost per response: ~$0.003
+- 1000 responses/month: ~$3
+
+**Implementation:**
+- See [PROMPTS.md](./PROMPTS.md) for prompt architecture
+- Streaming disabled (responses are short)
+- Timeout: 30 seconds
+- Retry: 2 attempts on failure
+
+### Stripe
+
+**Products:**
+- Single subscription product for MVP
+- Price: $49/month
+- 14-day free trial included
+
+**Integration Points:**
+
+| Event | Action |
+|-------|--------|
+| `checkout.session.completed` | Create subscription, activate account |
+| `customer.subscription.updated` | Update plan tier |
+| `customer.subscription.deleted` | Downgrade to free/pause account |
+| `invoice.payment_failed` | Send payment failure email |
+
+**Webhooks:**
+- Endpoint: `/api/webhooks/stripe`
+- Verify webhook signature
+- Idempotent handling (store processed event IDs)
+
+### Resend (Email)
+
+**Transactional Emails:**
+- New review notification
+- Daily review digest
+- Trial ending reminder
+- Payment failed notification
+- Welcome email
+
+---
+
+## Key Technical Decisions
+
+### 1. Server Components by Default
+
+Use React Server Components for all pages and components except:
+- Interactive forms (voice profile editor)
+- Real-time elements (if any)
+- Components needing browser APIs
+
+Benefits: Smaller bundle, faster initial load, simpler data fetching.
+
+### 2. Token Encryption
+
+Google refresh tokens encrypted at rest:
+- **Option A (preferred):** Supabase Vault for automatic encryption
+- **Option B:** Application-level encryption with `crypto.subtle`
+- Key stored in environment variable, rotated quarterly
+
+### 3. Background Jobs via Vercel Cron
+
+Review polling runs on schedule:
+```
+# vercel.json
+{
+  "crons": [{
+    "path": "/api/cron/poll-reviews",
+    "schedule": "*/15 * * * *"
+  }]
+}
+```
+
+Considerations:
+- Max 60-second execution time on Vercel
+- Batch locations if many users
+- Use queue for scale (future: Inngest or similar)
+
+### 4. Optimistic UI Updates
+
+When publishing a response:
+1. Immediately show "Published" state in UI
+2. Send publish request to Google in background
+3. If fails, revert UI and show error toast
+
+Improves perceived performance significantly.
+
+---
+
+## Directory Structure
+
+```
+replystack/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   ├── signup/
+│   │   └── callback/
+│   ├── (dashboard)/
+│   │   ├── reviews/
+│   │   ├── settings/
+│   │   └── billing/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── reviews/
+│   │   ├── responses/
+│   │   ├── webhooks/
+│   │   └── cron/
+│   └── layout.tsx
+├── components/
+│   ├── ui/
+│   ├── reviews/
+│   └── voice-profile/
+├── lib/
+│   ├── supabase/
+│   ├── google/
+│   ├── stripe/
+│   ├── claude/
+│   └── utils/
+├── docs/
+└── public/
+```
+
+---
+
+## Security Considerations
+
+| Risk | Mitigation |
+|------|------------|
+| Token theft | Encrypt at rest, never log tokens |
+| XSS | Next.js sanitizes by default, CSP headers |
+| CSRF | Supabase handles with secure cookies |
+| SQL injection | Parameterized queries via Supabase client |
+| Rate limiting | Implement per-user rate limits on AI generation |
+| Data access | Row-level security (RLS) policies in Supabase |
