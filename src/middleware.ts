@@ -7,6 +7,19 @@ const publicRoutes = ['/', '/login', '/signup', '/api/webhooks'];
 // Routes that are always accessible
 const publicPrefixes = ['/api/webhooks/', '/_next/', '/favicon.ico'];
 
+/**
+ * Enforces route-based authentication and updates the session for incoming requests.
+ *
+ * Allows listed public routes and prefixes to proceed. For protected paths under
+ * /dashboard, /reviews, /settings, and /voice-profile, redirects unauthenticated
+ * requests to /login with a `next` query parameter set to the original path.
+ * Redirects authenticated users away from /login and /signup to /dashboard.
+ *
+ * @returns A NextResponse that continues processing for public routes, a redirect
+ * to `/login` (including a `next` query) for unauthenticated access to protected
+ * routes, a redirect to `/dashboard` when authenticated users request auth pages,
+ * or the response produced by the session update step.
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

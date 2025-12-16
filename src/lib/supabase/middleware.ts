@@ -1,6 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+/**
+ * Synchronizes Supabase authentication cookies between the incoming Next.js request and outgoing response, then retrieves the current authenticated user.
+ *
+ * @param request - The incoming Next.js request whose cookies will be read and updated to reflect Supabase auth changes
+ * @returns An object containing `supabaseResponse` — the NextResponse updated with any auth cookies set by Supabase — and `user` — the authenticated user data or `null` if no user is authenticated
+ */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,

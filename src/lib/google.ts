@@ -59,7 +59,10 @@ export interface GoogleReview {
 }
 
 /**
- * Generate OAuth authorization URL
+ * Builds a Google OAuth 2.0 authorization URL containing required scopes and the provided state.
+ *
+ * @param state - Value included in the OAuth `state` query parameter to correlate authorization requests with callbacks.
+ * @returns The full authorization URL to redirect users to for Google consent.
  */
 export function getOAuthUrl(state: string): string {
   const params = new URLSearchParams({
@@ -76,7 +79,11 @@ export function getOAuthUrl(state: string): string {
 }
 
 /**
- * Exchange authorization code for tokens
+ * Exchange an OAuth authorization code for Google access and refresh tokens.
+ *
+ * @param code - The authorization code returned by Google's OAuth consent flow
+ * @returns An object containing `accessToken`, `refreshToken`, and `expiresIn` (seconds until the access token expires)
+ * @throws Error if the token endpoint responds with a non-OK status
  */
 export async function exchangeCodeForTokens(code: string): Promise<GoogleTokens> {
   const response = await fetch(GOOGLE_TOKEN_URL, {
@@ -108,7 +115,11 @@ export async function exchangeCodeForTokens(code: string): Promise<GoogleTokens>
 }
 
 /**
- * Refresh access token using refresh token
+ * Obtain a new Google OAuth access token using a refresh token.
+ *
+ * @param refreshToken - The refresh token previously issued by Google
+ * @returns The refreshed access token string
+ * @throws If the token endpoint responds with a non-OK status; the thrown Error's message contains the endpoint response text
  */
 export async function refreshAccessToken(refreshToken: string): Promise<string> {
   const response = await fetch(GOOGLE_TOKEN_URL, {
@@ -134,7 +145,9 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
 }
 
 /**
- * Fetch user's Google Business Profile accounts
+ * Retrieve Google Business Profile accounts for the authenticated user.
+ *
+ * @returns An array of `GoogleAccount` objects, or an empty array if the user has no accounts.
  */
 export async function fetchAccounts(accessToken: string): Promise<GoogleAccount[]> {
   const response = await fetch(`${GOOGLE_BUSINESS_API_URL}/accounts`, {
@@ -153,7 +166,12 @@ export async function fetchAccounts(accessToken: string): Promise<GoogleAccount[
 }
 
 /**
- * Fetch locations for a specific account
+ * Retrieve locations belonging to a Google Business Profile account.
+ *
+ * @param accessToken - OAuth2 access token with the Business Profile scopes
+ * @param accountId - The account resource name (for example, `accounts/123456789`)
+ * @returns An array of `GoogleLocation` objects for the account; an empty array if no locations are found
+ * @throws Error if the API responds with a non-OK status (error message contains the response text)
  */
 export async function fetchLocations(
   accessToken: string,
@@ -178,7 +196,13 @@ export async function fetchLocations(
 }
 
 /**
- * Fetch reviews for a specific location
+ * Retrieve reviews for a Google Business Profile location, with optional pagination.
+ *
+ * @param accessToken - OAuth2 access token with permissions to read Business Profile reviews
+ * @param locationName - Resource name of the location (for example `accounts/{accountId}/locations/{locationId}`)
+ * @param pageToken - Optional token to retrieve the next page of results
+ * @returns An object containing `reviews` — an array of `GoogleReview` — and `nextPageToken` when additional pages are available
+ * @throws Error if the HTTP request fails or the API responds with a non-OK status
  */
 export async function fetchReviews(
   accessToken: string,
@@ -210,7 +234,12 @@ export async function fetchReviews(
 }
 
 /**
- * Publish a response to a review
+ * Publishes a reply to a Google Business Profile review.
+ *
+ * @param accessToken - OAuth access token used to authorize the request
+ * @param reviewName - Full resource name of the review (for example: `accounts/{accountId}/locations/{locationId}/reviews/{reviewId}`)
+ * @param responseText - Text of the reply to post to the review
+ * @throws Error when the API responds with a non-OK status; message includes the response text
  */
 export async function publishResponse(
   accessToken: string,
@@ -238,7 +267,10 @@ export async function publishResponse(
 }
 
 /**
- * Convert Google star rating to number
+ * Convert a Google star rating token into its numeric value.
+ *
+ * @param rating - The Google star rating token: 'ONE', 'TWO', 'THREE', 'FOUR', or 'FIVE'
+ * @returns The numeric rating 1–5, or 0 if `rating` is not recognized
  */
 export function starRatingToNumber(
   rating: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE'

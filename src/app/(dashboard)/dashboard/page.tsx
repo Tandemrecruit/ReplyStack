@@ -1,6 +1,11 @@
 import { Header } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 
+/**
+ * Renders the Dashboard page with review statistics and a list of recent reviews.
+ *
+ * @returns The Dashboard page JSX element containing a header, a responsive stats grid of stat cards, and a recent reviews card with reviewer name, star rating, status badge, review text, and a link to view all reviews.
+ */
 export default function DashboardPage() {
   // TODO: Fetch real data from Supabase
   const stats = {
@@ -121,6 +126,15 @@ export default function DashboardPage() {
   );
 }
 
+/**
+ * Renders a statistic card with a title, a prominent value, and a subtitle, styled according to the chosen visual variant.
+ *
+ * @param title - Label displayed above the value
+ * @param value - Primary metric displayed prominently
+ * @param subtitle - Supplemental text shown below the value
+ * @param variant - Visual style of the card; one of `default`, `success`, `warning`, or `info`
+ * @returns A JSX element representing the statistic card
+ */
 function StatCard({
   title,
   value,

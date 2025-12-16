@@ -4,8 +4,15 @@ import { createServiceClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
 /**
- * Stripe webhook handler
- * Processes subscription events from Stripe
+ * Handle Stripe webhook POST requests and update organization records in Supabase based on the incoming event.
+ *
+ * Verifies the Stripe signature, constructs the event, and processes supported event types:
+ * - `checkout.session.completed`: sets customer/subscription IDs and upgrades plan to `professional`
+ * - `customer.subscription.updated`: sets `plan_tier` to `professional` when active, otherwise `starter`
+ * - `customer.subscription.deleted`: sets `plan_tier` to `starter` and clears `stripe_subscription_id`
+ * - `invoice.payment_failed`: logs the failed invoice (placeholder for notification)
+ *
+ * @returns `{ received: true }` on successful processing; otherwise an error object with an `error` message and an appropriate HTTP status code.
  */
 export async function POST(request: NextRequest) {
   const body = await request.text();

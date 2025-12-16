@@ -3,8 +3,15 @@ import { createClient } from '@/lib/supabase/server';
 import { generateReviewResponse } from '@/lib/anthropic';
 
 /**
- * Generate AI response for a review
- * POST /api/reviews/generate
+ * Generate an AI-written response for a review and save it as a draft.
+ *
+ * Accepts a JSON body containing `reviewId`, fetches the review and its
+ * voice profile (falling back to a default), generates a response via the
+ * AI service, and inserts the generated text into the `responses` table
+ * with status `draft`.
+ *
+ * @param request - NextRequest whose JSON body must include `reviewId` (string)
+ * @returns On success, a JSON object `{ success: true, response }` containing the saved response row. On failure, a JSON object `{ error: string }` with an appropriate HTTP status code (401, 400, 404, or 500).
  */
 export async function POST(request: NextRequest) {
   try {

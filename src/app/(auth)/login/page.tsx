@@ -4,6 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 
+/**
+ * Renders the client-side login page with email and password inputs, remember-me and forgot-password controls, a secondary Google-login option, and manages local form state and submission flow (simulated) including redirect to /dashboard on success.
+ *
+ * @returns The login page as a JSX element.
+ */
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

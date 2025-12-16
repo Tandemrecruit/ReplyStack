@@ -6,6 +6,15 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   size?: 'sm' | 'md';
 }
 
+/**
+ * Render a rounded inline badge (pill) that displays provided content with variant and size styling.
+ *
+ * @param className - Additional CSS classes applied to the root span
+ * @param children - Content to render inside the badge
+ * @param variant - Visual style; one of `'default' | 'success' | 'warning' | 'error' | 'info'`
+ * @param size - Size of the badge; either `'sm'` or `'md'`
+ * @returns A span element styled as a rounded badge containing `children`
+ */
 export function Badge({
   className = '',
   children,
@@ -36,20 +45,39 @@ export function Badge({
   );
 }
 
-// Convenience components for review statuses
+/**
+ * Renders a compact warning-styled badge that displays the text "Pending".
+ *
+ * @returns A badge element styled for warning states containing the text "Pending".
+ */
 export function PendingBadge() {
   return <Badge variant="warning">Pending</Badge>;
 }
 
+/**
+ * Renders a status badge labeled "Responded" using the success styling.
+ *
+ * @returns A badge element labeled "Responded" styled with the `success` variant.
+ */
 export function RespondedBadge() {
   return <Badge variant="success">Responded</Badge>;
 }
 
+/**
+ * Renders a badge labeled "Ignored" with the default styling.
+ *
+ * @returns A Badge element displaying "Ignored" using the `default` variant.
+ */
 export function IgnoredBadge() {
   return <Badge variant="default">Ignored</Badge>;
 }
 
-// Star rating badge
+/**
+ * Render a star rating badge whose visual variant reflects the numeric rating.
+ *
+ * @param rating - Numeric rating used to choose the badge variant: `>= 4` maps to `success`, `>= 3` maps to `warning`, otherwise `error`
+ * @returns A Badge JSX element displaying the numeric `rating` and the correctly pluralized word "star" or "stars"
+ */
 export function RatingBadge({ rating }: { rating: number }) {
   const variant = rating >= 4 ? 'success' : rating >= 3 ? 'warning' : 'error';
 

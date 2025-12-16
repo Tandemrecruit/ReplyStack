@@ -28,11 +28,11 @@ export interface GenerateResponseResult {
 }
 
 /**
- * Generate a review response using Claude AI
+ * Generates a customer-facing reply to a review using the provided voice profile.
  *
- * @param review - The review context (reviewer name, rating, text, etc.)
- * @param voiceProfile - The voice profile configuration for the business
- * @returns The generated response text and token usage
+ * @param review - Review context including reviewerName, rating, reviewText, and businessName
+ * @param voiceProfile - Voice and style configuration that shapes tone, length, and wording
+ * @returns The generated response text and total tokens used: `response` is the reply, `tokensUsed` is the sum of input and output tokens
  */
 export async function generateReviewResponse(
   review: ReviewContext,
@@ -67,6 +67,12 @@ export async function generateReviewResponse(
   };
 }
 
+/**
+ * Builds the system prompt text for the language model from a voice profile.
+ *
+ * @param voiceProfile - Voice settings used to shape the prompt (tone, optional personalityNotes, wordsToUse, wordsToAvoid, exampleResponses, and maxLength)
+ * @returns The composed system prompt string containing tone instructions, optional personality notes, preferred/avoided vocabulary, example responses, a max-length directive, and behavioral constraints
+ */
 function buildSystemPrompt(voiceProfile: VoiceProfile): string {
   const parts = [
     `You are a helpful assistant writing business review responses.`,
@@ -99,6 +105,16 @@ function buildSystemPrompt(voiceProfile: VoiceProfile): string {
   return parts.join('\n\n');
 }
 
+/**
+ * Builds the user-facing prompt instructing the model how to respond to a specific review.
+ *
+ * The prompt indicates the inferred sentiment (positive/neutral/negative) and rating, identifies the business,
+ * includes the reviewer name and review text, and appends a requested sign-off style when provided.
+ *
+ * @param review - Context about the review, including reviewerName, rating, reviewText, and businessName
+ * @param voiceProfile - Voice preferences; if `signOffStyle` is present it will be included in the prompt
+ * @returns The assembled user prompt string to send to the model
+ */
 function buildUserPrompt(review: ReviewContext, voiceProfile: VoiceProfile): string {
   const sentiment = review.rating >= 4 ? 'positive' : review.rating >= 3 ? 'neutral' : 'negative';
 

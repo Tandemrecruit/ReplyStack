@@ -3,8 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { publishResponse, refreshAccessToken } from '@/lib/google';
 
 /**
- * Publish a response to Google
- * POST /api/reviews/publish
+ * Publishes a stored review response to Google and updates the response and review records.
+ *
+ * Expects a JSON body with `responseId` and optional `text`. Requires an authenticated user with a connected Google account; if `text` is omitted, uses the response's edited or generated text. On success, marks the response as published and the review as responded.
+ *
+ * @returns JSON response. On success: `{ success: true, message: 'Response published to Google' }` with HTTP 200. Possible error responses include 401 (unauthorized), 400 (bad request / Google account not connected), 404 (response not found), and 500 (internal server error) with `{ error: string }`.
  */
 export async function POST(request: NextRequest) {
   try {

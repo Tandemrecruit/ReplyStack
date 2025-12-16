@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui';
 
+/**
+ * Render the ReplyStack landing page layout.
+ *
+ * The page includes a header with navigation, a hero section with CTAs,
+ * a features ("How It Works") section, a pricing card with plan details,
+ * and a footer with the current year.
+ *
+ * @returns The landing page element containing header, hero, features, pricing, and footer
+ */
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
@@ -127,6 +136,14 @@ export default function LandingPage() {
   );
 }
 
+/**
+ * Renders a feature card with a circular step badge, a title, and a description.
+ *
+ * @param step - Text displayed inside the circular step badge (e.g., "1", "A")
+ * @param title - Heading displayed as the card's title
+ * @param description - Supporting text describing the feature
+ * @returns A JSX element representing the feature card
+ */
 function FeatureCard({
   step,
   title,
@@ -147,6 +164,12 @@ function FeatureCard({
   );
 }
 
+/**
+ * Renders a list item with a green check icon and the provided content for a pricing feature.
+ *
+ * @param children - Content displayed to the right of the check icon (feature label or node)
+ * @returns A `<li>` element containing a green check SVG and the given content
+ */
 function PricingFeature({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-center">

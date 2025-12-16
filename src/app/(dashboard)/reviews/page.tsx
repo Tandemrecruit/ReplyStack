@@ -70,6 +70,11 @@ const mockReviews: ReviewWithResponse[] = [
   },
 ];
 
+/**
+ * Render the Reviews management page with search, status filters, and controls to generate or publish responses for individual reviews.
+ *
+ * @returns The page's React element containing a header, search input, status filter buttons, and a ReviewList wired with generate/publish callbacks and loading states.
+ */
 export default function ReviewsPage() {
   const [reviews] = useState<ReviewWithResponse[]>(mockReviews);
   const [filter, setFilter] = useState<ReviewStatus | 'all'>('all');
@@ -163,6 +168,14 @@ export default function ReviewsPage() {
   );
 }
 
+/**
+ * Renders a filter button that visually indicates an active state.
+ *
+ * @param children - Content displayed inside the button (label or icon)
+ * @param active - Whether the button is shown in its active (selected) style
+ * @param onClick - Callback invoked when the button is clicked
+ * @returns A button element styled for use as a filter control
+ */
 function FilterButton({
   children,
   active,

@@ -11,6 +11,16 @@ export interface ReviewCardProps {
   isPublishing?: boolean;
 }
 
+/**
+ * Render a review card showing reviewer avatar, name, date, rating, status, review text, an optional response, and context-aware action buttons.
+ *
+ * @param review - Review data (including optional `response`) used to populate the card's content and determine available actions
+ * @param onGenerateResponse - Callback invoked with the review id when the "Generate Response" action is triggered
+ * @param onPublishResponse - Callback invoked with the review id when the "Publish Response" action is triggered
+ * @param isGenerating - When true, shows a loading state for the "Generate Response" action
+ * @param isPublishing - When true, shows a loading state for the "Publish Response" action
+ * @returns A JSX element representing the review card
+ */
 export function ReviewCard({
   review,
   onGenerateResponse,
