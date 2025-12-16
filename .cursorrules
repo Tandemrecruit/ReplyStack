@@ -1,0 +1,479 @@
+# ReplyStack / AnswerCraft - Cursor Rules
+
+## Project Overview
+
+ReplyStack is an AI-powered Google review response tool for local businesses. Built with Next.js 15, Supabase, Claude API, and Stripe.
+
+**Core Value:** Respond to every review in 30 seconds with AI that sounds like you.
+
+## Tech Stack
+
+- **Framework:** Next.js 15 with App Router (Server Components by default)
+- **Language:** TypeScript (strict mode)
+- **Database:** PostgreSQL via Supabase
+- **Auth:** Supabase Auth + Google OAuth
+- **AI:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **Payments:** Stripe (subscriptions)
+- **Email:** Resend
+- **Styling:** Tailwind CSS
+- **Deployment:** Vercel
+
+## Architecture Principles
+
+### Server Components First
+- Use React Server Components for all pages and components by default
+- Only use Client Components (`'use client'`) when necessary:
+  - Interactive forms (voice profile editor, review filters)
+  - Real-time elements
+  - Browser APIs (localStorage, window, etc.)
+  - Event handlers (onClick, onChange, etc.)
+
+### Data Fetching
+- Fetch data directly in Server Components using async/await
+- Use Supabase client in Server Components: `createServerClient()` from `@supabase/ssr`
+- Never expose API keys or tokens to the client
+- Use API routes only for:
+  - Webhooks (Stripe, external services)
+  - Cron jobs
+  - Actions that require server-side secrets
+
+### Directory Structure
+```
+app/
+├── (auth)/              # Auth routes (login, signup, callback)
+├── (dashboard)/         # Protected dashboard routes
+│   ├── reviews/
+│   ├── settings/
+│   └── billing/
+├── api/                 # API routes
+│   ├── auth/
+│   ├── reviews/
+│   ├── responses/
+│   ├── webhooks/
+│   └── cron/
+└── layout.tsx
+
+components/
+├── ui/                  # Reusable UI components (shadcn/ui)
+├── reviews/             # Review-specific components
+└── voice-profile/       # Voice profile components
+
+lib/
+├── supabase/            # Supabase client utilities
+├── google/              # Google Business Profile API
+├── stripe/              # Stripe utilities
+├── claude/              # Claude API integration
+└── utils/               # General utilities
+```
+
+## Code Style
+
+### TypeScript
+- Use strict TypeScript
+- Prefer `interface` over `type` for object shapes
+- Use `type` for unions, intersections, and utility types
+- Always type function parameters and return types
+- Use `as const` for literal types when appropriate
+
+### Naming Conventions
+- **Files:** kebab-case (`review-list.tsx`, `generate-response.ts`)
+- **Components:** PascalCase (`ReviewList`, `GenerateResponse`)
+- **Functions:** camelCase (`fetchReviews`, `generateResponse`)
+- **Constants:** UPPER_SNAKE_CASE (`MAX_RESPONSE_LENGTH`)
+- **Database tables:** snake_case (`voice_profiles`, `organizations`)
+
+### File Naming Conventions
+
+#### Next.js App Router Files
+- **Pages:** `page.tsx` (always lowercase, Next.js convention)
+  - Example: `app/(dashboard)/reviews/page.tsx`
+- **Layouts:** `layout.tsx` (always lowercase)
+  - Example: `app/(dashboard)/layout.tsx`
+- **Loading states:** `loading.tsx`
+  - Example: `app/(dashboard)/reviews/loading.tsx`
+- **Error boundaries:** `error.tsx`
+  - Example: `app/(dashboard)/reviews/error.tsx`
+- **Not found:** `not-found.tsx`
+  - Example: `app/(dashboard)/reviews/not-found.tsx`
+- **Route groups:** Use parentheses `(group-name)` for organization only
+  - Example: `app/(auth)/login/page.tsx`, `app/(dashboard)/reviews/page.tsx`
+
+#### API Routes
+- **Route handlers:** `route.ts` (always lowercase)
+  - Example: `app/api/reviews/route.ts`
+  - Dynamic routes: `app/api/reviews/[id]/route.ts`
+  - Catch-all: `app/api/reviews/[...slug]/route.ts`
+
+#### React Components
+- **Component files:** kebab-case with `.tsx` extension
+  - Example: `components/reviews/review-list.tsx`
+  - Example: `components/voice-profile/voice-editor.tsx`
+- **Component names:** PascalCase (matches file purpose)
+  - File: `review-list.tsx` → Component: `ReviewList`
+  - File: `voice-editor.tsx` → Component: `VoiceEditor`
+- **Client Components:** Add `'use client'` directive at top, same naming
+  - Example: `components/reviews/review-filter.tsx` (with `'use client'`)
+
+#### Utility and Library Files
+- **Utility functions:** kebab-case with `.ts` extension
+  - Example: `lib/utils/format-date.ts`
+  - Example: `lib/supabase/create-client.ts`
+- **Type definitions:** kebab-case with `.ts` extension
+  - Example: `lib/types/review.ts`
+  - Example: `lib/types/voice-profile.ts`
+- **Constants:** kebab-case with `.ts` extension
+  - Example: `lib/constants/api-limits.ts`
+
+#### Integration Files
+- **API clients:** kebab-case, descriptive name
+  - Example: `lib/google/business-profile-client.ts`
+  - Example: `lib/claude/response-generator.ts`
+  - Example: `lib/stripe/subscription-manager.ts`
+
+#### Configuration Files
+- **Config files:** Standard names (Next.js conventions)
+  - `next.config.ts` or `next.config.js`
+  - `tailwind.config.ts`
+  - `tsconfig.json`
+  - `package.json`
+- **Environment:** `.env.local`, `.env.example` (never commit `.env.local`)
+
+#### Test Files
+- **Test files:** Match source file name with `.test.ts` or `.spec.ts`
+  - Example: `lib/utils/format-date.test.ts`
+  - Example: `components/reviews/review-list.test.tsx`
+- **Test utilities:** `test-utils.ts` or `__tests__/helpers.ts`
+
+#### Special Files
+- **Middleware:** `middleware.ts` (root of `app/` or project root)
+- **Cron jobs:** kebab-case in `app/api/cron/`
+  - Example: `app/api/cron/poll-reviews/route.ts`
+- **Webhooks:** kebab-case in `app/api/webhooks/`
+  - Example: `app/api/webhooks/stripe/route.ts`
+
+#### File Organization Examples
+```
+✅ Good:
+app/
+├── (auth)/
+│   ├── login/
+│   │   └── page.tsx
+│   └── signup/
+│       └── page.tsx
+├── (dashboard)/
+│   ├── reviews/
+│   │   ├── page.tsx
+│   │   ├── loading.tsx
+│   │   └── [id]/
+│   │       └── page.tsx
+│   └── settings/
+│       └── page.tsx
+└── api/
+    ├── reviews/
+    │   ├── route.ts
+    │   └── [id]/
+    │       └── route.ts
+    └── webhooks/
+        └── stripe/
+            └── route.ts
+
+components/
+├── reviews/
+│   ├── review-list.tsx
+│   ├── review-card.tsx
+│   └── review-filter.tsx
+└── voice-profile/
+    └── voice-editor.tsx
+
+lib/
+├── supabase/
+│   ├── create-client.ts
+│   └── server.ts
+├── google/
+│   └── business-profile-client.ts
+└── claude/
+    └── response-generator.ts
+
+❌ Bad:
+app/
+├── ReviewsPage.tsx          # Should be page.tsx
+├── reviews/
+│   └── Reviews.tsx          # Should be page.tsx
+└── api/
+    └── Reviews.ts           # Should be route.ts
+
+components/
+├── ReviewList.tsx           # Should be review-list.tsx
+└── reviewList.tsx           # Should be review-list.tsx
+```
+
+#### Key Rules
+1. **Always use kebab-case for file names** (except Next.js special files like `page.tsx`)
+2. **Next.js special files must be lowercase:** `page.tsx`, `layout.tsx`, `route.ts`, `loading.tsx`, `error.tsx`
+3. **Match component name to file purpose:** File `review-list.tsx` contains `ReviewList` component
+4. **Use descriptive names:** `generate-response.ts` not `gen.ts` or `response.ts`
+5. **Group related files in folders:** `components/reviews/` not `components/review-list.tsx` at root
+6. **API routes always use `route.ts`:** Never `handler.ts` or `index.ts`
+
+### React Patterns
+- Use functional components only
+- Prefer named exports for components
+- Use `async` Server Components for data fetching
+- Keep Client Components small and focused
+- Extract reusable logic into custom hooks
+
+### Error Handling
+- Use try/catch in async functions
+- Return proper HTTP status codes in API routes
+- Show user-friendly error messages (never expose stack traces)
+- Log errors server-side for debugging
+- Use optimistic UI updates where appropriate (e.g., publishing responses)
+
+### Security
+- **Never** log or expose:
+  - Google refresh tokens
+  - Stripe API keys
+  - Claude API keys
+  - User passwords
+- Encrypt sensitive data at rest (use Supabase Vault for tokens)
+- Always verify authentication in API routes
+- Use Row Level Security (RLS) policies in Supabase
+- Sanitize user input (Next.js does this by default for most cases)
+
+## Database Patterns
+
+### Supabase Client
+- Use `createServerClient()` from `@supabase/ssr` in Server Components
+- Use `createBrowserClient()` only in Client Components (rare)
+- Always use parameterized queries (Supabase client handles this)
+
+### Query Patterns
+```typescript
+// Server Component example
+const { data, error } = await supabase
+  .from('reviews')
+  .select('*, locations(*)')
+  .eq('location_id', locationId)
+  .order('review_date', { ascending: false });
+
+if (error) throw new Error(error.message);
+```
+
+### Row Level Security
+- Always enable RLS on tables
+- Policies should check `organization_id` matches user's organization
+- Test RLS policies in development
+
+## API Routes
+
+### Structure
+```typescript
+// app/api/reviews/[id]/route.ts
+import { createServerClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = await createServerClient();
+  
+  // Verify auth
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Your logic here
+  
+  return NextResponse.json({ data });
+}
+```
+
+### Webhooks
+- Always verify webhook signatures (Stripe, etc.)
+- Make webhook handlers idempotent (store processed event IDs)
+- Return 200 quickly, process async if needed
+
+## AI Integration (Claude)
+
+### Response Generation
+- Use system prompt from `docs/PROMPTS.md`
+- Always include voice profile context
+- Handle negative reviews differently (see PROMPTS.md)
+- Track token usage for cost monitoring
+- Set timeout: 30 seconds
+- Retry: 2 attempts on failure
+
+### Cost Awareness
+- Average response: ~500 tokens input, ~100 tokens output
+- Cost per response: ~$0.003
+- Monitor token usage in `responses` table
+
+## Google Business Profile API
+
+### Authentication
+- Store refresh tokens encrypted at rest (Supabase Vault)
+- Refresh tokens automatically before API calls
+- Handle 401 (re-authenticate) and 403 (permissions revoked) errors
+
+### Polling
+- Poll every 15 minutes via Vercel Cron
+- Store `lastFetchedAt` per location
+- Deduplicate reviews by `external_review_id`
+- Rate limit: Max 60 requests/minute across all users
+
+## Stripe Integration
+
+### Webhooks
+- Verify webhook signature
+- Handle events idempotently
+- Update subscription status in database
+- Send email notifications for payment failures
+
+### Trial Logic
+- 14-day free trial for new users
+- Check `trial_ends_at` in `organizations` table
+- Block features after trial expires (unless subscribed)
+
+## Styling
+
+### Tailwind CSS
+- Use Tailwind utility classes
+- Prefer composition over custom CSS
+- Use `@apply` sparingly (only for repeated patterns)
+- Follow mobile-first responsive design
+
+### Component Library
+- Use shadcn/ui components when available
+- Customize theme in `tailwind.config.ts`
+- Keep components accessible (ARIA labels, keyboard navigation)
+
+## Testing Strategy
+
+- Write tests for critical paths:
+  - Review polling and deduplication
+  - Response generation
+  - Payment webhooks
+  - Authentication flows
+- Use TypeScript for type safety (catch errors at compile time)
+- Manual testing for UI flows
+
+## Performance
+
+### Optimization
+- Use Server Components to reduce client bundle size
+- Implement pagination for review lists
+- Cache static data where appropriate
+- Optimize images (Next.js Image component)
+
+### Monitoring
+- Track API latencies
+- Monitor error rates
+- Watch token usage costs
+- Monitor Stripe webhook delivery
+
+## Common Patterns
+
+### Protected Routes
+```typescript
+// app/(dashboard)/reviews/page.tsx
+import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+
+export default async function ReviewsPage() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    redirect('/login');
+  }
+  
+  // Fetch data...
+}
+```
+
+### Form Handling
+```typescript
+// Client Component for forms
+'use client';
+
+import { useState } from 'react';
+
+export function ReviewForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      
+      if (!res.ok) throw new Error('Failed');
+      
+      // Success handling
+    } catch (error) {
+      // Error handling
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+}
+```
+
+## Environment Variables
+
+Required environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `ANTHROPIC_API_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `RESEND_API_KEY`
+
+Never commit `.env.local` or expose secrets in client code.
+
+## Documentation
+
+- Keep code self-documenting with clear names
+- Add comments for complex business logic
+- Update `docs/` when making architectural changes
+- Document API endpoints in code comments
+
+## Anti-Patterns (Don't Do This)
+
+- ❌ Don't use Client Components when Server Components work
+- ❌ Don't fetch data in Client Components that could be fetched server-side
+- ❌ Don't expose API keys or tokens to the client
+- ❌ Don't skip authentication checks in API routes
+- ❌ Don't use `any` type (use `unknown` if type is truly unknown)
+- ❌ Don't ignore TypeScript errors
+- ❌ Don't commit sensitive data
+- ❌ Don't use `console.log` in production (use proper logging)
+
+## When Adding New Features
+
+1. Check `docs/ROADMAP.md` to see if feature is planned
+2. Review `docs/ARCHITECTURE.md` for database schema
+3. Follow existing patterns in the codebase
+4. Update documentation if needed
+5. Test authentication and authorization
+6. Consider performance implications
+
+## Questions to Ask
+
+Before implementing:
+- Is this a Server Component or Client Component?
+- Does this need authentication?
+- Does this need RLS policies?
+- What's the error handling strategy?
+- How does this affect token usage/costs?
+- Is this in scope for MVP? (Check ROADMAP.md)
+

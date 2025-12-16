@@ -123,8 +123,8 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 |----------|---------|
 | `accounts.list` | Get user's GBP accounts |
 | `accounts.locations.list` | Get locations for an account |
-| `accounts.locations.reviews.list` | Fetch reviews for a location |
-| `accounts.locations.reviews.updateReply` | Publish response to a review |
+| `accounts.locations.review.list` | Fetch reviews for a location |
+| `accounts.locations.review.updateReply` | Publish response to a review |
 
 **Polling Strategy:**
 - No webhook available from Google for new reviews
@@ -140,7 +140,7 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 ### Claude API
 
-**Model:** `claude-sonnet-4-20250514`
+**Model:** `claude-sonnet-4-5-20250929` (alias: `claude-sonnet-4-5`)
 
 **Cost Estimation:**
 - Average response: ~100 tokens output

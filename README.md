@@ -1,72 +1,110 @@
 # ReplyStack
 
-**AI-powered Google review response tool for local businesses and agencies**
-
-## The Problem
-
-Local businesses are drowning in reviews. They know responses matter for SEO and reputation, but they either:
-- Ignore them entirely
-- Copy-paste generic responses that feel robotic
-- Spend 30+ minutes daily writing thoughtful ones
-
-None of these options scale, and none of them build the customer relationships that reviews should create.
-
-## The Solution
-
-ReplyStack makes responding to reviews effortless:
-
-1. **Connect** your Google Business Profile
-2. **Configure** your voice (tone, examples, preferences)
-3. **Generate** on-brand responses with one click
-4. **Publish** directly to Google
-
-Every response sounds like you wrote it—because the AI learned your voice.
+AI-powered Google Business review response tool for local businesses. Respond to every review in 30 seconds with AI that sounds like you.
 
 ## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| Next.js 15 | Frontend + API routes |
-| Supabase | PostgreSQL database + Auth |
-| Claude API | AI response generation |
-| Stripe | Subscription payments |
-| Vercel | Deployment |
-| Resend | Transactional email |
+- **Framework:** Next.js 16 with App Router (React Server Components)
+- **Language:** TypeScript (strict mode)
+- **Database:** PostgreSQL via Supabase
+- **Auth:** Supabase Auth + Google OAuth
+- **AI:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **Payments:** Stripe (subscriptions)
+- **Email:** Resend
+- **Styling:** Tailwind CSS v4
+- **Deployment:** Vercel
 
-## Quick Start
+## Getting Started
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/replystack.git
-cd replystack
+### Prerequisites
 
-# Install dependencies
-npm install
+- Node.js 18+
+- npm or yarn
+- Supabase account
+- Google Cloud Console project (for Business Profile API)
+- Stripe account
+- Anthropic API key
 
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your API keys
+### Installation
 
-# Run database migrations
-npm run db:migrate
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/replystack.git
+   cd replystack
+   ```
 
-# Start development server
-npm run dev
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Copy the environment template:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+4. Fill in your environment variables in `.env.local`
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Project Structure
+
+```
+replystack/
+├── app/
+│   ├── (auth)/           # Auth routes (login, signup, callback)
+│   ├── (dashboard)/      # Protected dashboard routes
+│   │   ├── dashboard/    # Main dashboard page
+│   │   ├── reviews/      # Review management
+│   │   ├── settings/     # Settings and voice profile
+│   │   └── billing/      # Subscription management
+│   ├── api/              # API routes
+│   │   ├── reviews/      # Review endpoints
+│   │   ├── responses/    # AI response generation
+│   │   ├── webhooks/     # Stripe webhooks
+│   │   └── cron/         # Scheduled jobs
+│   └── page.tsx          # Landing page
+├── components/
+│   ├── ui/               # Reusable UI components
+│   ├── reviews/          # Review-specific components
+│   └── voice-profile/    # Voice profile components
+├── lib/
+│   ├── supabase/         # Supabase client utilities
+│   ├── google/           # Google Business Profile API
+│   ├── stripe/           # Stripe utilities
+│   ├── claude/           # Claude AI integration
+│   └── utils/            # General utilities
+└── docs/                 # Project documentation
 ```
 
-> **Note:** Full setup instructions coming soon. See documentation for API key requirements.
+## Available Scripts
+
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint errors
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run typecheck` - Run TypeScript type checking
 
 ## Documentation
 
-Full documentation is available in the [`/docs`](./docs) folder:
+- [Architecture](./docs/ARCHITECTURE.md) - Technical architecture and database schema
+- [Specification](./docs/SPEC.md) - Product specification and user flows
+- [Roadmap](./docs/ROADMAP.md) - Development roadmap and feature planning
+- [Prompts](./docs/PROMPTS.md) - AI prompt templates
+- [Decisions](./docs/DECISIONS.md) - Architecture decision records
 
-- [**SPEC.md**](./docs/SPEC.md) - Product specification and feature requirements
-- [**ARCHITECTURE.md**](./docs/ARCHITECTURE.md) - Technical architecture and database schema
-- [**PROMPTS.md**](./docs/PROMPTS.md) - AI prompt templates and configuration
-- [**ROADMAP.md**](./docs/ROADMAP.md) - Development phases and timeline
-- [**BUSINESS.md**](./docs/BUSINESS.md) - Business model and market analysis
-- [**DECISIONS.md**](./docs/DECISIONS.md) - Architectural decision records
+## Environment Variables
+
+See `.env.local.example` for all required environment variables.
 
 ## License
 
-Proprietary - All rights reserved
+Private - All rights reserved.
