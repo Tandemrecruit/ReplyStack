@@ -10,6 +10,10 @@ import { GET } from "@/app/api/reviews/route";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 describe("GET /api/reviews", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("returns 500 when Supabase client creation fails", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(createServerSupabaseClient).mockRejectedValueOnce(
@@ -23,8 +27,6 @@ describe("GET /api/reviews", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Failed to fetch reviews",
     });
-
-    errorSpy.mockRestore();
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -61,7 +63,5 @@ describe("GET /api/reviews", () => {
       page: 1,
       limit: 20,
     });
-
-    warnSpy.mockRestore();
   });
 });

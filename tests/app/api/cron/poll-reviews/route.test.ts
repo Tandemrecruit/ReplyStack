@@ -30,6 +30,16 @@ describe("GET /api/cron/poll-reviews", () => {
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
   });
 
+  it("returns 401 when CRON_SECRET is set and authorization header is missing", async () => {
+    process.env.CRON_SECRET = "secret";
+
+    const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
+    const response = await GET(request);
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
+  });
+
   it("allows execution when CRON_SECRET is unset", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     delete process.env.CRON_SECRET;

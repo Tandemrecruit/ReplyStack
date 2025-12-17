@@ -68,6 +68,23 @@ export interface Database {
           created_at?: string;
         };
       };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          email_enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email_enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          email_enabled?: boolean;
+          created_at?: string;
+        };
+      };
       voice_profiles: {
         Row: {
           id: string;
