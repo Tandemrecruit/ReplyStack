@@ -68,7 +68,6 @@ export function Button({
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <title>Loading</title>
           <circle
             className="opacity-25"
             cx="12"
