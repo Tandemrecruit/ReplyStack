@@ -308,6 +308,7 @@ export function SettingsClient() {
               role="switch"
               aria-checked={emailNotifications}
               aria-busy={isUpdatingNotifications}
+              aria-label="Email notifications"
               onClick={handleToggleEmailNotifications}
               disabled={isUpdatingNotifications || isLoadingNotifications}
               className={`relative inline-flex h-6 w-11 items-center rounded-full ${
