@@ -28,7 +28,7 @@ const TIMEOUT_MS = 30000;
 export async function generateResponse(
   review: Review,
   voiceProfile: VoiceProfile,
-  businessName: string
+  businessName: string,
 ): Promise<{ text: string; tokensUsed: number }> {
   const systemPrompt = buildSystemPrompt(voiceProfile, businessName);
   const userPrompt = buildUserPrompt(review, businessName);
@@ -56,7 +56,7 @@ export async function generateResponse(
  */
 function buildSystemPrompt(
   voiceProfile: VoiceProfile,
-  businessName: string
+  businessName: string,
 ): string {
   const exampleResponses = voiceProfile.example_responses?.join("\n\n") ?? "";
   const wordsToAvoid = voiceProfile.words_to_avoid?.join(", ") ?? "";
@@ -116,4 +116,3 @@ CRITICAL: This is a negative review. Follow this structure:
 4. Offer to resolve: "Please reach out to us at ${contactEmail} so we can make this right"
 5. Keep it short - long responses look defensive`;
 }
-

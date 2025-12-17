@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Dashboard | ReplyStack",
@@ -14,22 +13,29 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="mt-1 text-foreground-secondary">
-          Welcome to ReplyStack. Get started by connecting your Google Business Profile.
+          Welcome to ReplyStack. Get started by connecting your Google Business
+          Profile.
         </p>
       </div>
 
       {/* Quick Stats Placeholder */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 bg-surface rounded-lg border border-border">
-          <p className="text-sm font-medium text-foreground-secondary">Pending Reviews</p>
+          <p className="text-sm font-medium text-foreground-secondary">
+            Pending Reviews
+          </p>
           <p className="mt-2 text-3xl font-bold text-foreground">—</p>
         </div>
         <div className="p-6 bg-surface rounded-lg border border-border">
-          <p className="text-sm font-medium text-foreground-secondary">Responded This Week</p>
+          <p className="text-sm font-medium text-foreground-secondary">
+            Responded This Week
+          </p>
           <p className="mt-2 text-3xl font-bold text-foreground">—</p>
         </div>
         <div className="p-6 bg-surface rounded-lg border border-border">
-          <p className="text-sm font-medium text-foreground-secondary">Average Rating</p>
+          <p className="text-sm font-medium text-foreground-secondary">
+            Average Rating
+          </p>
           <p className="mt-2 text-3xl font-bold text-foreground">—</p>
         </div>
       </div>
@@ -43,7 +49,9 @@ export default function DashboardPage() {
               <span className="text-sm font-bold text-primary-700">1</span>
             </div>
             <div>
-              <p className="font-medium text-foreground">Connect Google Business Profile</p>
+              <p className="font-medium text-foreground">
+                Connect Google Business Profile
+              </p>
               <p className="text-sm text-foreground-secondary">
                 Link your Google account to start fetching reviews
               </p>
@@ -54,7 +62,9 @@ export default function DashboardPage() {
               <span className="text-sm font-bold text-foreground-muted">2</span>
             </div>
             <div>
-              <p className="font-medium text-foreground-secondary">Set up your voice profile</p>
+              <p className="font-medium text-foreground-secondary">
+                Set up your voice profile
+              </p>
               <p className="text-sm text-foreground-muted">
                 Configure how AI responses should sound
               </p>
@@ -65,14 +75,16 @@ export default function DashboardPage() {
               <span className="text-sm font-bold text-foreground-muted">3</span>
             </div>
             <div>
-              <p className="font-medium text-foreground-secondary">Start responding to reviews</p>
+              <p className="font-medium text-foreground-secondary">
+                Start responding to reviews
+              </p>
               <p className="text-sm text-foreground-muted">
                 Generate AI responses and publish them
               </p>
             </div>
           </div>
         </div>
-        
+
         <div className="mt-6">
           <Link
             href="/settings"
@@ -85,4 +97,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

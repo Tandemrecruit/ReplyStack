@@ -18,13 +18,23 @@ export default function SettingsPage() {
 
       {/* Google Connection */}
       <section className="p-6 bg-surface rounded-lg border border-border">
-        <h2 className="text-lg font-semibold text-foreground">Google Business Profile</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Google Business Profile
+        </h2>
         <p className="mt-1 text-sm text-foreground-secondary">
           Connect your Google account to fetch and respond to reviews
         </p>
         <div className="mt-4">
-          <button className="inline-flex items-center px-4 py-2 bg-surface border border-border rounded-md font-medium text-foreground hover:bg-background-secondary transition-colors">
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 bg-surface border border-border rounded-md font-medium text-foreground hover:bg-background-secondary transition-colors"
+          >
+            <svg
+              className="w-5 h-5 mr-2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <title>Google logo</title>
               <path
                 fill="currentColor"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -53,47 +63,68 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-foreground-secondary">
           Configure how AI-generated responses should sound
         </p>
-        
+
         <div className="mt-6 space-y-6">
           {/* Tone Selection */}
           <div>
-            <label className="block text-sm font-medium text-foreground">Tone</label>
-            <select className="mt-1 w-full max-w-xs px-3 py-2 bg-surface border border-border rounded-md text-foreground">
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="tone-select"
+            >
+              Tone
+            </label>
+            <select
+              id="tone-select"
+              className="mt-1 w-full max-w-xs px-3 py-2 bg-surface border border-border rounded-md text-foreground"
+            >
               <option>Friendly</option>
               <option>Professional</option>
               <option>Casual</option>
               <option>Formal</option>
             </select>
           </div>
-          
+
           {/* Personality Notes */}
           <div>
-            <label className="block text-sm font-medium text-foreground">
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="personality-notes"
+            >
               Personality Notes
             </label>
             <p className="text-sm text-foreground-muted">
               Describe your business personality and any specific details
             </p>
             <textarea
+              id="personality-notes"
               className="mt-1 w-full px-3 py-2 bg-surface border border-border rounded-md text-foreground placeholder:text-foreground-muted"
               rows={3}
               placeholder="e.g., Family-owned restaurant since 1985, known for our wood-fired pizzas..."
             />
           </div>
-          
+
           {/* Sign-off */}
           <div>
-            <label className="block text-sm font-medium text-foreground">Sign-off Style</label>
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="signoff-input"
+            >
+              Sign-off Style
+            </label>
             <input
+              id="signoff-input"
               type="text"
               className="mt-1 w-full max-w-xs px-3 py-2 bg-surface border border-border rounded-md text-foreground placeholder:text-foreground-muted"
               placeholder="e.g., — John, Owner"
             />
           </div>
         </div>
-        
+
         <div className="mt-6">
-          <button className="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 transition-colors">
+          <button
+            type="button"
+            className="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 transition-colors"
+          >
             Save Changes
           </button>
         </div>
@@ -105,7 +136,7 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-foreground-secondary">
           Configure when and how you want to be notified
         </p>
-        
+
         <div className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -114,7 +145,10 @@ export default function SettingsPage() {
                 Get notified when you receive new reviews
               </p>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary-600">
+            <button
+              type="button"
+              className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary-600"
+            >
               <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition" />
             </button>
           </div>
@@ -123,4 +157,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Pricing FAQ | ReplyStack",
@@ -73,4 +72,3 @@ export default function PricingFAQPage() {
     </main>
   );
 }
-

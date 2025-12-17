@@ -7,7 +7,7 @@
  */
 export function formatDate(
   date: string | Date,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   return dateObj.toLocaleDateString("en-US", {
@@ -55,7 +55,7 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) {
     return text;
   }
-  return text.slice(0, maxLength - 3) + "...";
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -91,4 +91,3 @@ export function formatCurrency(amount: number, currency = "USD"): string {
     currency,
   }).format(amount);
 }
-

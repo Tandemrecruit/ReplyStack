@@ -16,7 +16,7 @@ export async function createCheckoutSession(
   _customerId: string,
   _priceId: string,
   _successUrl: string,
-  _cancelUrl: string
+  _cancelUrl: string,
 ): Promise<{ url: string }> {
   // TODO: Implement checkout session creation
   // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -29,7 +29,7 @@ export async function createCheckoutSession(
  */
 export async function createPortalSession(
   _customerId: string,
-  _returnUrl: string
+  _returnUrl: string,
 ): Promise<{ url: string }> {
   // TODO: Implement customer portal session
   throw new Error("Not implemented");
@@ -38,9 +38,7 @@ export async function createPortalSession(
 /**
  * Retrieves subscription status for a customer
  */
-export async function getSubscriptionStatus(
-  _customerId: string
-): Promise<{
+export async function getSubscriptionStatus(_customerId: string): Promise<{
   status: "active" | "trialing" | "canceled" | "past_due" | "none";
   trialEndsAt?: Date;
   currentPeriodEnd?: Date;
@@ -54,11 +52,10 @@ export async function getSubscriptionStatus(
  */
 export function verifyWebhookSignature(
   _payload: string,
-  _signature: string
+  _signature: string,
 ): boolean {
   // TODO: Implement webhook signature verification
   // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   // stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   return false;
 }
-

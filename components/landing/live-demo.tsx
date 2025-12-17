@@ -84,7 +84,7 @@ function buildDraftReply(review: string, tone: Tone): string {
       sentences.push("Sorry about the wait—our goal is to stay on schedule.");
     } else {
       sentences.push(
-        "I’m sorry about the wait—that’s not the experience we want for you, and we’re tightening our scheduling so it doesn’t happen again."
+        "I’m sorry about the wait—that’s not the experience we want for you, and we’re tightening our scheduling so it doesn’t happen again.",
       );
     }
   }
@@ -93,7 +93,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Glad booking was easy."
-        : "I’m glad the online booking was easy—making things simple is a big priority for us."
+        : "I’m glad the online booking was easy—making things simple is a big priority for us.",
     );
   }
 
@@ -101,7 +101,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Parking can be tricky—we’re improving directions."
-        : "Parking can definitely be tricky. We’re updating our directions and signage so it’s easier next time."
+        : "Parking can definitely be tricky. We’re updating our directions and signage so it’s easier next time.",
     );
   }
 
@@ -109,7 +109,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Appreciate the note on pricing."
-        : "Thanks for mentioning pricing—we try to keep things straightforward and fair."
+        : "Thanks for mentioning pricing—we try to keep things straightforward and fair.",
     );
   }
 
@@ -133,10 +133,13 @@ export function LiveDemo() {
   const [tone, setTone] = useState<Tone>("Warm");
   const [sampleId, setSampleId] = useState<string>(SAMPLE_REVIEWS[0]?.id ?? "");
   const [reviewText, setReviewText] = useState<string>(
-    SAMPLE_REVIEWS[0]?.text ?? ""
+    SAMPLE_REVIEWS[0]?.text ?? "",
   );
 
-  const draft = useMemo(() => buildDraftReply(reviewText, tone), [reviewText, tone]);
+  const draft = useMemo(
+    () => buildDraftReply(reviewText, tone),
+    [reviewText, tone],
+  );
 
   function handlePickSample(nextId: string) {
     const found = SAMPLE_REVIEWS.find((r) => r.id === nextId);
@@ -155,10 +158,12 @@ export function LiveDemo() {
           <p className="text-sm font-semibold text-primary-700 uppercase tracking-wide">
             Try a sample reply
           </p>
-          <h2 className="text-3xl font-bold text-foreground">Paste a review, pick a tone</h2>
+          <h2 className="text-3xl font-bold text-foreground">
+            Paste a review, pick a tone
+          </h2>
           <p className="text-lg text-foreground-secondary">
-            This is an example preview of what owners publish: short, specific, and human. In the
-            app you can tweak the draft and publish to Google.
+            This is an example preview of what owners publish: short, specific,
+            and human. In the app you can tweak the draft and publish to Google.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -184,7 +189,10 @@ export function LiveDemo() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground" htmlFor="demo-review">
+            <label
+              className="text-sm font-semibold text-foreground"
+              htmlFor="demo-review"
+            >
               Review text
             </label>
             <textarea
@@ -197,7 +205,9 @@ export function LiveDemo() {
             />
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground-muted">Use a sample:</span>
+                <span className="text-sm text-foreground-muted">
+                  Use a sample:
+                </span>
                 <select
                   className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground"
                   value={sampleId}
@@ -240,14 +250,18 @@ export function LiveDemo() {
                     className="w-4 h-4 text-star"
                     fill="currentColor"
                     viewBox="0 0 20 20"
+                    aria-hidden="true"
                   >
+                    <title>Star rating</title>
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 ))}
               </div>
               <span className="text-xs text-foreground-muted">New review</span>
             </div>
-            <p className="text-sm text-foreground">“{normalize(reviewText) || "…"}”</p>
+            <p className="text-sm text-foreground">
+              “{normalize(reviewText) || "…"}”
+            </p>
           </div>
 
           <div className="rounded-xl border border-primary-200 bg-surface-elevated p-4 space-y-2 shadow-sm shadow-primary-500/10">
@@ -268,5 +282,3 @@ export function LiveDemo() {
     </section>
   );
 }
-
-

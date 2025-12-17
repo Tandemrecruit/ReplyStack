@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   ReplyStack
                 </span>
               </Link>
-              
+
               {/* Nav Links */}
               <div className="hidden sm:flex items-center gap-1">
                 <Link
@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Link>
               </div>
             </div>
-            
+
             {/* User Menu Placeholder */}
             <div className="flex items-center">
               <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </nav>
-      
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
@@ -61,4 +61,3 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
-

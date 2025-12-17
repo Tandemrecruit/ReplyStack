@@ -14,7 +14,7 @@ export default function LoginPage() {
           Sign in to manage your reviews
         </p>
       </div>
-      
+
       {/* TODO: Add login form */}
       <div className="p-6 bg-surface rounded-lg border border-border">
         <p className="text-foreground-muted text-center">
@@ -24,4 +24,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

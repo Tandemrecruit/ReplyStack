@@ -14,7 +14,7 @@ export default function SignupPage() {
           Start responding to reviews in seconds
         </p>
       </div>
-      
+
       {/* TODO: Add signup form */}
       <div className="p-6 bg-surface rounded-lg border border-border">
         <p className="text-foreground-muted text-center">
@@ -24,4 +24,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

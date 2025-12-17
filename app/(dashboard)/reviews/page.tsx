@@ -16,7 +16,7 @@ export default function ReviewsPage() {
             View and respond to your Google Business reviews
           </p>
         </div>
-        
+
         {/* Filters Placeholder */}
         <div className="flex items-center gap-2">
           <select className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground">
@@ -44,7 +44,9 @@ export default function ReviewsPage() {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
+            <title>Chat bubble icon</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -53,7 +55,9 @@ export default function ReviewsPage() {
             />
           </svg>
         </div>
-        <h3 className="mt-4 text-lg font-medium text-foreground">No reviews yet</h3>
+        <h3 className="mt-4 text-lg font-medium text-foreground">
+          No reviews yet
+        </h3>
         <p className="mt-2 text-foreground-secondary">
           Connect your Google Business Profile to start seeing reviews here.
         </p>
@@ -61,4 +65,3 @@ export default function ReviewsPage() {
     </div>
   );
 }
-

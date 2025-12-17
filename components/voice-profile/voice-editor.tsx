@@ -10,9 +10,21 @@ interface VoiceEditorProps {
 }
 
 const TONE_OPTIONS = [
-  { value: "friendly", label: "Friendly", description: "Warm and approachable" },
-  { value: "professional", label: "Professional", description: "Polished and business-like" },
-  { value: "casual", label: "Casual", description: "Relaxed and conversational" },
+  {
+    value: "friendly",
+    label: "Friendly",
+    description: "Warm and approachable",
+  },
+  {
+    value: "professional",
+    label: "Professional",
+    description: "Polished and business-like",
+  },
+  {
+    value: "casual",
+    label: "Casual",
+    description: "Relaxed and conversational",
+  },
   { value: "formal", label: "Formal", description: "Traditional and reserved" },
 ];
 
@@ -46,9 +58,9 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Tone Selection */}
       <div>
-        <label className="block text-sm font-medium text-foreground mb-3">
+        <p className="block text-sm font-medium text-foreground mb-3">
           Response Tone
-        </label>
+        </p>
         <div className="grid grid-cols-2 gap-3">
           {TONE_OPTIONS.map((option) => (
             <button
@@ -137,7 +149,10 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
           max={500}
           value={formData.max_length}
           onChange={(e) =>
-            setFormData({ ...formData, max_length: parseInt(e.target.value) })
+            setFormData({
+              ...formData,
+              max_length: parseInt(e.target.value, 10),
+            })
           }
           className="w-32 px-3 py-2 bg-surface border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
@@ -156,4 +171,3 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     </form>
   );
 }
-

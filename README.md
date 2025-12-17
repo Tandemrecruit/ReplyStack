@@ -101,6 +101,10 @@ replystack/
 - [Prompts](./docs/PROMPTS.md) - AI prompt templates
 - [Decisions](./docs/DECISIONS.md) - Architecture decision records
 
+## Logs
+
+Default log output is written to `logs/` (e.g., `logs/biome-lsp-logs`). This directory is ignored by git but remains user-owned so you can rotate or delete files as needed.
+
 ## Environment Variables
 
 See `.env.local.example` for all required environment variables.

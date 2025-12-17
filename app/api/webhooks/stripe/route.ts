@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 /**
  * Stripe webhook handler
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (!signature) {
       return NextResponse.json(
         { error: "Missing stripe-signature header" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,8 +35,7 @@ export async function POST(request: NextRequest) {
     console.error("Stripe webhook error:", error);
     return NextResponse.json(
       { error: "Webhook handler failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

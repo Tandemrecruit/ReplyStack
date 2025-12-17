@@ -13,7 +13,8 @@
 import type { Location, Review } from "@/lib/supabase/types";
 
 // API constants
-const GOOGLE_API_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
+const GOOGLE_API_BASE =
+  "https://mybusinessbusinessinformation.googleapis.com/v1";
 
 /**
  * Google Business Profile OAuth configuration
@@ -28,7 +29,7 @@ export const GOOGLE_OAUTH_CONFIG = {
  * Fetches a new access token using a refresh token
  */
 export async function refreshAccessToken(
-  _refreshToken: string
+  _refreshToken: string,
 ): Promise<string> {
   // TODO: Implement token refresh
   // POST to https://oauth2.googleapis.com/token
@@ -39,7 +40,7 @@ export async function refreshAccessToken(
  * Fetches all accounts for the authenticated user
  */
 export async function fetchAccounts(
-  _accessToken: string
+  _accessToken: string,
 ): Promise<{ accountId: string; name: string }[]> {
   // TODO: Implement account fetching
   // GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
@@ -52,7 +53,7 @@ export async function fetchAccounts(
  */
 export async function fetchLocations(
   _accessToken: string,
-  _accountId: string
+  _accountId: string,
 ): Promise<Partial<Location>[]> {
   // TODO: Implement location fetching
   // GET https://mybusinessbusinessinformation.googleapis.com/v1/accounts/{accountId}/locations
@@ -66,7 +67,7 @@ export async function fetchReviews(
   _accessToken: string,
   _accountId: string,
   _locationId: string,
-  _pageToken?: string
+  _pageToken?: string,
 ): Promise<{ reviews: Partial<Review>[]; nextPageToken?: string }> {
   // TODO: Implement review fetching
   // GET https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews
@@ -79,10 +80,9 @@ export async function fetchReviews(
 export async function publishResponse(
   _accessToken: string,
   _reviewId: string,
-  _responseText: string
+  _responseText: string,
 ): Promise<boolean> {
   // TODO: Implement response publishing
   // PUT https://mybusiness.googleapis.com/v4/{reviewId}/reply
   return false;
 }
-

@@ -1,8 +1,7 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-import type { NextRequest } from "next/server";
 
 /**
  * GET /api/reviews
@@ -39,8 +38,7 @@ export async function GET(request: NextRequest) {
     console.error("Reviews API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch reviews" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

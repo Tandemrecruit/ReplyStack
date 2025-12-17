@@ -1,8 +1,7 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-import type { NextRequest } from "next/server";
 
 /**
  * POST /api/responses
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!reviewId) {
       return NextResponse.json(
         { error: "reviewId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,8 +49,7 @@ export async function POST(request: NextRequest) {
     console.error("Response generation error:", error);
     return NextResponse.json(
       { error: "Failed to generate response" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

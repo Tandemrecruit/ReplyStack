@@ -1,8 +1,7 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-import type { NextRequest } from "next/server";
 
 /**
  * OAuth callback handler for Supabase Auth
@@ -20,11 +19,13 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("Auth callback error:", error.message);
       return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin)
+        new URL(
+          `/login?error=${encodeURIComponent(error.message)}`,
+          requestUrl.origin,
+        ),
       );
     }
   }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin));
 }
-
