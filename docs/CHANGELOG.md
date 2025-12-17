@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2025-12-17
+
 - Wrapped `docs/SETUP.md` to satisfy MD013/MD032/MD012 and documented the setup
   lint convention in ADR-007.
 - Document refresh to reflect scaffolding state: architecture, roadmap, spec.

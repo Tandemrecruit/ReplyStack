@@ -31,7 +31,7 @@ describe("GET /api/cron/poll-reviews", () => {
   });
 
   it("allows execution when CRON_SECRET is unset", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     delete process.env.CRON_SECRET;
 
     const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
@@ -46,10 +46,12 @@ describe("GET /api/cron/poll-reviews", () => {
         timestamp: expect.any(String),
       }),
     );
+
+    warnSpy.mockRestore();
   });
 
   it("allows execution when CRON_SECRET matches authorization", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     process.env.CRON_SECRET = "secret";
 
     const request = makeNextRequest("http://localhost/api/cron/poll-reviews", {
@@ -66,5 +68,7 @@ describe("GET /api/cron/poll-reviews", () => {
         success: true,
       }),
     );
+
+    warnSpy.mockRestore();
   });
 });

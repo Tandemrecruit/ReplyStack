@@ -16,7 +16,7 @@ describe("POST /api/webhooks/stripe", () => {
   });
 
   it("returns received:true when stripe-signature header is present", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const request = makeNextRequest("http://localhost/api/webhooks/stripe", {
       method: "POST",
       headers: {
@@ -28,5 +28,7 @@ describe("POST /api/webhooks/stripe", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ received: true });
+
+    warnSpy.mockRestore();
   });
 });
