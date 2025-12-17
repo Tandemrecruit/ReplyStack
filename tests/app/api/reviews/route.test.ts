@@ -25,7 +25,7 @@ describe("GET /api/reviews", () => {
   });
 
   it("returns placeholder payload when authenticated", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
@@ -44,5 +44,7 @@ describe("GET /api/reviews", () => {
       page: 1,
       limit: 20,
     });
+
+    warnSpy.mockRestore();
   });
 });
