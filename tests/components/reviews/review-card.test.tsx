@@ -29,10 +29,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    expect(screen.getByText("Ryan")).toBeTruthy();
-    expect(screen.getByText("Great experience.")).toBeTruthy();
-    expect(screen.getByText("pending")).toBeTruthy();
-    expect(screen.getByText("5 out of 5 stars")).toBeTruthy();
+    expect(screen.getByText("Ryan")).toBeInTheDocument();
+    expect(screen.getByText("Great experience.")).toBeInTheDocument();
+    expect(screen.getByText("pending")).toBeInTheDocument();
+    expect(screen.getByText("5 out of 5 stars")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Generate Response" }));
     expect(onGenerateResponse).toHaveBeenCalledWith("rev_1");
