@@ -1,3 +1,5 @@
+"""Tests for the example automation task entrypoint."""
+
 from __future__ import annotations
 
 import subprocess
@@ -5,6 +7,7 @@ from pathlib import Path
 
 
 def test_example_task_writes_file(tmp_path: Path):
+    """example_task writes a timestamped line to the requested output file."""
     output_file = tmp_path / "out.txt"
     result = subprocess.run(
         ["python", "-m", "python.automation.example_task", "--output", str(output_file)],

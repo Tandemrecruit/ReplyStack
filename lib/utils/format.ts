@@ -3,11 +3,15 @@
  */
 
 /**
- * Formats a date to a human-readable string
+ * Convert a Date or date string into a human-readable en-US date string.
+ *
+ * @param date - The input date to format. If a string is provided, it will be parsed as a Date.
+ * @param options - Optional Intl.DateTimeFormatOptions to override the default year/month/day fields.
+ * @returns The formatted date string in en-US format (for example, "January 1, 2020").
  */
 export function formatDate(
   date: string | Date,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   return dateObj.toLocaleDateString("en-US", {
@@ -19,7 +23,10 @@ export function formatDate(
 }
 
 /**
- * Formats a relative time (e.g., "2 hours ago")
+ * Formats a date into relative time (e.g., "2 hours ago").
+ *
+ * @param date - Date or ISO string to compare against now.
+ * @returns Human-readable relative string.
  */
 export function formatRelativeTime(date: string | Date): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -49,13 +56,25 @@ export function formatRelativeTime(date: string | Date): string {
 }
 
 /**
- * Truncates text to a maximum length with ellipsis
+ * Truncate a string to a maximum length, appending an ellipsis when truncated.
+ *
+ * @param text - The input string to truncate
+ * @param maxLength - Maximum allowed length of the returned string. When `maxLength >= 3`, the returned string will be no longer than `maxLength`.
+ * @returns The original `text` if its length is less than or equal to `maxLength`; otherwise a truncated string that ends with `...` (for `maxLength >= 3`, the result's length will be at most `maxLength`)
  */
 export function truncate(text: string, maxLength: number): string {
+  if (maxLength < 0) {
+    throw new RangeError("maxLength must be non-negative");
+  }
+
+  if (maxLength < 3) {
+    return "...".slice(0, maxLength);
+  }
+
   if (text.length <= maxLength) {
     return text;
   }
-  return text.slice(0, maxLength - 3) + "...";
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -83,7 +102,11 @@ export function formatNumber(num: number): string {
 }
 
 /**
- * Formats currency amount
+ * Format a numeric amount as a localized currency string.
+ *
+ * @param amount - The numeric value to format
+ * @param currency - The ISO 4217 currency code to use (defaults to "USD")
+ * @returns The formatted currency string (for example, "$1,234.56")
  */
 export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
@@ -91,4 +114,3 @@ export function formatCurrency(amount: number, currency = "USD"): string {
     currency,
   }).format(amount);
 }
-

@@ -4,14 +4,23 @@
 
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
-| Frontend | Next.js 15 (App Router) | Fast, good DX, unified codebase |
+| Frontend | Next.js 16 (App Router, React 19) | Fast, good DX, unified codebase |
 | Backend | Next.js API routes | Edge-ready, no separate server |
 | Database | PostgreSQL via Supabase | Relational fits review data, auth included |
 | Auth | Supabase Auth + Google OAuth | Need Google OAuth for Business Profile API |
 | Payments | Stripe | Subscription-native |
 | AI | Claude API (Sonnet) | Best natural tone for business communication |
+| Styling | Tailwind CSS v4 | Modern utility-first styling |
 | Deployment | Vercel | Natural Next.js fit |
 | Email | Resend | Simple transactional email |
+
+---
+
+## Implementation Status (Dec 2025)
+
+- Implemented: project setup, Supabase client/middleware, base layouts, basic components.
+- Scaffolding only: auth pages, dashboard pages, ReviewCard/VoiceEditor (partial UI), all API routes.
+- Not implemented: Google/Claude/Stripe clients (placeholders), cron polling, Stripe webhooks, response generation.
 
 ---
 
@@ -236,35 +245,24 @@ Improves perceived performance significantly.
 ## Directory Structure
 
 ```
-replystack/
+ReplyStack/
 ├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   ├── signup/
-│   │   └── callback/
-│   ├── (dashboard)/
-│   │   ├── reviews/
-│   │   ├── settings/
-│   │   └── billing/
-│   ├── api/
-│   │   ├── auth/
-│   │   ├── reviews/
-│   │   ├── responses/
-│   │   ├── webhooks/
-│   │   └── cron/
-│   └── layout.tsx
-├── components/
-│   ├── ui/
-│   ├── reviews/
-│   └── voice-profile/
-├── lib/
-│   ├── supabase/
-│   ├── google/
-│   ├── stripe/
-│   ├── claude/
-│   └── utils/
+│   ├── (auth)/{login,page.tsx; signup/page.tsx; callback/route.ts; layout.tsx}
+│   ├── (dashboard)/{dashboard/page.tsx; reviews/page.tsx; settings/page.tsx; billing/page.tsx; layout.tsx}
+│   ├── api/{reviews/route.ts; responses/route.ts; webhooks/stripe/route.ts; cron/poll-reviews/route.ts; auth/}
+│   ├── pricing-faq/page.tsx
+│   ├── privacy/page.tsx
+│   ├── terms/page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
+├── components/{landing/live-demo.tsx; reviews/review-card.tsx; voice-profile/voice-editor.tsx; ui/button.tsx}
+├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
-└── public/
+├── tests/ (Vitest, mirrors app/lib/components)
+├── python/ (example utilities/tests)
+├── public/
+└── middleware.ts
 ```
 
 ---

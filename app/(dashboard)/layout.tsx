@@ -6,6 +6,12 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * App dashboard layout that renders a top navigation bar with site links and a main content container.
+ *
+ * @param children - Page content to display inside the layout's centered main area
+ * @returns A JSX element containing the navigation header and a responsive main area that renders `children`
+ */
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -20,7 +26,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   ReplyStack
                 </span>
               </Link>
-              
+
               {/* Nav Links */}
               <div className="hidden sm:flex items-center gap-1">
                 <Link
@@ -43,7 +49,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Link>
               </div>
             </div>
-            
+
             {/* User Menu Placeholder */}
             <div className="flex items-center">
               <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
@@ -53,7 +59,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </nav>
-      
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
@@ -61,4 +67,3 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
-

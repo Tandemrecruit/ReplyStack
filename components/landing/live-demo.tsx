@@ -54,6 +54,16 @@ function detectTopics(review: string) {
   };
 }
 
+/**
+ * Constructs a short draft reply tailored to the review content and the chosen tone.
+ *
+ * Analyzes `review` for mentions of parking, wait times, booking, and pricing and includes
+ * tone-appropriate sentences that address any detected topics, then appends a closing line.
+ *
+ * @param review - The review text to analyze and respond to.
+ * @param tone - The reply voice to use (`"Warm" | "Direct" | "Concise"`).
+ * @returns The composed reply text that addresses detected topics and matches the selected tone.
+ */
 function buildDraftReply(review: string, tone: Tone): string {
   const clean = normalize(review);
   const topics = detectTopics(clean);
@@ -84,7 +94,7 @@ function buildDraftReply(review: string, tone: Tone): string {
       sentences.push("Sorry about the wait—our goal is to stay on schedule.");
     } else {
       sentences.push(
-        "I’m sorry about the wait—that’s not the experience we want for you, and we’re tightening our scheduling so it doesn’t happen again."
+        "I’m sorry about the wait—that’s not the experience we want for you, and we’re tightening our scheduling so it doesn’t happen again.",
       );
     }
   }
@@ -93,7 +103,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Glad booking was easy."
-        : "I’m glad the online booking was easy—making things simple is a big priority for us."
+        : "I’m glad the online booking was easy—making things simple is a big priority for us.",
     );
   }
 
@@ -101,7 +111,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Parking can be tricky—we’re improving directions."
-        : "Parking can definitely be tricky. We’re updating our directions and signage so it’s easier next time."
+        : "Parking can definitely be tricky. We’re updating our directions and signage so it’s easier next time.",
     );
   }
 
@@ -109,7 +119,7 @@ function buildDraftReply(review: string, tone: Tone): string {
     sentences.push(
       tone === "Concise"
         ? "Appreciate the note on pricing."
-        : "Thanks for mentioning pricing—we try to keep things straightforward and fair."
+        : "Thanks for mentioning pricing—we try to keep things straightforward and fair.",
     );
   }
 
@@ -129,14 +139,27 @@ function buildDraftReply(review: string, tone: Tone): string {
   return sentences.join(" ");
 }
 
+/**
+ * Interactive demo that generates an owner reply draft from a review and a chosen tone.
+ *
+ * Renders a self-contained "Try a sample reply" UI where users can paste or pick a sample
+ * review, choose a tone (Warm, Direct, Concise), and see a live preview of the incoming
+ * review and the generated draft reply. Controls include tone buttons, a review textarea,
+ * a sample selector, and action links for starting a trial or viewing the app.
+ *
+ * @returns The rendered live-demo section as a JSX.Element
+ */
 export function LiveDemo() {
   const [tone, setTone] = useState<Tone>("Warm");
   const [sampleId, setSampleId] = useState<string>(SAMPLE_REVIEWS[0]?.id ?? "");
   const [reviewText, setReviewText] = useState<string>(
-    SAMPLE_REVIEWS[0]?.text ?? ""
+    SAMPLE_REVIEWS[0]?.text ?? "",
   );
 
-  const draft = useMemo(() => buildDraftReply(reviewText, tone), [reviewText, tone]);
+  const draft = useMemo(
+    () => buildDraftReply(reviewText, tone),
+    [reviewText, tone],
+  );
 
   function handlePickSample(nextId: string) {
     const found = SAMPLE_REVIEWS.find((r) => r.id === nextId);
@@ -155,10 +178,12 @@ export function LiveDemo() {
           <p className="text-sm font-semibold text-primary-700 uppercase tracking-wide">
             Try a sample reply
           </p>
-          <h2 className="text-3xl font-bold text-foreground">Paste a review, pick a tone</h2>
+          <h2 className="text-3xl font-bold text-foreground">
+            Paste a review, pick a tone
+          </h2>
           <p className="text-lg text-foreground-secondary">
-            This is an example preview of what owners publish: short, specific, and human. In the
-            app you can tweak the draft and publish to Google.
+            This is an example preview of what owners publish: short, specific,
+            and human. In the app you can tweak the draft and publish to Google.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -184,7 +209,10 @@ export function LiveDemo() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground" htmlFor="demo-review">
+            <label
+              className="text-sm font-semibold text-foreground"
+              htmlFor="demo-review"
+            >
               Review text
             </label>
             <textarea
@@ -197,7 +225,9 @@ export function LiveDemo() {
             />
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground-muted">Use a sample:</span>
+                <span className="text-sm text-foreground-muted">
+                  Use a sample:
+                </span>
                 <select
                   className="rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground"
                   value={sampleId}
@@ -237,6 +267,7 @@ export function LiveDemo() {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
                     key={star}
+                    aria-hidden="true"
                     className="w-4 h-4 text-star"
                     fill="currentColor"
                     viewBox="0 0 20 20"
@@ -247,7 +278,9 @@ export function LiveDemo() {
               </div>
               <span className="text-xs text-foreground-muted">New review</span>
             </div>
-            <p className="text-sm text-foreground">“{normalize(reviewText) || "…"}”</p>
+            <p className="text-sm text-foreground">
+              “{normalize(reviewText) || "…"}”
+            </p>
           </div>
 
           <div className="rounded-xl border border-primary-200 bg-surface-elevated p-4 space-y-2 shadow-sm shadow-primary-500/10">
@@ -268,5 +301,3 @@ export function LiveDemo() {
     </section>
   );
 }
-
-

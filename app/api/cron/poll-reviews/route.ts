@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
-
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 /**
  * Cron job to poll Google Business Profile for new reviews
@@ -41,10 +40,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Poll reviews cron error:", error);
-    return NextResponse.json(
-      { error: "Cron job failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Cron job failed" }, { status: 500 });
   }
 }
-

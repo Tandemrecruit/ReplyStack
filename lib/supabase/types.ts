@@ -68,6 +68,23 @@ export interface Database {
           created_at?: string;
         };
       };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          email_enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email_enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          email_enabled?: boolean;
+          created_at?: string;
+        };
+      };
       voice_profiles: {
         Row: {
           id: string;
@@ -236,10 +253,13 @@ export interface Database {
 // Helper types for easier access
 export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
 export type User = Database["public"]["Tables"]["users"]["Row"];
-export type VoiceProfile = Database["public"]["Tables"]["voice_profiles"]["Row"];
+export type VoiceProfile =
+  Database["public"]["Tables"]["voice_profiles"]["Row"];
 export type Location = Database["public"]["Tables"]["locations"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Response = Database["public"]["Tables"]["responses"]["Row"];
+export type NotificationPreference =
+  Database["public"]["Tables"]["notification_preferences"]["Row"];
 
 // Insert types
 export type OrganizationInsert =
@@ -247,9 +267,13 @@ export type OrganizationInsert =
 export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type VoiceProfileInsert =
   Database["public"]["Tables"]["voice_profiles"]["Insert"];
-export type LocationInsert = Database["public"]["Tables"]["locations"]["Insert"];
+export type LocationInsert =
+  Database["public"]["Tables"]["locations"]["Insert"];
 export type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
-export type ResponseInsert = Database["public"]["Tables"]["responses"]["Insert"];
+export type ResponseInsert =
+  Database["public"]["Tables"]["responses"]["Insert"];
+export type NotificationPreferenceInsert =
+  Database["public"]["Tables"]["notification_preferences"]["Insert"];
 
 // Update types
 export type OrganizationUpdate =
@@ -257,7 +281,10 @@ export type OrganizationUpdate =
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 export type VoiceProfileUpdate =
   Database["public"]["Tables"]["voice_profiles"]["Update"];
-export type LocationUpdate = Database["public"]["Tables"]["locations"]["Update"];
+export type LocationUpdate =
+  Database["public"]["Tables"]["locations"]["Update"];
 export type ReviewUpdate = Database["public"]["Tables"]["reviews"]["Update"];
-export type ResponseUpdate = Database["public"]["Tables"]["responses"]["Update"];
-
+export type ResponseUpdate =
+  Database["public"]["Tables"]["responses"]["Update"];
+export type NotificationPreferenceUpdate =
+  Database["public"]["Tables"]["notification_preferences"]["Update"];

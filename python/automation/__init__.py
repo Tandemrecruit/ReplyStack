@@ -1,1 +1,1 @@
-"""Python package for AnswerCraft automation scripts."""
+"""Python package for ReplyStack automation scripts."""

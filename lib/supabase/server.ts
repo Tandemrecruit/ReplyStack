@@ -4,62 +4,65 @@ import { cookies } from "next/headers";
 import type { Database } from "@/lib/supabase/types";
 
 /**
- * Creates a Supabase client for Server Components, Server Actions, and Route Handlers.
- * This client has access to cookies for auth session management.
+ * Create a Supabase client for Server Components, Server Actions, and Route Handlers that manages authentication sessions via cookies.
  *
- * Usage:
- * ```ts
- * const supabase = await createServerSupabaseClient();
- * const { data: { user } } = await supabase.auth.getUser();
- * ```
+ * @returns A Supabase client configured for server-side use and cookie-backed auth session management
  */
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables");
+  }
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  });
 }
 
 /**
- * Creates a Supabase admin client with service role key.
- * Use this for operations that bypass RLS (admin tasks, webhooks, crons).
+ * Create a Supabase admin client authenticated with the service role key.
  *
- * WARNING: Never expose this client to the browser!
+ * The returned client bypasses Row Level Security and is intended for server-side
+ * admin operations such as webhooks, cron jobs, and other tasks that require
+ * elevated privileges. Never expose this client to the browser.
+ *
+ * @returns A Supabase client instance authenticated with the service role key.
+ * @throws If `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` are missing.
  */
 export function createAdminSupabaseClient() {
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {
-          // Admin client doesn't need cookies
-        },
-      },
-    }
-  );
-}
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing Supabase environment variables");
+  }
+
+  return createServerClient<Database>(supabaseUrl, serviceRoleKey, {
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {
+        // Admin client doesn't need cookies
+      },
+    },
+  });
+}

@@ -10,24 +10,33 @@ interface VoiceEditorProps {
 }
 
 const TONE_OPTIONS = [
-  { value: "friendly", label: "Friendly", description: "Warm and approachable" },
-  { value: "professional", label: "Professional", description: "Polished and business-like" },
-  { value: "casual", label: "Casual", description: "Relaxed and conversational" },
+  {
+    value: "friendly",
+    label: "Friendly",
+    description: "Warm and approachable",
+  },
+  {
+    value: "professional",
+    label: "Professional",
+    description: "Polished and business-like",
+  },
+  {
+    value: "casual",
+    label: "Casual",
+    description: "Relaxed and conversational",
+  },
   { value: "formal", label: "Formal", description: "Traditional and reserved" },
 ];
 
 /**
- * Voice profile editor component
- * Allows users to configure how AI responses should sound
+ * Editable form for configuring an AI voice profile.
  *
- * TODO: Implement full voice profile editor with:
- * - Tone selection
- * - Personality notes
- * - Example responses (3-5)
- * - Sign-off style
- * - Words to use
- * - Words to avoid
- * - Max response length
+ * Manages local form state for tone, personality notes, sign-off style, and maximum response length,
+ * and invokes the provided `onSave` callback with the current profile values when the form is submitted.
+ *
+ * @param props.profile - Optional initial values to prefill the form (partial VoiceProfile).
+ * @param props.onSave - Optional callback invoked with the updated partial VoiceProfile on submit.
+ *
  */
 export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [formData, setFormData] = useState({
@@ -46,9 +55,9 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Tone Selection */}
       <div>
-        <label className="block text-sm font-medium text-foreground mb-3">
+        <p className="block text-sm font-medium text-foreground mb-3">
           Response Tone
-        </label>
+        </p>
         <div className="grid grid-cols-2 gap-3">
           {TONE_OPTIONS.map((option) => (
             <button
@@ -137,7 +146,10 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
           max={500}
           value={formData.max_length}
           onChange={(e) =>
-            setFormData({ ...formData, max_length: parseInt(e.target.value) })
+            setFormData({
+              ...formData,
+              max_length: parseInt(e.target.value, 10),
+            })
           }
           className="w-32 px-3 py-2 bg-surface border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
@@ -156,4 +168,3 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     </form>
   );
 }
-

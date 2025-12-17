@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   description: "View and respond to your Google Business reviews",
 };
 
+/**
+ * Reviews page UI showing filters and an empty state for Google Business reviews.
+ *
+ * Renders a static overview with a header, two non-interactive filter placeholders
+ * (ratings and status), and an empty-state panel that prompts connecting a Google
+ * Business Profile to surface reviews.
+ *
+ * @returns The JSX element representing the Reviews page.
+ */
 export default function ReviewsPage() {
   return (
     <div className="space-y-6">
@@ -16,7 +25,7 @@ export default function ReviewsPage() {
             View and respond to your Google Business reviews
           </p>
         </div>
-        
+
         {/* Filters Placeholder */}
         <div className="flex items-center gap-2">
           <select className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground">
@@ -44,6 +53,7 @@ export default function ReviewsPage() {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -53,7 +63,9 @@ export default function ReviewsPage() {
             />
           </svg>
         </div>
-        <h3 className="mt-4 text-lg font-medium text-foreground">No reviews yet</h3>
+        <h3 className="mt-4 text-lg font-medium text-foreground">
+          No reviews yet
+        </h3>
         <p className="mt-2 text-foreground-secondary">
           Connect your Google Business Profile to start seeing reviews here.
         </p>
@@ -61,4 +73,3 @@ export default function ReviewsPage() {
     </div>
   );
 }
-

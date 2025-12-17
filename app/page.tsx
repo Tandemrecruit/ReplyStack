@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { LiveDemo } from "@/components/landing/live-demo";
 
@@ -10,6 +9,14 @@ export const metadata: Metadata = {
     "Respond to every Google Business review in 30 seconds with AI that sounds like you. Built for restaurants, dental practices, and local service businesses.",
 };
 
+/**
+ * Render the ReplyStack marketing landing page including navigation, hero,
+ * live demo, features, benefits, pricing, CTAs, and footer.
+ *
+ * @returns The complete landing page JSX element containing site header, hero
+ * visuals and CTAs, live demo, social proof, feature steps, benefits and proof
+ * cards, pricing information, final CTA, and footer.
+ */
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -51,7 +58,9 @@ export default function LandingPage() {
           <div className="text-left space-y-6">
             {/* Badge */}
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent-50 border border-accent-200 text-accent-800">
-              <span className="text-sm font-semibold">Built for local businesses</span>
+              <span className="text-sm font-semibold">
+                Built for local businesses
+              </span>
             </div>
 
             {/* Headline */}
@@ -64,7 +73,9 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-xl text-foreground-secondary max-w-2xl">
-              Owner-quality replies, drafted for you in seconds—without the canned “AI voice.” Built for busy restaurants, dental practices, and service shops that need to sound like the real you.
+              Owner-quality replies, drafted for you in seconds—without the
+              canned “AI voice.” Built for busy restaurants, dental practices,
+              and service shops that need to sound like the real you.
             </p>
 
             {/* CTA Buttons */}
@@ -130,8 +141,12 @@ export default function LandingPage() {
                       GB
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Green Bistro</p>
-                      <p className="text-xs text-foreground-muted">Austin, TX · Google</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        Green Bistro
+                      </p>
+                      <p className="text-xs text-foreground-muted">
+                        Austin, TX · Google
+                      </p>
                     </div>
                   </div>
                   <span className="px-2 py-1 rounded-full text-xs font-semibold bg-accent-50 text-accent-700 border border-accent-200">
@@ -141,34 +156,44 @@ export default function LandingPage() {
 
                 <div className="rounded-xl border border-border bg-background-secondary p-4 space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex">
+                    <div className="flex" aria-hidden="true">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <svg
                           key={star}
                           className="w-4 h-4 text-star"
                           fill="currentColor"
                           viewBox="0 0 20 20"
+                          aria-hidden="true"
                         >
+                          <title>Star rating</title>
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
                     </div>
-                    <span className="text-xs text-foreground-muted">Sarah M.</span>
+                    <span className="text-xs text-foreground-muted">
+                      Sarah M.
+                    </span>
                   </div>
                   <p className="text-sm text-foreground">
-                    "Best pizza in Austin! The thin crust is perfect and delivery was super fast."
+                    "Best pizza in Austin! The thin crust is perfect and
+                    delivery was super fast."
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-primary-200 bg-surface-elevated p-4 mt-4 space-y-2 shadow-sm shadow-primary-500/10">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-primary-700">Draft reply</p>
+                    <p className="text-xs font-semibold text-primary-700">
+                      Draft reply
+                    </p>
                     <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-2 py-1 rounded-full border border-primary-100">
                       Owner tone
                     </span>
                   </div>
                   <p className="text-sm text-foreground">
-                    Sarah, thanks for the kind words. The thin crust is my dad&apos;s recipe from 1994, and our team hustles to keep deliveries quick. Can&apos;t wait to have you back. — Joe (owner)
+                    Sarah, thanks for the kind words. The thin crust is my
+                    dad&apos;s recipe from 1994, and our team hustles to keep
+                    deliveries quick. Can&apos;t wait to have you back. — Joe
+                    (owner)
                   </p>
                   <div className="flex items-center justify-between text-xs text-foreground-muted">
                     <span>Voice: Warm • Neighborly • First-person</span>
@@ -185,15 +210,23 @@ export default function LandingPage() {
                         </span>
                       ))}
                     </div>
-                    <span className="ml-auto text-foreground-muted">Tap to preview</span>
+                    <span className="ml-auto text-foreground-muted">
+                      Tap to preview
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-4 flex items-center gap-3">
-                  <button className="px-4 py-2 rounded-full bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-full bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                  >
                     Publish
                   </button>
-                  <button className="px-4 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:border-primary-500 hover:text-primary-700 transition-colors">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:border-primary-500 hover:text-primary-700 transition-colors"
+                  >
                     Edit reply
                   </button>
                 </div>
@@ -215,21 +248,21 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-background-secondary to-transparent" />
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-background-secondary to-transparent" />
             <div className="flex gap-3 overflow-x-auto py-1 px-1 md:justify-center md:flex-wrap">
-            {[
-              "Maria's Corner Bakery · Tulsa",
-              "Dr. Chen Family Dental · Seattle",
-              "QuickFix HVAC · Denver",
-              "Southside Barbers · Austin",
-              "Harborview Auto · Tampa",
-            ].map((name) => (
-              <div
-                key={name}
-                className="shrink-0 px-4 py-2 rounded-full border border-accent-200 bg-accent-50 text-accent-800 text-sm font-semibold"
-              >
-                {name}
-              </div>
-            ))}
-          </div>
+              {[
+                "Maria's Corner Bakery · Tulsa",
+                "Dr. Chen Family Dental · Seattle",
+                "QuickFix HVAC · Denver",
+                "Southside Barbers · Austin",
+                "Harborview Auto · Tampa",
+              ].map((name) => (
+                <div
+                  key={name}
+                  className="shrink-0 px-4 py-2 rounded-full border border-accent-200 bg-accent-50 text-accent-800 text-sm font-semibold"
+                >
+                  {name}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -272,9 +305,13 @@ export default function LandingPage() {
                 className="relative p-8 bg-surface rounded-2xl border border-accent-200 shadow-sm"
               >
                 <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-6 border border-primary-200">
-                  <span className="text-lg font-bold text-primary-700">{index + 1}</span>
+                  <span className="text-lg font-bold text-primary-700">
+                    {index + 1}
+                  </span>
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">{item.title}</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-3">
+                  {item.title}
+                </h3>
                 <p className="text-foreground-secondary">{item.description}</p>
               </div>
             ))}
@@ -295,7 +332,9 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="mt-6 text-lg text-foreground-secondary">
-                Every unanswered review is a missed opportunity. Customers expect a human reply—and 89% read business responses before choosing.
+                Every unanswered review is a missed opportunity. Customers
+                expect a human reply—and 89% read business responses before
+                choosing.
               </p>
 
               <ul className="mt-8 space-y-4">
@@ -305,7 +344,9 @@ export default function LandingPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
+                    <title>Included</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -314,7 +355,8 @@ export default function LandingPage() {
                     />
                   </svg>
                   <span className="text-foreground">
-                    <strong>Save 10+ hours per week</strong> on review management (avg across single-location shops)
+                    <strong>Save 10+ hours per week</strong> on review
+                    management (avg across single-location shops)
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -323,7 +365,9 @@ export default function LandingPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
+                    <title>Included</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -332,7 +376,8 @@ export default function LandingPage() {
                     />
                   </svg>
                   <span className="text-foreground">
-                    <strong>100% response rate</strong> without hiring extra help
+                    <strong>100% response rate</strong> without hiring extra
+                    help
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -341,7 +386,9 @@ export default function LandingPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
+                    <title>Included</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -350,7 +397,8 @@ export default function LandingPage() {
                     />
                   </svg>
                   <span className="text-foreground">
-                    <strong>Replies that sound owner-written</strong> with your tone locked in
+                    <strong>Replies that sound owner-written</strong> with your
+                    tone locked in
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -359,7 +407,9 @@ export default function LandingPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
+                    <title>Included</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -368,7 +418,8 @@ export default function LandingPage() {
                     />
                   </svg>
                   <span className="text-foreground">
-                    <strong>Defuse tough reviews</strong> with calm, accountable replies you approve
+                    <strong>Defuse tough reviews</strong> with calm, accountable
+                    replies you approve
                   </span>
                 </li>
               </ul>
@@ -377,24 +428,44 @@ export default function LandingPage() {
             {/* Proof points instead of duplicate preview */}
             <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { label: "Avg. response time", value: "27 sec", meta: "Last 30 days" },
-                { label: "Response rate", value: "100%", meta: "Across 124 recent reviews" },
-                { label: "Tone match score", value: "96/100", meta: "Owner-approved replies" },
-                { label: "Hours saved weekly", value: "10+", meta: "Single-location average" },
+                {
+                  label: "Avg. response time",
+                  value: "27 sec",
+                  meta: "Last 30 days",
+                },
+                {
+                  label: "Response rate",
+                  value: "100%",
+                  meta: "Across 124 recent reviews",
+                },
+                {
+                  label: "Tone match score",
+                  value: "96/100",
+                  meta: "Owner-approved replies",
+                },
+                {
+                  label: "Hours saved weekly",
+                  value: "10+",
+                  meta: "Single-location average",
+                },
               ].map((item, index) => (
                 <div
                   key={item.label}
                   className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-foreground-muted">{item.label}</p>
+                    <p className="text-sm text-foreground-muted">
+                      {item.label}
+                    </p>
                     {index === 0 ? (
                       <span className="text-[11px] px-2 py-1 rounded-full border border-primary-200 bg-primary-50 text-primary-700">
                         Live
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-2xl font-semibold text-foreground mt-1">{item.value}</p>
+                  <p className="text-2xl font-semibold text-foreground mt-1">
+                    {item.value}
+                  </p>
                   <p className="text-xs text-foreground-muted">{item.meta}</p>
                   {index === 2 ? (
                     <div className="mt-1 h-1.5 rounded-full bg-border overflow-hidden">
@@ -440,7 +511,9 @@ export default function LandingPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Included</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -456,7 +529,9 @@ export default function LandingPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Included</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -472,7 +547,9 @@ export default function LandingPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Included</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -488,7 +565,9 @@ export default function LandingPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Included</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -504,7 +583,9 @@ export default function LandingPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Included</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -522,13 +603,27 @@ export default function LandingPage() {
             >
               Start 14-Day Free Trial
             </Link>
-            <p className="mt-3 text-sm text-foreground-muted">No credit card required</p>
+            <p className="mt-3 text-sm text-foreground-muted">
+              No credit card required
+            </p>
             <div className="mt-4 text-sm text-foreground-secondary space-y-2">
               <p>
-                Questions? <Link href="mailto:support@replystack.com" className="text-primary-700 hover:underline">Email us</Link>
+                Questions?{" "}
+                <Link
+                  href="mailto:support@replystack.com"
+                  className="text-primary-700 hover:underline"
+                >
+                  Email us
+                </Link>
               </p>
               <p>
-                Quick answers: <Link href="/pricing-faq" className="text-primary-700 hover:underline">Pricing FAQ</Link>
+                Quick answers:{" "}
+                <Link
+                  href="/pricing-faq"
+                  className="text-primary-700 hover:underline"
+                >
+                  Pricing FAQ
+                </Link>
               </p>
             </div>
           </div>
@@ -581,10 +676,16 @@ export default function LandingPage() {
               <Link href="/terms" className="hover:text-foreground">
                 Terms
               </Link>
-              <Link href="mailto:support@replystack.com" className="hover:text-foreground">
+              <Link
+                href="mailto:support@replystack.com"
+                className="hover:text-foreground"
+              >
                 Contact
               </Link>
-              <Link href="mailto:support@replystack.com?subject=Help%20choosing%20a%20plan" className="hover:text-foreground">
+              <Link
+                href="mailto:support@replystack.com?subject=Help%20choosing%20a%20plan"
+                className="hover:text-foreground"
+              >
                 Need help choosing?
               </Link>
             </div>

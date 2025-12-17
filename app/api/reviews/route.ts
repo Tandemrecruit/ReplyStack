@@ -1,12 +1,15 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-import type { NextRequest } from "next/server";
-
 /**
- * GET /api/reviews
- * Fetch reviews for the current user's organization
+ * Handle GET /api/reviews for the authenticated user's organization.
+ *
+ * Reads optional URL search parameters (`status`, `rating`, `page`, `limit`) to filter and paginate reviews.
+ *
+ * @param request - Incoming NextRequest; its URL may include `status`, `rating`, `page`, and `limit` search params.
+ * @returns A JSON object with `reviews` (array), `total` (number), `page` (number), and `limit` (number). On failure or when unauthenticated, returns a JSON `{ error: string }` with an appropriate HTTP status.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -39,8 +42,7 @@ export async function GET(request: NextRequest) {
     console.error("Reviews API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch reviews" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

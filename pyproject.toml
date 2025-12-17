@@ -21,10 +21,10 @@ where = ["python/src"]
 target-version = "py311"
 line-length = 100
 indent-width = 4
+fix = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-fix = true
 
 [tool.ruff.format]
 quote-style = "double"

@@ -2,6 +2,10 @@
 
 AI-powered Google Business review response tool for local businesses. Respond to every review in 30 seconds with AI that sounds like you.
 
+## Development Status
+
+Early-stage scaffolding. UI shells are present, but auth, API routes, Google/Claude/Stripe integrations, and cron/webhooks are not implemented yet.
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 with App Router (React Server Components)
@@ -52,10 +56,12 @@ AI-powered Google Business review response tool for local businesses. Respond to
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+For detailed environment setup, troubleshooting, and local cron/webhook notes, see `docs/SETUP.md` (added in this doc refresh).
+
 ## Project Structure
 
 ```
-replystack/
+ReplyStack/
 ├── app/
 │   ├── (auth)/           # Auth routes (login, signup, callback)
 │   ├── (dashboard)/      # Protected dashboard routes
@@ -100,6 +106,13 @@ replystack/
 - [Roadmap](./docs/ROADMAP.md) - Development roadmap and feature planning
 - [Prompts](./docs/PROMPTS.md) - AI prompt templates
 - [Decisions](./docs/DECISIONS.md) - Architecture decision records
+- [Setup](./docs/SETUP.md) - Local development and environment runbook
+- [API](./docs/API.md) - Route contracts and current state
+- [Changelog](./docs/CHANGELOG.md) - Notable documentation/codebase updates
+
+## Logs
+
+Default log output is written to `logs/` (e.g., `logs/biome-lsp-logs`). This directory is ignored by git but remains user-owned so you can rotate or delete files as needed.
 
 ## Environment Variables
 

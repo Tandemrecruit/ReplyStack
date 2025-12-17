@@ -25,6 +25,7 @@
 .DS_Store
 Thumbs.db
 *.pem
+logs/
 
 # debug
 npm-debug.log*
@@ -54,20 +55,10 @@ __pycache__/
 venv/
 .envrc
 
-# ignore generated egg-info metadata
-*.egg-info/
-
-# cursor
+# IDE configurations
 .cursorignore
 .cursor/
 .vscode/
-
-# biome
-# Keep biome.json tracked so formatter config stays shared
-
-# python project artifacts (add here only if generated)
-python/
-python/src/answercraft_python.egg-info/
 
 # supabase
 .supabase/

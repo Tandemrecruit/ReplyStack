@@ -18,17 +18,19 @@ const MAX_TOKENS = 500;
 const TIMEOUT_MS = 30000;
 
 /**
- * Generates a response for a review using Claude AI
+ * Create a customer-facing response to a review using the configured Claude prompt templates.
+ *
+ * Builds system and user prompts from the provided voice profile and review, logs a warning that the Claude API call is not yet implemented, and returns a placeholder response.
  *
  * @param review - The review to respond to
- * @param voiceProfile - The voice profile configuration
- * @param businessName - The name of the business
- * @returns Generated response text
+ * @param voiceProfile - Voice and style configuration used to construct the system prompt
+ * @param businessName - The business name to use in prompts and the response
+ * @returns An object with `text` containing the response string (currently a placeholder) and `tokensUsed` indicating the number of tokens consumed (currently `0`)
  */
 export async function generateResponse(
   review: Review,
   voiceProfile: VoiceProfile,
-  businessName: string
+  businessName: string,
 ): Promise<{ text: string; tokensUsed: number }> {
   const systemPrompt = buildSystemPrompt(voiceProfile, businessName);
   const userPrompt = buildUserPrompt(review, businessName);
@@ -52,11 +54,15 @@ export async function generateResponse(
 }
 
 /**
- * Builds the system prompt from voice profile
+ * Constructs the system prompt that instructs the AI how to write review responses for the business.
+ *
+ * @param voiceProfile - Voice and style settings used to populate the prompt (fields used: `tone`, `personality_notes`, `sign_off_style`, `example_responses`, `words_to_avoid`, `words_to_use`, and `max_length`)
+ * @param businessName - The business name included in the prompt to identify the sender
+ * @returns The formatted system prompt string containing voice instructions, example responses, and rules (including length limit, addressing guidance, and preferred/forbidden words)
  */
 function buildSystemPrompt(
   voiceProfile: VoiceProfile,
-  businessName: string
+  businessName: string,
 ): string {
   const exampleResponses = voiceProfile.example_responses?.join("\n\n") ?? "";
   const wordsToAvoid = voiceProfile.words_to_avoid?.join(", ") ?? "";
@@ -105,7 +111,14 @@ Write a response as ${businessName}.`;
 }
 
 /**
- * Builds the negative review addendum for 1-2 star reviews
+ * Create a short addendum guiding responses to 1–2 star (negative) reviews.
+ *
+ * The addendum flags the review as critical and specifies a concise five-step structure:
+ * thank the reviewer, acknowledge the concern, apologize without admitting fault,
+ * offer resolution using the provided contact email, and keep the response brief.
+ *
+ * @param contactEmail - Email address customers should use to contact the business
+ * @returns A formatted multi-line string containing the structured addendum with the provided contact email
  */
 export function buildNegativeAddendum(contactEmail: string): string {
   return `
@@ -116,4 +129,3 @@ CRITICAL: This is a negative review. Follow this structure:
 4. Offer to resolve: "Please reach out to us at ${contactEmail} so we can make this right"
 5. Keep it short - long responses look defensive`;
 }
-

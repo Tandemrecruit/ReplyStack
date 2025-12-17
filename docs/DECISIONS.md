@@ -136,6 +136,58 @@ Single $49/month tier for MVP launch.
 
 ---
 
+## ADR-006: Upgrade to Next.js 16 (React 19, Tailwind v4)
+
+**Status:** Accepted
+
+### Context
+
+Framework/tooling versions advanced; we want current React features and Tailwind v4 defaults while retaining App Router.
+
+### Decision
+
+Upgrade to Next.js 16 with React 19 and Tailwind CSS v4, keeping App Router and existing project structure.
+
+### Rationale
+
+- Align with current Next.js/React improvements and bug fixes.
+- Tailwind v4 simplifies config and reduces CSS payloads.
+- Minimal migration effort given early-stage codebase.
+
+### Consequences
+
+- Need to keep pace with evolving React 19 semantics.
+- Tailwind v4 requires verifying class compatibility during feature work.
+
+---
+
+## ADR-007: Setup Docs Follow Markdown Lint Rules
+
+**Status:** Accepted
+
+### Context
+
+Our setup/runbook documentation hit markdown lint failures (long lines, missing
+spacing). We want onboarding docs to stay lint-clean and readable.
+
+### Decision
+
+Adopt a setup doc pattern: wrap lines to 80 characters, add blank lines around
+lists, and avoid trailing blank lines.
+
+### Rationale
+
+- Keeps markdown lint green
+- Improves readability for environment/bootstrap steps
+- Prevents regressions during future onboarding updates
+
+### Consequences
+
+- Writers need to wrap and check spacing when editing setup/runbook docs
+- Minor overhead but avoids future lint fixes
+
+---
+
 ## Template for New Decisions
 
 ```markdown
