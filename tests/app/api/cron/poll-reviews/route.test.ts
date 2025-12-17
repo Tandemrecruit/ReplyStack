@@ -1,5 +1,5 @@
-import { makeNextRequest } from "@/tests/helpers/next";
 import { GET } from "@/app/api/cron/poll-reviews/route";
+import { makeNextRequest } from "@/tests/helpers/next";
 
 describe("GET /api/cron/poll-reviews", () => {
   let originalCronSecret: string | undefined;
@@ -68,5 +68,3 @@ describe("GET /api/cron/poll-reviews", () => {
     );
   });
 });
-
-

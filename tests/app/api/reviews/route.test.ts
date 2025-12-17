@@ -6,8 +6,8 @@ vi.mock("@/lib/supabase/server", () => {
   };
 });
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { GET } from "@/app/api/reviews/route";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 describe("GET /api/reviews", () => {
   it("returns 401 when unauthenticated", async () => {
@@ -28,9 +28,7 @@ describe("GET /api/reviews", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
-        getUser: vi
-          .fn()
-          .mockResolvedValue({ data: { user: { id: "u1" } } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
       },
     } as never);
 
@@ -48,5 +46,3 @@ describe("GET /api/reviews", () => {
     });
   });
 });
-
-

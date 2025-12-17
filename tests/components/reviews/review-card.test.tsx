@@ -65,5 +65,3 @@ describe("components/reviews/ReviewCard", () => {
     ).toBeNull();
   });
 });
-
-

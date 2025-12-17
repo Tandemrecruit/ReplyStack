@@ -64,5 +64,3 @@ describe("lib/utils/format", () => {
     expect(formatCurrency(12.5)).toBe("$12.50");
   });
 });
-
-

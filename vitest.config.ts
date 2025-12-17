@@ -18,5 +18,3 @@ export default defineConfig({
     environmentMatchGlobs: [["**/*.test.ts", "node"]],
   },
 });
-
-

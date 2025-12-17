@@ -1,12 +1,14 @@
 # Setup & Runbook
 
-Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not implemented yet). Use this to bootstrap local dev and fill env values.
+Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not
+implemented yet). Use this to bootstrap local dev and fill env values.
 
 ## Prerequisites
 
 - Node.js 18+
 - npm (or yarn/pnpm)
-- Accounts/keys: Supabase, Google Cloud (Business Profile API), Stripe, Anthropic, Resend (optional)
+- Accounts/keys: Supabase, Google Cloud (Business Profile API), Stripe,
+  Anthropic, Resend (optional)
 
 ## Install & Env
 
@@ -23,10 +25,12 @@ cp .env.local.example .env.local
 ```
 
 1. Fill required vars:
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `ANTHROPIC_API_KEY`
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_ID`
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
+  `STRIPE_PRICE_ID`
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (optional for now)
 - `CRON_SECRET` (random string for cron auth)
 - `NEXT_PUBLIC_APP_URL` (e.g., `http://localhost:3000`)
@@ -85,6 +89,6 @@ npm run format
 ## Troubleshooting
 
 - Missing env vars: Next.js route handlers will throw; check `.env.local`.
-- Auth middleware: `middleware.ts` refreshes Supabase session; ensure cookies are allowed in your browser.
+- Auth middleware: `middleware.ts` refreshes Supabase session; ensure cookies are
+  allowed in your browser.
 - Cron auth failures: verify `CRON_SECRET` matches request header.
-

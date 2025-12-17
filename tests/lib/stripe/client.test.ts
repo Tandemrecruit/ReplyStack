@@ -8,14 +8,19 @@ import {
 describe("lib/stripe/client", () => {
   it("createCheckoutSession throws until implemented", async () => {
     await expect(
-      createCheckoutSession("cus_123", "price_123", "https://ok", "https://nope"),
+      createCheckoutSession(
+        "cus_123",
+        "price_123",
+        "https://ok",
+        "https://nope",
+      ),
     ).rejects.toThrow("Not implemented");
   });
 
   it("createPortalSession throws until implemented", async () => {
-    await expect(createPortalSession("cus_123", "https://return")).rejects.toThrow(
-      "Not implemented",
-    );
+    await expect(
+      createPortalSession("cus_123", "https://return"),
+    ).rejects.toThrow("Not implemented");
   });
 
   it("getSubscriptionStatus defaults to none until implemented", async () => {
@@ -28,5 +33,3 @@ describe("lib/stripe/client", () => {
     expect(verifyWebhookSignature("{}", "sig")).toBe(false);
   });
 });
-
-

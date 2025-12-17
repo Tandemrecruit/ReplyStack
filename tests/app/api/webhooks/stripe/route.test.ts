@@ -1,5 +1,5 @@
-import { makeNextRequest } from "@/tests/helpers/next";
 import { POST } from "@/app/api/webhooks/stripe/route";
+import { makeNextRequest } from "@/tests/helpers/next";
 
 describe("POST /api/webhooks/stripe", () => {
   it("returns 400 when stripe-signature header is missing", async () => {
@@ -30,5 +30,3 @@ describe("POST /api/webhooks/stripe", () => {
     await expect(response.json()).resolves.toEqual({ received: true });
   });
 });
-
-

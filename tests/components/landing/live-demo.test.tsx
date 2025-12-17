@@ -51,5 +51,3 @@ describe("components/landing/LiveDemo", () => {
     );
   });
 });
-
-

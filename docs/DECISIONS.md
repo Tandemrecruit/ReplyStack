@@ -161,6 +161,33 @@ Upgrade to Next.js 16 with React 19 and Tailwind CSS v4, keeping App Router and 
 
 ---
 
+## ADR-007: Setup Docs Follow Markdown Lint Rules
+
+**Status:** Accepted
+
+### Context
+
+Our setup/runbook documentation hit markdown lint failures (long lines, missing
+spacing). We want onboarding docs to stay lint-clean and readable.
+
+### Decision
+
+Adopt a setup doc pattern: wrap lines to 80 characters, add blank lines around
+lists, and avoid trailing blank lines.
+
+### Rationale
+
+- Keeps markdown lint green
+- Improves readability for environment/bootstrap steps
+- Prevents regressions during future onboarding updates
+
+### Consequences
+
+- Writers need to wrap and check spacing when editing setup/runbook docs
+- Minor overhead but avoids future lint fixes
+
+---
+
 ## Template for New Decisions
 
 ```markdown

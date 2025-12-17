@@ -17,7 +17,9 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
     await user.type(screen.getByLabelText("Sign-off Style"), "— Ryan, Owner");
 
-    await user.click(screen.getByRole("button", { name: "Save Voice Profile" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -53,7 +55,9 @@ describe("components/voice-profile/VoiceEditor", () => {
     await user.clear(maxInput);
     await user.type(maxInput, "275");
 
-    await user.click(screen.getByRole("button", { name: "Save Voice Profile" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -72,7 +76,9 @@ describe("components/voice-profile/VoiceEditor", () => {
     ) as HTMLInputElement;
     await user.clear(maxInput);
 
-    await user.click(screen.getByRole("button", { name: "Save Voice Profile" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
 
     const payload = onSave.mock.calls[0][0];
     expect(Number.isNaN(payload.max_length as number)).toBe(true);
@@ -89,7 +95,9 @@ describe("components/voice-profile/VoiceEditor", () => {
     await user.clear(maxInput);
     await user.type(maxInput, "50");
 
-    await user.click(screen.getByRole("button", { name: "Save Voice Profile" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -109,7 +117,9 @@ describe("components/voice-profile/VoiceEditor", () => {
     await user.clear(maxInput);
     await user.type(maxInput, "500");
 
-    await user.click(screen.getByRole("button", { name: "Save Voice Profile" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -118,5 +128,3 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 });
-
-

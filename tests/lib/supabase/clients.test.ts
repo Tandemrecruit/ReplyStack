@@ -60,8 +60,7 @@ describe("lib/supabase clients", () => {
     );
 
     if (originalUrl) process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl;
-    if (originalService) process.env.SUPABASE_SERVICE_ROLE_KEY = originalService;
+    if (originalService)
+      process.env.SUPABASE_SERVICE_ROLE_KEY = originalService;
   });
 });
-
-

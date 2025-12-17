@@ -2,10 +2,10 @@ import {
   fetchAccounts,
   fetchLocations,
   fetchReviews,
+  GOOGLE_API_BASE,
   publishResponse,
   refreshAccessToken,
 } from "@/lib/google/client";
-import { GOOGLE_API_BASE } from "@/lib/google/client";
 
 describe("lib/google/client", () => {
   it("refreshAccessToken throws until implemented", async () => {
@@ -18,10 +18,9 @@ describe("lib/google/client", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const accounts = await fetchAccounts("access-token");
     expect(accounts).toEqual([]);
-    expect(warn).toHaveBeenCalledWith(
-      "fetchAccounts not implemented",
-      { api: GOOGLE_API_BASE },
-    );
+    expect(warn).toHaveBeenCalledWith("fetchAccounts not implemented", {
+      api: GOOGLE_API_BASE,
+    });
   });
 
   it("fetchLocations returns an empty list until implemented", async () => {
@@ -39,5 +38,3 @@ describe("lib/google/client", () => {
     expect(ok).toBe(false);
   });
 });
-
-
