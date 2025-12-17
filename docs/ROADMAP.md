@@ -2,12 +2,14 @@
 
 ## Phase 1: MVP (Week 1-2)
 
+**Current Status (Dec 2025):** Project scaffolding is in place; all feature work (auth, Google integration, AI generation, dashboard flows, Stripe, email) is not yet implemented.
+
 **Goal:** One location, core response loop, payments working
 
 ### Week 1: Foundation
 
 - [X] **Project setup**
-  - [x] Initialize Next.js 15 with App Router
+  - [x] Initialize Next.js 16 with App Router
   - [x] Configure Supabase project and client
   - [x] Set up environment variables
   - [x] Configure Biome (linting and formatting)

@@ -98,58 +98,60 @@ Settings Page
 
 ## MVP Feature Requirements
 
+Status note (Dec 2025): These are target requirements; none of the feature work is implemented yet.
+
 ### Authentication
-- [x] Email/password registration and login
-- [x] Google OAuth sign-in
-- [x] Password reset flow
-- [x] Session management
+- [ ] Email/password registration and login
+- [ ] Google OAuth sign-in
+- [ ] Password reset flow
+- [ ] Session management
 
 ### Google Integration
-- [x] Google Business Profile OAuth connection
-- [x] Location selection (single location for MVP)
-- [x] Automatic review fetching (polling every 15 min)
-- [x] Publish responses to Google
+- [ ] Google Business Profile OAuth connection
+- [ ] Location selection (single location for MVP)
+- [ ] Automatic review fetching (polling every 15 min)
+- [ ] Publish responses to Google
 
 ### Review Management
-- [x] Review list view with newest first
-- [x] Filter by rating (1-5 stars)
-- [x] Filter by status (pending/responded/ignored)
-- [x] Filter by date range
-- [x] Search reviews by text content
-- [x] Mark review as "ignored"
+- [ ] Review list view with newest first
+- [ ] Filter by rating (1-5 stars)
+- [ ] Filter by status (pending/responded/ignored)
+- [ ] Filter by date range
+- [ ] Search reviews by text content
+- [ ] Mark review as "ignored"
 
 ### Voice Profile
-- [x] Tone selection (friendly, professional, casual, formal)
-- [x] Personality notes (free text)
-- [x] Example responses (3-5 samples)
-- [x] Sign-off style (name, title, business name)
-- [x] Words to use (brand terms, values)
-- [x] Words to avoid (competitor names, sensitive terms)
-- [x] Maximum response length (word count)
+- [ ] Tone selection (friendly, professional, casual, formal)
+- [ ] Personality notes (free text)
+- [ ] Example responses (3-5 samples)
+- [ ] Sign-off style (name, title, business name)
+- [ ] Words to use (brand terms, values)
+- [ ] Words to avoid (competitor names, sensitive terms)
+- [ ] Maximum response length (word count)
 
 ### AI Response Generation
-- [x] One-click response generation
-- [x] Uses voice profile for personalization
-- [x] Different handling for positive vs negative reviews
-- [x] Regenerate button for alternatives
+- [ ] One-click response generation
+- [ ] Uses voice profile for personalization
+- [ ] Different handling for positive vs negative reviews
+- [ ] Regenerate button for alternatives
 
 ### Response Workflow
-- [x] Edit response in modal before publishing
-- [x] Character count display
-- [x] Preview how response will look
-- [x] Publish to Google with confirmation
-- [x] Response history per review
+- [ ] Edit response in modal before publishing
+- [ ] Character count display
+- [ ] Preview how response will look
+- [ ] Publish to Google with confirmation
+- [ ] Response history per review
 
 ### Payments
-- [x] Stripe Checkout for subscription
-- [x] Single tier: $49/month (MVP simplicity)
-- [x] 14-day free trial
-- [x] Stripe Customer Portal for billing management
+- [ ] Stripe Checkout for subscription
+- [ ] Single tier: $49/month (MVP simplicity)
+- [ ] 14-day free trial
+- [ ] Stripe Customer Portal for billing management
 
 ### Notifications
-- [x] Email notification for new reviews
-- [x] Configurable frequency (instant/daily digest)
-- [x] Unsubscribe option
+- [ ] Email notification for new reviews
+- [ ] Configurable frequency (instant/daily digest)
+- [ ] Unsubscribe option
 
 ---
 

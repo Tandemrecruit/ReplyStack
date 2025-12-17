@@ -136,6 +136,31 @@ Single $49/month tier for MVP launch.
 
 ---
 
+## ADR-006: Upgrade to Next.js 16 (React 19, Tailwind v4)
+
+**Status:** Accepted
+
+### Context
+
+Framework/tooling versions advanced; we want current React features and Tailwind v4 defaults while retaining App Router.
+
+### Decision
+
+Upgrade to Next.js 16 with React 19 and Tailwind CSS v4, keeping App Router and existing project structure.
+
+### Rationale
+
+- Align with current Next.js/React improvements and bug fixes.
+- Tailwind v4 simplifies config and reduces CSS payloads.
+- Minimal migration effort given early-stage codebase.
+
+### Consequences
+
+- Need to keep pace with evolving React 19 semantics.
+- Tailwind v4 requires verifying class compatibility during feature work.
+
+---
+
 ## Template for New Decisions
 
 ```markdown

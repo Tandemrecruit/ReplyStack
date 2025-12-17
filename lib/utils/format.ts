@@ -3,7 +3,11 @@
  */
 
 /**
- * Formats a date to a human-readable string
+ * Formats a date into a long, locale-aware string.
+ *
+ * @param date - Date or ISO string to format.
+ * @param options - Optional overrides for the formatter.
+ * @returns Readable date like "January 1, 2025".
  */
 export function formatDate(
   date: string | Date,
@@ -19,7 +23,10 @@ export function formatDate(
 }
 
 /**
- * Formats a relative time (e.g., "2 hours ago")
+ * Formats a date into relative time (e.g., "2 hours ago").
+ *
+ * @param date - Date or ISO string to compare against now.
+ * @returns Human-readable relative string.
  */
 export function formatRelativeTime(date: string | Date): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -49,7 +56,11 @@ export function formatRelativeTime(date: string | Date): string {
 }
 
 /**
- * Truncates text to a maximum length with ellipsis
+ * Truncates text and appends an ellipsis when it exceeds max length.
+ *
+ * @param text - Input string to truncate.
+ * @param maxLength - Maximum allowed length including ellipsis.
+ * @returns Truncated text or the original if within bounds.
  */
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) {

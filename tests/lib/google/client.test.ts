@@ -5,6 +5,7 @@ import {
   publishResponse,
   refreshAccessToken,
 } from "@/lib/google/client";
+import { GOOGLE_API_BASE } from "@/lib/google/client";
 
 describe("lib/google/client", () => {
   it("refreshAccessToken throws until implemented", async () => {
@@ -19,7 +20,7 @@ describe("lib/google/client", () => {
     expect(accounts).toEqual([]);
     expect(warn).toHaveBeenCalledWith(
       "fetchAccounts not implemented",
-      expect.any(Object),
+      { api: GOOGLE_API_BASE },
     );
   });
 

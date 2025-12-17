@@ -23,15 +23,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Card component for displaying a single review
+ * Renders a review card with rating, reviewer meta, and optional generate action.
  *
- * TODO: Implement full review card with:
- * - Star rating display
- * - Reviewer info
- * - Review text
- * - Response status
- * - Generate response button
- * - View/edit response action
+ * @param review - Review record to display.
+ * @param onGenerateResponse - Optional handler to trigger AI generation for pending reviews.
  */
 export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
   const stars = Array.from({ length: 5 }, (_, i) => i < (review.rating ?? 0));

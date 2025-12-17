@@ -62,7 +62,6 @@ export default function BillingPage() {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >
-                <title>Included feature</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -80,7 +79,6 @@ export default function BillingPage() {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >
-                <title>Included feature</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -98,7 +96,6 @@ export default function BillingPage() {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >
-                <title>Included feature</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -116,7 +113,6 @@ export default function BillingPage() {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >
-                <title>Included feature</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

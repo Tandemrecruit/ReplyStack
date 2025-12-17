@@ -46,7 +46,6 @@ export default function ReviewsPage() {
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <title>Chat bubble icon</title>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

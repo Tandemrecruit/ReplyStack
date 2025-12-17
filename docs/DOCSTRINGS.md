@@ -22,6 +22,7 @@ Purpose: keep exported/public code self-documenting and maintain at least 85% do
 ### TS Examples
 
 Utility (`lib/utils` style):
+
 ```ts
 /**
  * Formats a review score into a human label.
@@ -37,6 +38,7 @@ export function formatScore(score: number): string {
 ```
 
 API route handler (`app/api/reviews/route.ts` pattern):
+
 ```ts
 /**
  * Creates or updates a review record for the signed-in organization.
@@ -53,6 +55,7 @@ export async function POST(req: Request): Promise<Response> {
 ```
 
 React client component (props-focused):
+
 ```ts
 /**
  * Renders a review card with sentiment-aware styling.
@@ -76,6 +79,7 @@ export function ReviewCard({ review, onSelect }: ReviewCardProps) {
 ### Python Examples
 
 Utility (`python/src/example_module.py` pattern):
+
 ```python
 def normalize(values: list[float]) -> list[float]:
     """Scale numeric values into 0..1; constant inputs map to zeros.
@@ -90,6 +94,7 @@ def normalize(values: list[float]) -> list[float]:
 ```
 
 Class with methods:
+
 ```python
 class ReviewFormatter:
     """Formats review data for downstream rendering."""
@@ -109,6 +114,7 @@ class ReviewFormatter:
 - Target: ≥85% docstring coverage across TS/JS and Python. Run locally; not enforced in CI.
 
 ### Python quick check (interrogate)
+
 ```bash
 pip install --upgrade interrogate
 interrogate python/src python/automation -c 85 --fail-under 0
@@ -117,6 +123,7 @@ interrogate python/src python/automation -c 85 --fail-under 0
 
 ### TypeScript/JavaScript quick check (heuristic script)
 Run a lightweight scan for exported symbols missing TSDoc (no deps required):
+
 ```bash
 node - <<'NODE'
 import fs from "fs";

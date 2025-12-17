@@ -24,10 +24,10 @@ describe("components/landing/LiveDemo", () => {
     const user = userEvent.setup();
     render(<LiveDemo />);
 
-    expect(screen.getByText(/Draft reply \(Warm tone\)/)).toBeTruthy();
+    expect(screen.getByText(/Draft reply \(Warm tone\)/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Direct" }));
-    expect(screen.getByText(/Draft reply \(Direct tone\)/)).toBeTruthy();
+    expect(screen.getByText(/Draft reply \(Direct tone\)/)).toBeInTheDocument();
   });
 
   it("updates review text and draft when switching samples", async () => {
@@ -38,8 +38,8 @@ describe("components/landing/LiveDemo", () => {
     await user.clear(textarea);
     await user.type(textarea, "Parking was tricky but booking was easy.");
 
-    expect(screen.getByText(/Parking can/i)).toBeTruthy();
-    expect(screen.getByText(/online booking was easy/i)).toBeTruthy();
+    expect(screen.getByText(/Parking can/i)).toBeInTheDocument();
+    expect(screen.getByText(/online booking was easy/i)).toBeInTheDocument();
 
     await user.selectOptions(
       screen.getByLabelText("Choose a sample review"),
