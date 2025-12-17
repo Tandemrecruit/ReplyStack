@@ -62,6 +62,6 @@ describe("components/reviews/ReviewCard", () => {
 
     expect(
       screen.queryByRole("button", { name: "Generate Response" }),
-    ).toBeNull();
+    ).not.toBeInTheDocument();
   });
 });
