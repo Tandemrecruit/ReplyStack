@@ -23,8 +23,8 @@ describe("lib/supabase/middleware updateSession", () => {
   beforeEach(() => {
     originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    process.env.NEXT_PUBLIC_SUPABASE_URL ??= "https://example.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??= "anon";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
   });
 
   afterEach(() => {

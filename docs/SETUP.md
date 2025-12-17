@@ -15,11 +15,13 @@ Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not
 ```bash
 npm install
 ```
+
 1. Copy env template:
 
 ```bash
 cp .env.local.example .env.local
 ```
+
 1. Fill required vars:
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
@@ -68,9 +70,11 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ## Testing
 
 - Unit tests (Vitest):
+
 ```bash
 npm test
 ```
+
 - Lint/format:
 
 ```bash
