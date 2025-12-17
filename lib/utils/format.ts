@@ -63,6 +63,14 @@ export function formatRelativeTime(date: string | Date): string {
  * @returns The original `text` if its length is less than or equal to `maxLength`; otherwise a truncated string that ends with `...` (for `maxLength >= 3`, the result's length will be at most `maxLength`)
  */
 export function truncate(text: string, maxLength: number): string {
+  if (maxLength < 0) {
+    throw new RangeError("maxLength must be non-negative");
+  }
+
+  if (maxLength < 3) {
+    return "...".slice(0, maxLength);
+  }
+
   if (text.length <= maxLength) {
     return text;
   }

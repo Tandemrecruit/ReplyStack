@@ -10,22 +10,24 @@ Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not
 
 ## Install & Env
 
-1) Install deps:
+1. Install deps:
+
 ```bash
 npm install
 ```
-2) Copy env template:
+1. Copy env template:
+
 ```bash
 cp .env.local.example .env.local
 ```
-3) Fill required vars:
+1. Fill required vars:
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `ANTHROPIC_API_KEY`
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_ID`
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (optional for now)
 - `CRON_SECRET` (random string for cron auth)
-- `NEXT_PUBLIC_APP_URL` (e.g., http://localhost:3000)
+- `NEXT_PUBLIC_APP_URL` (e.g., `http://localhost:3000`)
 
 ## Local Development
 
@@ -38,6 +40,7 @@ npm run dev
 
 - Use Supabase project console to configure auth (email + Google) and enable RLS.
 - Regenerate types after schema changes:
+
 ```bash
 npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
 ```
@@ -47,6 +50,7 @@ npx supabase gen types typescript --project-id <project-id> > lib/supabase/types
 - Endpoint: `GET /api/cron/poll-reviews`
 - Protect with `Authorization: Bearer $CRON_SECRET`
 - Local smoke test (returns stub response):
+
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/poll-reviews
 ```
@@ -56,6 +60,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/poll
 - Endpoint: `POST /api/webhooks/stripe`
 - Uses `stripe-signature` header but logic is not implemented yet.
 - To dry-run locally once implemented:
+
 ```bash
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
@@ -67,6 +72,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 npm test
 ```
 - Lint/format:
+
 ```bash
 npm run lint
 npm run format

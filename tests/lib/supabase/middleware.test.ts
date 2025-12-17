@@ -44,7 +44,6 @@ describe("lib/supabase/middleware updateSession", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost/login?redirect=%2Fdashboard",
     );
-
   });
 
   it("redirects authenticated users away from auth pages (uses ?redirect= when present)", async () => {
@@ -54,7 +53,6 @@ describe("lib/supabase/middleware updateSession", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost/reviews");
-
   });
 
   it("passes through non-protected routes when unauthenticated", async () => {
@@ -64,8 +62,5 @@ describe("lib/supabase/middleware updateSession", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
-
   });
 });
-
-

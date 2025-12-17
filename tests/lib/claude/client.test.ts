@@ -2,6 +2,10 @@ import { buildNegativeAddendum, generateResponse } from "@/lib/claude/client";
 import type { Review, VoiceProfile } from "@/lib/supabase/types";
 
 describe("lib/claude/client", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("buildNegativeAddendum includes the contact email and guidance", () => {
     const text = buildNegativeAddendum("support@example.com");
     expect(text).toContain("support@example.com");
@@ -56,5 +60,3 @@ describe("lib/claude/client", () => {
     );
   });
 });
-
-
