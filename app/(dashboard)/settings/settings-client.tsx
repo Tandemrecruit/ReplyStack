@@ -21,6 +21,8 @@ export function SettingsClient() {
   const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
   const [isUpdatingNotifications, setIsUpdatingNotifications] =
     useState<boolean>(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] =
+    useState<boolean>(true);
   const [notificationError, setNotificationError] = useState<string | null>(
     null,
   );
@@ -97,15 +99,15 @@ export function SettingsClient() {
     }
   };
 
-  const feedbackColor =
-    status.type === "success"
-      ? "text-green-700"
-      : status.type === "error"
-        ? "text-red-700"
-        : "text-foreground-secondary";
+  const colorMap: Record<string, string> = {
+    success: "text-green-700",
+    error: "text-red-700",
+  };
+  const feedbackColor = colorMap[status.type] ?? "text-foreground-secondary";
 
   useEffect(() => {
     const fetchNotificationPreference = async () => {
+      setIsLoadingNotifications(true);
       try {
         const response = await fetch("/api/notifications");
         const data = await response.json().catch(() => ({}));
@@ -115,6 +117,8 @@ export function SettingsClient() {
         }
       } catch (error) {
         console.error("Failed to load notification preferences", error);
+      } finally {
+        setIsLoadingNotifications(false);
       }
     };
 
@@ -279,9 +283,7 @@ export function SettingsClient() {
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
           <output aria-live="polite" className={`text-sm ${feedbackColor}`}>
-            {status.type === "idle" && hasValidationErrors
-              ? "Please fix the highlighted fields."
-              : (status.message ?? "")}
+            {status.message ?? ""}
           </output>
         </div>
       </section>
@@ -307,7 +309,7 @@ export function SettingsClient() {
               aria-checked={emailNotifications}
               aria-busy={isUpdatingNotifications}
               onClick={handleToggleEmailNotifications}
-              disabled={isUpdatingNotifications}
+              disabled={isUpdatingNotifications || isLoadingNotifications}
               className={`relative inline-flex h-6 w-11 items-center rounded-full ${
                 emailNotifications ? "bg-primary-600" : "bg-gray-300"
               } ${isUpdatingNotifications ? "opacity-75 cursor-progress" : ""}`}

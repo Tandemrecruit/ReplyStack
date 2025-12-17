@@ -13,8 +13,6 @@ export function GoogleConnectButton() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleGoogleConnect = useCallback(async () => {
-    if (isConnecting) return;
-
     setIsConnecting(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -37,7 +35,7 @@ export function GoogleConnectButton() {
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, supabase]);
+  }, [supabase]);
 
   return (
     <button

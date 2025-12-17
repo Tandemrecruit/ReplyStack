@@ -14,9 +14,10 @@ describe("GET /api/cron/poll-reviews", () => {
     } else {
       process.env.CRON_SECRET = originalCronSecret;
     }
+    vi.restoreAllMocks();
   });
 
-  it("returns 401 when CRON_SECRET is set and authorization is missing/invalid", async () => {
+  it("returns 401 when CRON_SECRET is set and authorization is invalid", async () => {
     process.env.CRON_SECRET = "secret";
 
     const request = makeNextRequest("http://localhost/api/cron/poll-reviews", {
@@ -56,8 +57,6 @@ describe("GET /api/cron/poll-reviews", () => {
         timestamp: expect.any(String),
       }),
     );
-
-    warnSpy.mockRestore();
   });
 
   it("allows execution when CRON_SECRET matches authorization", async () => {
@@ -78,7 +77,5 @@ describe("GET /api/cron/poll-reviews", () => {
         success: true,
       }),
     );
-
-    warnSpy.mockRestore();
   });
 });

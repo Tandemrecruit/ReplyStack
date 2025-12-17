@@ -258,6 +258,8 @@ export type VoiceProfile =
 export type Location = Database["public"]["Tables"]["locations"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Response = Database["public"]["Tables"]["responses"]["Row"];
+export type NotificationPreference =
+  Database["public"]["Tables"]["notification_preferences"]["Row"];
 
 // Insert types
 export type OrganizationInsert =
@@ -270,6 +272,8 @@ export type LocationInsert =
 export type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
 export type ResponseInsert =
   Database["public"]["Tables"]["responses"]["Insert"];
+export type NotificationPreferenceInsert =
+  Database["public"]["Tables"]["notification_preferences"]["Insert"];
 
 // Update types
 export type OrganizationUpdate =
@@ -282,3 +286,5 @@ export type LocationUpdate =
 export type ReviewUpdate = Database["public"]["Tables"]["reviews"]["Update"];
 export type ResponseUpdate =
   Database["public"]["Tables"]["responses"]["Update"];
+export type NotificationPreferenceUpdate =
+  Database["public"]["Tables"]["notification_preferences"]["Update"];
