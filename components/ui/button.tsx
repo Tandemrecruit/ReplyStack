@@ -27,9 +27,17 @@ const sizeStyles: Record<ButtonSize, string> = {
 };
 
 /**
- * Reusable Button component with variants and sizes
+ * Renders a styled HTML button with configurable visual variant, size, and loading state.
  *
- * TODO: Add full shadcn/ui button component
+ * When `isLoading` is true the component displays an inline spinner and disables interaction.
+ *
+ * @param children - Button label or content
+ * @param variant - Visual style to apply; one of `"primary" | "secondary" | "ghost" | "danger"`
+ * @param size - Size preset to apply; one of `"sm" | "md" | "lg"`
+ * @param isLoading - If true, shows a loading spinner and prevents user interaction
+ * @param className - Additional Tailwind CSS classes to merge with the component styles
+ * @param disabled - If true, disables the button (also disabled while `isLoading` is true)
+ * @returns The rendered `<button>` element styled according to the provided props
  */
 export function Button({
   children,

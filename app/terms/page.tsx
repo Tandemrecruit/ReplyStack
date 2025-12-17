@@ -7,6 +7,16 @@ export const metadata: Metadata = {
     "Terms and conditions for using ReplyStack, the AI-powered review response tool for local businesses.",
 };
 
+/**
+ * Render the Terms of Service page for ReplyStack.
+ *
+ * Renders static, semantically-structured Terms of Service content (including a
+ * last-updated timestamp, numbered sections 1–10 covering eligibility, account
+ * use, billing, termination, disclaimers, and contact information) and a
+ * mailto link to support@replystack.com.
+ *
+ * @returns A React element containing the Terms of Service page
+ */
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-background text-foreground pt-24 pb-16 px-4 sm:px-6 lg:px-8">

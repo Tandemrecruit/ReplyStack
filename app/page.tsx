@@ -9,6 +9,14 @@ export const metadata: Metadata = {
     "Respond to every Google Business review in 30 seconds with AI that sounds like you. Built for restaurants, dental practices, and local service businesses.",
 };
 
+/**
+ * Render the ReplyStack marketing landing page including navigation, hero,
+ * live demo, features, benefits, pricing, CTAs, and footer.
+ *
+ * @returns The complete landing page JSX element containing site header, hero
+ * visuals and CTAs, live demo, social proof, feature steps, benefits and proof
+ * cards, pricing information, final CTA, and footer.
+ */
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
