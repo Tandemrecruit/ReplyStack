@@ -1,7 +1,7 @@
+import type { Database } from "@/lib/supabase/types";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { Database } from "@/lib/supabase/types";
 
 /**
  * Refreshes the Supabase session for the incoming request and enforces auth-based redirects.
@@ -96,7 +96,12 @@ export async function updateSession(request: NextRequest) {
   // (but allow access to verify-email, reset-password, update-password, callback)
   if (user?.email_confirmed_at && isAuthRoute && !isUnverifiedAllowedRoute) {
     const url = request.nextUrl.clone();
-    const redirect = url.searchParams.get("redirect") || "/dashboard";
+    const redirectParam = url.searchParams.get("redirect");
+    // Only allow relative paths to prevent open redirect attacks
+    const redirect =
+      redirectParam?.startsWith("/") && !redirectParam.startsWith("//")
+        ? redirectParam
+        : "/dashboard";
     url.pathname = redirect;
     url.searchParams.delete("redirect");
     return NextResponse.redirect(url);

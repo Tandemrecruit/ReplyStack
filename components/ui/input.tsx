@@ -56,11 +56,6 @@ export function Input({
           {label}
         </label>
       )}
-      {helpText && (
-        <p id={helpId} className="text-sm text-foreground-muted">
-          {helpText}
-        </p>
-      )}
       <input
         id={inputId}
         className={`
@@ -79,6 +74,11 @@ export function Input({
         aria-describedby={describedBy}
         {...props}
       />
+      {helpText && (
+        <p id={helpId} className="mt-1 text-sm text-foreground-muted">
+          {helpText}
+        </p>
+      )}
       {error && (
         <p id={errorId} className="mt-1 text-sm text-red-600" role="alert">
           {error}

@@ -133,6 +133,51 @@ describe("components/auth/SignupForm", () => {
     expect(mockSignUp).not.toHaveBeenCalled();
   });
 
+  it("shows validation error for password without lowercase", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "PASSWORD1");
+    await user.type(screen.getByLabelText("Confirm password"), "PASSWORD1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(
+      screen.getByText(/password must contain at least one lowercase letter/i),
+    ).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error for password without number", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password");
+    await user.type(screen.getByLabelText("Confirm password"), "Password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(
+      screen.getByText(/password must contain at least one number/i),
+    ).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error for invalid email format", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "invalid-email");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(
+      screen.getByText(/please enter a valid email address/i),
+    ).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
   it("calls signUp with correct data", async () => {
     mockSignUp.mockResolvedValue({ error: null });
 
@@ -171,6 +216,96 @@ describe("components/auth/SignupForm", () => {
     });
   });
 
+  it("re-enables inputs after submission error", async () => {
+    mockSignUp.mockResolvedValue({
+      error: { message: "Invalid credentials" },
+    });
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Invalid credentials",
+      );
+    });
+
+    expect(screen.getByLabelText("Email address")).not.toBeDisabled();
+    expect(screen.getByLabelText("Password")).not.toBeDisabled();
+    expect(screen.getByLabelText("Confirm password")).not.toBeDisabled();
+  });
+
+  it("shows error when Google OAuth fails", async () => {
+    mockSignInWithOAuth.mockResolvedValue({
+      error: { message: "OAuth provider error" },
+    });
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "OAuth provider error",
+      );
+    });
+  });
+
+  it("shows error when Google OAuth throws", async () => {
+    mockSignInWithOAuth.mockRejectedValue(new Error("network fail"));
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Failed to initiate Google sign-up. Please try again.",
+      );
+    });
+  });
+
+  it("disables inputs while Google OAuth is loading", async () => {
+    let resolvePromise: ((value: { error: null }) => void) | undefined;
+    const pendingPromise = new Promise<{ error: null }>((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    mockSignInWithOAuth.mockReturnValue(pendingPromise);
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.click(
+      screen.getByRole("button", { name: /continue with google/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /continue with google/i }),
+      ).toBeDisabled();
+      expect(screen.getByLabelText("Email address")).toBeDisabled();
+      expect(screen.getByLabelText("Password")).toBeDisabled();
+      expect(screen.getByLabelText("Confirm password")).toBeDisabled();
+    });
+
+    // Resolve the promise to clean up
+    if (resolvePromise) {
+      resolvePromise({ error: null });
+    }
+  });
+
   it("shows error for already registered email", async () => {
     mockSignUp.mockResolvedValue({
       error: { message: "User already registered" },
@@ -189,6 +324,44 @@ describe("components/auth/SignupForm", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(/already exists/i);
+    });
+  });
+
+  it("shows error for generic Supabase error", async () => {
+    mockSignUp.mockResolvedValue({
+      error: { message: "Invalid credentials" },
+    });
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Invalid credentials",
+      );
+    });
+  });
+
+  it("shows fallback error for unexpected exception", async () => {
+    mockSignUp.mockRejectedValue(new Error("Network error"));
+
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "An unexpected error occurred. Please try again.",
+      );
     });
   });
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
  */
 export function UpdatePasswordForm() {
   const router = useRouter();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const passwordRequirements = useMemo(() => getPasswordRequirementsList(), []);
 
@@ -79,7 +80,10 @@ export function UpdatePasswordForm() {
         });
 
         // Redirect after a brief delay to show success message
-        setTimeout(() => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
           router.push("/login");
         }, 2000);
       } catch {
@@ -93,6 +97,14 @@ export function UpdatePasswordForm() {
     },
     [password, confirmPassword, supabase, router],
   );
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Show success state
   if (status.type === "success") {

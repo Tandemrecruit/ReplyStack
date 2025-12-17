@@ -38,23 +38,25 @@ export function validateEmail(email: string): string | null {
  * @returns Error message if invalid, null if valid
  */
 export function validatePassword(password: string): string | null {
-  if (!password) {
+  const trimmed = password.trim();
+
+  if (!trimmed) {
     return "Password is required";
   }
 
-  if (password.length < PASSWORD_REQUIREMENTS.minLength) {
+  if (trimmed.length < PASSWORD_REQUIREMENTS.minLength) {
     return `Password must be at least ${PASSWORD_REQUIREMENTS.minLength} characters`;
   }
 
-  if (PASSWORD_REQUIREMENTS.requireUppercase && !/[A-Z]/.test(password)) {
+  if (PASSWORD_REQUIREMENTS.requireUppercase && !/[A-Z]/.test(trimmed)) {
     return "Password must contain at least one uppercase letter";
   }
 
-  if (PASSWORD_REQUIREMENTS.requireLowercase && !/[a-z]/.test(password)) {
+  if (PASSWORD_REQUIREMENTS.requireLowercase && !/[a-z]/.test(trimmed)) {
     return "Password must contain at least one lowercase letter";
   }
 
-  if (PASSWORD_REQUIREMENTS.requireNumber && !/\d/.test(password)) {
+  if (PASSWORD_REQUIREMENTS.requireNumber && !/\d/.test(trimmed)) {
     return "Password must contain at least one number";
   }
 

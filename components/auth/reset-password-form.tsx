@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { validateEmail } from "@/lib/validation/auth";
  * Sends a password reset email to the user via Supabase Auth.
  */
 export function ResetPasswordForm() {
-  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
+  const [supabase] = useState(() => createBrowserSupabaseClient());
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +32,7 @@ export function ResetPasswordForm() {
       setStatus({ type: "idle" });
 
       // Validate email
-      const emailError = validateEmail(email);
+      const emailError = validateEmail(email.trim());
       if (emailError) {
         setFieldErrors({ email: emailError });
         return;
