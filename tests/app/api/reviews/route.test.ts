@@ -10,6 +10,23 @@ import { GET } from "@/app/api/reviews/route";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 describe("GET /api/reviews", () => {
+  it("returns 500 when Supabase client creation fails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(createServerSupabaseClient).mockRejectedValueOnce(
+      new Error("Database connection failed"),
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews");
+    const response = await GET(request);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to fetch reviews",
+    });
+
+    errorSpy.mockRestore();
+  });
+
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
