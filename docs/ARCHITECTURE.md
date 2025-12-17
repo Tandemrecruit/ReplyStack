@@ -49,6 +49,13 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT now()
 );
 
+-- Notification Preferences
+CREATE TABLE notification_preferences (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+    email_enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT now()
+);
+
 -- Voice Profiles (AI personality configuration)
 CREATE TABLE voice_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -248,15 +255,15 @@ Improves perceived performance significantly.
 ReplyStack/
 ├── app/
 │   ├── (auth)/{login,page.tsx; signup/page.tsx; callback/route.ts; layout.tsx}
-│   ├── (dashboard)/{dashboard/page.tsx; reviews/page.tsx; settings/page.tsx; billing/page.tsx; layout.tsx}
-│   ├── api/{reviews/route.ts; responses/route.ts; webhooks/stripe/route.ts; cron/poll-reviews/route.ts; auth/}
+│   ├── (dashboard)/{dashboard/page.tsx; reviews/page.tsx; settings/page.tsx; billing/page.tsx; layout.tsx; settings/settings-client.tsx}
+│   ├── api/{reviews/route.ts; responses/route.ts; voice-profile/route.ts; notifications/route.ts; webhooks/stripe/route.ts; cron/poll-reviews/route.ts; auth/}
 │   ├── pricing-faq/page.tsx
 │   ├── privacy/page.tsx
 │   ├── terms/page.tsx
 │   ├── layout.tsx
 │   ├── page.tsx
 │   └── globals.css
-├── components/{landing/live-demo.tsx; reviews/review-card.tsx; voice-profile/voice-editor.tsx; ui/button.tsx}
+├── components/{landing/live-demo.tsx; reviews/review-card.tsx; voice-profile/voice-editor.tsx; settings/google-connect-button.tsx; ui/button.tsx}
 ├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
 ├── tests/ (Vitest, mirrors app/lib/components)

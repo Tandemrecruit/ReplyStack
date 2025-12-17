@@ -5,6 +5,8 @@
 - Wrapped `docs/SETUP.md` to satisfy MD013/MD032/MD012 and documented the setup
   lint convention in ADR-007.
 - Document refresh to reflect scaffolding state: architecture, roadmap, spec.
+- Synced docs to code: added notifications API docs, notification_preferences
+  table, directory structure updates, and marked ADR-001 superseded by ADR-006.
 - Added setup runbook, API overview, and changelog.
 - Added ADR-006 for Next.js 16 / React 19 / Tailwind v4.
 - Clarified README with development status and docs links.
