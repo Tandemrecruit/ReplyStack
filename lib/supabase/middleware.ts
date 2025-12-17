@@ -1,7 +1,7 @@
+import type { Database } from "@/lib/supabase/types";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { Database } from "@/lib/supabase/types";
 
 /**
  * Refreshes the Supabase session for the incoming request and enforces auth-based redirects.
@@ -53,29 +53,55 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes - redirect to login if not authenticated
+  // Route classifications
+  const pathname = request.nextUrl.pathname;
+
+  // Auth routes where unauthenticated users can visit
   const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/auth");
 
+  // Auth routes that should remain accessible even for unverified users
+  const isUnverifiedAllowedRoute =
+    pathname.startsWith("/verify-email") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/update-password") ||
+    pathname.startsWith("/callback");
+
+  // Protected routes requiring authentication and email verification
   const isDashboardRoute =
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/reviews") ||
-    request.nextUrl.pathname.startsWith("/settings") ||
-    request.nextUrl.pathname.startsWith("/billing");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/reviews") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/billing");
 
+  // Redirect unauthenticated users from protected routes to login
   if (!user && isDashboardRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", request.nextUrl.pathname);
+    url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
+  // Redirect authenticated but unverified users to verify-email page
+  // (except for routes that should remain accessible)
+  if (user && !user.email_confirmed_at && isDashboardRoute) {
     const url = request.nextUrl.clone();
-    const redirect = url.searchParams.get("redirect") || "/dashboard";
+    url.pathname = "/verify-email";
+    return NextResponse.redirect(url);
+  }
+
+  // Redirect authenticated and verified users away from auth pages
+  // (but allow access to verify-email, reset-password, update-password, callback)
+  if (user?.email_confirmed_at && isAuthRoute && !isUnverifiedAllowedRoute) {
+    const url = request.nextUrl.clone();
+    const redirectParam = url.searchParams.get("redirect");
+    // Only allow relative paths to prevent open redirect attacks
+    const redirect =
+      redirectParam?.startsWith("/") && !redirectParam.startsWith("//")
+        ? redirectParam
+        : "/dashboard";
     url.pathname = redirect;
     url.searchParams.delete("redirect");
     return NextResponse.redirect(url);

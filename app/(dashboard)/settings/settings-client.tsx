@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { GoogleConnectButton } from "@/components/settings/google-connect-button";
 
@@ -35,11 +35,6 @@ export function SettingsClient() {
     personalityNotes?: string;
     signOff?: string;
   }>({});
-
-  const hasValidationErrors = useMemo(
-    () => Object.keys(fieldErrors).length > 0,
-    [fieldErrors],
-  );
 
   const handleSaveVoiceProfile = async () => {
     const errors: Record<string, string> = {};

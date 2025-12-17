@@ -2,7 +2,7 @@
 
 ## Phase 1: MVP (Week 1-2)
 
-**Current Status (Dec 2025):** Project scaffolding is in place; all feature work (auth, Google integration, AI generation, dashboard flows, Stripe, email) is not yet implemented.
+**Current Status (Dec 2025):** Project scaffolding and authentication are complete. Remaining: Google integration, AI generation, dashboard flows, Stripe, and email.
 
 **Goal:** One location, core response loop, payments working
 
@@ -15,12 +15,13 @@
   - [x] Configure Biome (linting and formatting)
   - [x] Set up Tailwind CSS
 
-- [ ] **Authentication**
-  - [ ] Email/password registration
-  - [ ] Email/password login
-  - [ ] Google OAuth sign-in
-  - [ ] Password reset flow
+- [x] **Authentication**
+  - [x] Email/password registration
+  - [x] Email/password login
+  - [x] Google OAuth sign-in
+  - [x] Password reset flow
   - [x] Protected route middleware
+  - [x] Email verification enforcement
 
 - [ ] **Google Business Profile integration**
   - [ ] OAuth consent screen setup

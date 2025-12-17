@@ -188,6 +188,141 @@ lists, and avoid trailing blank lines.
 
 ---
 
+## ADR-008: Auth Route Group Structure
+
+**Status:** Accepted
+
+### Context
+
+We introduced dedicated authentication flows (login, signup, password reset, verification) and needed a predictable place to host their pages and layouts in the App Router while keeping them isolated from dashboard routes.
+
+### Decision
+
+Group all auth experiences under `app/(auth)/*` using a shared `layout.tsx` that centers forms (`app/(auth)/layout.tsx`) with individual pages for login, signup, reset, update, verify, and OAuth callback (e.g., `app/(auth)/login/page.tsx`, `.../signup/page.tsx`, `.../reset-password/page.tsx`, `.../update-password/page.tsx`, `.../verify-email/page.tsx`, `.../callback/route.ts`).
+
+### Rationale
+
+- Keeps public auth flows separate from protected dashboard routes (`app/(dashboard)/*`), simplifying middleware checks and navigation.
+- Shared layout reduces duplication of container styling and semantics across auth pages.
+- Consistent routing enables predictable redirects and links across forms.
+
+### Consequences
+
+- Future auth-related pages should live in `app/(auth)/` and reuse the shared layout to remain consistent.
+- Dashboard-only content stays under `app/(dashboard)/`, keeping route intent clear.
+
+---
+
+## ADR-009: Authentication Flows and Supabase Usage
+
+**Status:** Accepted
+
+### Context
+
+We need consistent login, signup, reset, and password update flows powered by Supabase Auth with safe redirects and unified UX.
+
+### Decision
+
+Implement form components in `components/auth/*` that use `createBrowserSupabaseClient()` for client-side auth operations:
+- Login: `login-form.tsx` performs `signInWithPassword`, handles redirect params (sanitized to relative paths), and provides Google OAuth via `signInWithOAuth`.
+- Signup: `signup-form.tsx` performs `signUp` with password confirmation, shows password requirements, and redirects to `/verify-email`; supports Google OAuth.
+- Reset: `reset-password-form.tsx` calls `resetPasswordForEmail` with `redirectTo` pointing to `/update-password`.
+- Update: `update-password-form.tsx` calls `updateUser` to set a new password after the reset link, then redirects to login.
+
+### Rationale
+
+- Centralizes Supabase auth client usage and keeps redirects guarded against open redirects.
+- Separates flows so copy, validation, and statuses are tailored to each step.
+- Encourages Google OAuth parity across login/signup with shared redirect handling.
+
+### Consequences
+
+- Future auth changes should extend these patterns (redirect sanitization, Suspense fallbacks, loading/error states).
+- Tests should target `components/auth/*` to verify form-level validation and Supabase calls.
+
+---
+
+## ADR-010: Auth Validation Library
+
+**Status:** Accepted
+
+### Context
+
+Multiple auth forms require consistent email/password validation, password requirement display, and confirm-password checks.
+
+### Decision
+
+Use `lib/validation/auth.ts` as the single source for auth validation: `validateEmail`, `validatePassword`, `validatePasswordMatch`, `PASSWORD_REQUIREMENTS`, and `getPasswordRequirementsList()` for UI display.
+
+### Rationale
+
+- Avoids duplicated regex/requirement logic across forms.
+- Enables uniform error messaging and password rules across login, signup, reset, and update flows.
+- Simplifies future policy updates (e.g., password complexity) in one place.
+
+### Consequences
+
+- Any password policy changes must update `lib/validation/auth.ts` and ensure UI references remain aligned.
+- Form components should continue importing helpers instead of inlining validation.
+
+---
+
+## ADR-011: Middleware Routing Classification for Auth
+
+**Status:** Accepted
+
+### Context
+
+We need to enforce redirects between public auth pages and protected dashboard routes while respecting unverified or reset flows.
+
+### Decision
+
+Use `lib/supabase/middleware.ts` (consumed by root `middleware.ts`) to classify paths:
+- `isAuthRoute`: `/login`, `/signup`, `/auth/*`
+- `isUnverifiedAllowedRoute`: `/verify-email`, `/reset-password`, `/update-password`, `/callback`
+- `isDashboardRoute`: `/dashboard`, `/reviews`, `/settings`, `/billing`
+
+Redirect unauthenticated users off dashboard routes to `/login?redirect=...`; redirect authenticated but unverified users on dashboard routes to `/verify-email`; redirect verified/authenticated users away from auth pages to their target (default `/dashboard`), sanitizing redirect params to relative paths.
+
+### Rationale
+
+- Centralizes routing rules, keeping logic declarative and testable.
+- Protects against open redirects and enforces verification before accessing dashboard content.
+- Keeps unverified/reset/update flows reachable while preventing looped redirects.
+
+### Consequences
+
+- New routes must be classified when added to ensure correct redirect behavior.
+- Tests should cover the classification matrix for future route additions.
+
+---
+
+## ADR-012: Shared Auth UI Components
+
+**Status:** Accepted
+
+### Context
+
+Auth forms shared repeated UI patterns for dividers, third-party buttons, and inputs with accessible labeling/error states.
+
+### Decision
+
+Adopt shared components:
+- `components/auth/auth-divider.tsx` for consistent “continue with” separators.
+- `components/auth/google-oauth-button.tsx` wrapping the design-system `Button` with Google SVG and loading/disabled props.
+- `components/ui/input.tsx` for labeled inputs with `aria-invalid`/`aria-describedby`, error and help text support; reused across auth forms.
+
+### Rationale
+
+- Reduces duplication and enforces consistent accessibility/styling across forms.
+- Centralizes OAuth button behavior and styling.
+- Simplifies future UI tweaks across all auth flows.
+
+### Consequences
+
+- New auth-related inputs/buttons should leverage these shared components to stay consistent.
+- Changes to these components propagate to all auth forms; test coverage should guard regressions.
+
 ## Template for New Decisions
 
 ```markdown
