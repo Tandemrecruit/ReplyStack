@@ -38,6 +38,13 @@ const faqs = [
   },
 ];
 
+/**
+ * Renders the Pricing FAQ page with a list of common billing and feature questions and a contact call-to-action.
+ *
+ * Displays a centered content area with a heading, subheading, a question-and-answer list sourced from the module-level `faqs` array, and a contact panel containing a mailto link to support@replystack.com.
+ *
+ * @returns The JSX element for the pricing FAQ page.
+ */
 export default function PricingFAQPage() {
   return (
     <main className="min-h-screen bg-background text-foreground pt-24 pb-16 px-4 sm:px-6 lg:px-8">

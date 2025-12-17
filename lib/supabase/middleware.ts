@@ -4,8 +4,15 @@ import { NextResponse } from "next/server";
 import type { Database } from "@/lib/supabase/types";
 
 /**
- * Creates a Supabase client for middleware.
- * This is used to refresh the user's session before each request.
+ * Refreshes the Supabase session for the incoming request and enforces auth-based redirects.
+ *
+ * Creates a Supabase server client bound to the request cookies, updates session cookies as needed,
+ * and returns a response that may redirect unauthenticated requests from protected routes to /login
+ * or redirect authenticated users away from auth routes to their target (default /dashboard).
+ *
+ * @param request - The incoming NextRequest used to read cookies and the request URL
+ * @returns A NextResponse that may be a redirect to a login or dashboard route, or the response with updated Supabase auth cookies
+ * @throws Error if `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` is not set
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

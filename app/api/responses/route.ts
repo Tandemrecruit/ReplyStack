@@ -4,8 +4,13 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
- * POST /api/responses
- * Generate an AI response for a review
+ * Handle POST /api/responses to create an AI-generated response placeholder for a review.
+ *
+ * Requires an authenticated user and a JSON body containing `reviewId`.
+ * If AI generation is not yet implemented, returns a draft placeholder response.
+ *
+ * @param request - NextRequest whose JSON body must include `reviewId` (string)
+ * @returns On success: a JSON object with `id`, `reviewId`, `generatedText`, and `status`. On error: a JSON object with `error` and an appropriate HTTP status (401 when unauthenticated, 400 when `reviewId` is missing, 500 on internal failure).
  */
 export async function POST(request: NextRequest) {
   try {

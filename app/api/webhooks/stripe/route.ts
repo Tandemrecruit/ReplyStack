@@ -2,10 +2,13 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 /**
- * Stripe webhook handler
- * Handles subscription events: checkout.session.completed, subscription.updated, etc.
+ * Handle incoming Stripe webhook POST requests for subscription and invoice events.
  *
- * TODO: Implement webhook verification and event handling
+ * Validates presence of the `stripe-signature` header and responds with 400 if missing.
+ * Processes Stripe events related to subscriptions and invoices and returns a JSON response indicating success.
+ *
+ * @param request - The incoming NextRequest containing the webhook payload and headers
+ * @returns A JSON NextResponse: `{ received: true }` on successful handling; `{ error: "Missing stripe-signature header" }` with status 400 when the signature header is absent; `{ error: "Webhook handler failed" }` with status 500 on internal errors
  */
 export async function POST(request: NextRequest) {
   try {

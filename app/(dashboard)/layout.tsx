@@ -6,6 +6,12 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * App dashboard layout that renders a top navigation bar with site links and a main content container.
+ *
+ * @param children - Page content to display inside the layout's centered main area
+ * @returns A JSX element containing the navigation header and a responsive main area that renders `children`
+ */
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-background">

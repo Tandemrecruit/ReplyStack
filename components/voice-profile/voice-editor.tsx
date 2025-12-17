@@ -29,10 +29,14 @@ const TONE_OPTIONS = [
 ];
 
 /**
- * Client-side voice profile editor for configuring AI response tone.
+ * Editable form for configuring an AI voice profile.
  *
- * @param profile - Partial voice profile defaults to seed the form.
- * @param onSave - Invoked with updated profile when the form is submitted.
+ * Manages local form state for tone, personality notes, sign-off style, and maximum response length,
+ * and invokes the provided `onSave` callback with the current profile values when the form is submitted.
+ *
+ * @param props.profile - Optional initial values to prefill the form (partial VoiceProfile).
+ * @param props.onSave - Optional callback invoked with the updated partial VoiceProfile on submit.
+ *
  */
 export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [formData, setFormData] = useState({

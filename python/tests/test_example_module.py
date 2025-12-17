@@ -4,7 +4,9 @@ from example_module import normalize
 
 
 def test_normalize_empty():
-    """normalize returns an empty list when given no values."""
+    """
+    Verify that normalize produces an empty list when given an empty input list.
+    """
     assert normalize([]) == []
 
 
@@ -16,5 +18,4 @@ def test_normalize_spread():
 def test_normalize_constant():
     """normalize maps identical values to zeros to avoid division by zero."""
     assert normalize([3, 3, 3]) == [0.0, 0.0, 0.0]
-
 
