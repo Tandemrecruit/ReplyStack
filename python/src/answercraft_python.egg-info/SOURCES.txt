@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+python/src/answercraft_python.egg-info/PKG-INFO
+python/src/answercraft_python.egg-info/SOURCES.txt
+python/src/answercraft_python.egg-info/dependency_links.txt
+python/src/answercraft_python.egg-info/requires.txt
+python/src/answercraft_python.egg-info/top_level.txt
+python/src/answercraft_python.egg-info/SOURCES.txt

@@ -16,12 +16,14 @@
 # next.js
 /.next/
 /out/
+.turbo/
 
 # production
 /build
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
 
 # debug
@@ -37,8 +39,32 @@ yarn-error.log*
 !.env.local.example
 
 # vercel
-.vercel
+.vercel/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.envrc
+
+# cursor
+.cursorignore
+.cursor/
+.vscode/
+
+# biome
+# Keep biome.json tracked so formatter config stays shared
+
+# python project artifacts (add here only if generated)
+# python/
+# python/src/answercraft_python.egg-info/
+
+# supabase
+.supabase/

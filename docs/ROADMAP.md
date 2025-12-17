@@ -6,19 +6,19 @@
 
 ### Week 1: Foundation
 
-- [ ] **Project setup**
-  - [ ] Initialize Next.js 15 with App Router
-  - [ ] Configure Supabase project and client
-  - [ ] Set up environment variables
-  - [ ] Configure ESLint and Prettier
-  - [ ] Set up Tailwind CSS
+- [X] **Project setup**
+  - [x] Initialize Next.js 15 with App Router
+  - [x] Configure Supabase project and client
+  - [x] Set up environment variables
+  - [x] Configure Biome (linting and formatting)
+  - [x] Set up Tailwind CSS
 
 - [ ] **Authentication**
   - [ ] Email/password registration
   - [ ] Email/password login
   - [ ] Google OAuth sign-in
   - [ ] Password reset flow
-  - [ ] Protected route middleware
+  - [x] Protected route middleware
 
 - [ ] **Google Business Profile integration**
   - [ ] OAuth consent screen setup
