@@ -54,6 +54,9 @@ __pycache__/
 venv/
 .envrc
 
+# ignore generated egg-info metadata
+*.egg-info/
+
 # cursor
 .cursorignore
 .cursor/
@@ -63,8 +66,8 @@ venv/
 # Keep biome.json tracked so formatter config stays shared
 
 # python project artifacts (add here only if generated)
-# python/
-# python/src/answercraft_python.egg-info/
+python/
+python/src/answercraft_python.egg-info/
 
 # supabase
 .supabase/

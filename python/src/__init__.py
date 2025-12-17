@@ -1,3 +1,1 @@
-# Python package for AnswerCraft ML/AI modules.
-
-
+"""Python package for ReplyStack ML/AI modules."""

@@ -6,9 +6,11 @@ from __future__ import annotations
 def normalize(values: list[float]) -> list[float]:
     """
     Scale numeric values into the range 0.0 to 1.0.
-    
-    If `values` is empty, returns an empty list. If all items in `values` are equal, returns a list of `0.0` values with the same length.
-    
+
+    Behavior notes:
+    - Empty input returns an empty list.
+    - If all values are identical, returns a list of `0.0` values (same length as input) instead of raising or returning the originals.
+
     Returns:
         list[float]: Each input mapped so the minimum value becomes `0.0` and the maximum value becomes `1.0`; intermediate values are linearly scaled.
     """
