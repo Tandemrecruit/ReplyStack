@@ -19,4 +19,5 @@
 - Tightened Google client test warn payload to match expected API base object.
 - DRYed supabase middleware tests by centralizing env setup/teardown in hooks.
 - Removed trailing blank line from smoke test to align with EOF conventions.
+- Added new rules covering performance monitoring, accessibility, secrets, testing, migrations, feature flags, and architecture docs.
 

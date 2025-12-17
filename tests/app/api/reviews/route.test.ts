@@ -15,7 +15,7 @@ describe("GET /api/reviews", () => {
   });
 
   it("returns 500 when Supabase client creation fails", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.mocked(createServerSupabaseClient).mockRejectedValueOnce(
       new Error("Database connection failed"),
     );
@@ -44,7 +44,7 @@ describe("GET /api/reviews", () => {
   });
 
   it("returns placeholder payload when authenticated", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
