@@ -1,3 +1,1 @@
-# Pytest package marker for AnswerCraft Python code.
-
-
+"""Pytest package marker for AnswerCraft Python code."""

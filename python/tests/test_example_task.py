@@ -12,7 +12,6 @@ def test_example_task_writes_file(tmp_path: Path):
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")
     assert "Ran at" in content

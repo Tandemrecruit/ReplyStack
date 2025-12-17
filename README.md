@@ -87,10 +87,10 @@ replystack/
 - `npm run dev` - Start development server with Turbopack
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint errors
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
+- `npm run lint` - Run Biome checks
+- `npm run lint:fix` - Run Biome checks and apply fixes
+- `npm run format` - Format code with Biome
+- `npm run test` - Run Vitest unit tests
 - `npm run typecheck` - Run TypeScript type checking
 
 ## Documentation

@@ -1,3 +1,1 @@
-# Python package for AnswerCraft automation scripts.
-
-
+"""Python package for AnswerCraft automation scripts."""

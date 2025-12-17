@@ -10,9 +10,9 @@ from pathlib import Path
 def main() -> int:
     """
     Run the example automation task which writes a UTC timestamp to a file.
-    
+
     Writes a line in the form "Ran at <ISO8601 UTC timestamp>Z" to the file specified by the `--output` command-line option (defaults to "automation-output.txt").
-    
+
     Returns:
         exit_code (int): Process exit code (0 on success).
     """
@@ -25,7 +25,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    timestamp = dt.datetime.utcnow().isoformat() + "Z"
+    # Use timezone-aware UTC timestamp for consistency
+    timestamp = dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     args.output.write_text(f"Ran at {timestamp}\n", encoding="utf-8")
     return 0
 
