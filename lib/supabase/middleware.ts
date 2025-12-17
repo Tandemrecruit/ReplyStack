@@ -1,7 +1,7 @@
-import type { Database } from "@/lib/supabase/types";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { Database } from "@/lib/supabase/types";
 
 /**
  * Refreshes the Supabase session for the incoming request and enforces auth-based redirects.
