@@ -6,7 +6,7 @@ This document logs key architectural and product decisions for ReplyStack.
 
 ## ADR-001: Next.js 15 with App Router
 
-**Status:** Accepted
+**Status:** Superseded by ADR-006
 
 ### Context
 
@@ -65,7 +65,7 @@ Need high-quality, natural-sounding responses for business review replies.
 
 ### Decision
 
-Claude Sonnet 4 via Anthropic API.
+Claude Sonnet 4.5 via Anthropic API.
 
 ### Rationale
 
@@ -172,7 +172,7 @@ spacing). We want onboarding docs to stay lint-clean and readable.
 
 ### Decision
 
-Adopt a setup doc pattern: wrap lines to 80 characters, add blank lines around
+Adopt a setup doc pattern: wrap lines to 100 characters, add blank lines around
 lists, and avoid trailing blank lines.
 
 ### Rationale
