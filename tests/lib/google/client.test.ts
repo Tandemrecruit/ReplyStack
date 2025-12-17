@@ -15,12 +15,14 @@ describe("lib/google/client", () => {
   });
 
   it("fetchAccounts returns an empty list and warns", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const accounts = await fetchAccounts("access-token");
     expect(accounts).toEqual([]);
-    expect(warn).toHaveBeenCalledWith("fetchAccounts not implemented", {
+    expect(warnSpy).toHaveBeenCalledWith("fetchAccounts not implemented", {
       api: GOOGLE_API_BASE,
     });
+
+    warnSpy.mockRestore();
   });
 
   it("fetchLocations returns an empty list until implemented", async () => {
