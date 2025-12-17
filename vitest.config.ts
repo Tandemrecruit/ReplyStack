@@ -9,12 +9,13 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "node",
+    environment: "jsdom",
+    pool: "forks",
     setupFiles: ["./tests/setup.ts"],
     restoreMocks: true,
     mockReset: true,
     clearMocks: true,
-    environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
+    environmentMatchGlobs: [["**/*.test.ts", "node"]],
   },
 });
 
