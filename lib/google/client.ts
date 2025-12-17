@@ -26,7 +26,10 @@ export const GOOGLE_OAUTH_CONFIG = {
 } as const;
 
 /**
- * Fetches a new access token using a refresh token
+ * Obtain a new OAuth2 access token using the provided refresh token.
+ *
+ * @param _refreshToken - A valid OAuth2 refresh token issued by Google
+ * @returns The new access token string
  */
 export async function refreshAccessToken(
   _refreshToken: string,
@@ -37,7 +40,10 @@ export async function refreshAccessToken(
 }
 
 /**
- * Fetches all accounts for the authenticated user
+ * Retrieve Google Business Profile accounts accessible to the authenticated user.
+ *
+ * @param _accessToken - OAuth 2.0 access token with the `https://www.googleapis.com/auth/business.manage` scope
+ * @returns A list of objects each containing `accountId` and `name` for an account
  */
 export async function fetchAccounts(
   _accessToken: string,
@@ -49,7 +55,9 @@ export async function fetchAccounts(
 }
 
 /**
- * Fetches all locations for an account
+ * Fetches all locations for an account.
+ *
+ * @returns An array of `Partial<Location>` objects representing locations belonging to the specified account.
  */
 export async function fetchLocations(
   _accessToken: string,
@@ -61,7 +69,13 @@ export async function fetchLocations(
 }
 
 /**
- * Fetches reviews for a location
+ * Retrieve reviews for a specific Google Business Profile location, with optional pagination.
+ *
+ * @param _accessToken - OAuth access token used to authenticate the request
+ * @param _accountId - Google account identifier that owns the location
+ * @param _locationId - Identifier of the location to fetch reviews for
+ * @param _pageToken - Optional token to retrieve the next page of results
+ * @returns An object containing `reviews`, an array of partial `Review` objects, and an optional `nextPageToken` to fetch subsequent pages
  */
 export async function fetchReviews(
   _accessToken: string,
@@ -75,7 +89,12 @@ export async function fetchReviews(
 }
 
 /**
- * Publishes a response to a review
+ * Publishes a reply message for a specific Google Business Profile review.
+ *
+ * @param accessToken - OAuth2 access token with permission to manage the business
+ * @param reviewId - The identifier of the review to reply to
+ * @param responseText - The reply text to publish
+ * @returns `true` if the reply was successfully published, `false` otherwise
  */
 export async function publishResponse(
   _accessToken: string,

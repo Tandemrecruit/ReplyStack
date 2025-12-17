@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "How ReplyStack handles your data and privacy.",
 };
 
+/**
+ * Render the ReplyStack Privacy Policy page, including site header, policy content sections, and a last-updated footer note.
+ *
+ * @returns A React element containing the header (brand and actions), the main privacy policy content, and a footer note with the last-updated date.
+ */
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   description: "Manage your subscription and billing",
 };
 
+/**
+ * Render the billing settings UI including current plan, upgrade pricing, and payment history.
+ *
+ * Displays a header, a current plan summary, a pricing card with features and an upgrade action, and a payment history section.
+ *
+ * @returns The React element for the billing page.
+ */
 export default function BillingPage() {
   return (
     <div className="space-y-8">

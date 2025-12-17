@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   description: "Manage your ReplyStack settings",
 };
 
+/**
+ * Render the Settings page containing Google Business Profile, Voice Profile, and Notifications sections.
+ *
+ * The page includes controls to connect a Google account, configure voice/tone settings (tone select,
+ * personality notes, sign-off style), and toggle email notifications. Markup and form controls include
+ * accessible labels and ids for better semantics.
+ *
+ * @returns The React element for the Settings page
+ */
 export default function SettingsPage() {
   return (
     <div className="space-y-8">

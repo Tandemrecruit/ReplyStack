@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   description: "Create your ReplyStack account",
 };
 
+/**
+ * Renders the Signup page layout for ReplyStack with a header and a placeholder for the signup form.
+ *
+ * The layout includes a centered title and subtitle, and a card-like region indicating that the signup form will be added.
+ *
+ * @returns The JSX element for the signup page.
+ */
 export default function SignupPage() {
   return (
     <div className="space-y-6">

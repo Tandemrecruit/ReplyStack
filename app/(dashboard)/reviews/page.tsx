@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   description: "View and respond to your Google Business reviews",
 };
 
+/**
+ * Reviews page UI showing filters and an empty state for Google Business reviews.
+ *
+ * Renders a static overview with a header, two non-interactive filter placeholders
+ * (ratings and status), and an empty-state panel that prompts connecting a Google
+ * Business Profile to surface reviews.
+ *
+ * @returns The JSX element representing the Reviews page.
+ */
 export default function ReviewsPage() {
   return (
     <div className="space-y-6">

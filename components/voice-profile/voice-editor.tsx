@@ -29,17 +29,14 @@ const TONE_OPTIONS = [
 ];
 
 /**
- * Voice profile editor component
- * Allows users to configure how AI responses should sound
+ * Editable form for configuring an AI voice profile.
  *
- * TODO: Implement full voice profile editor with:
- * - Tone selection
- * - Personality notes
- * - Example responses (3-5)
- * - Sign-off style
- * - Words to use
- * - Words to avoid
- * - Max response length
+ * Manages local form state for tone, personality notes, sign-off style, and maximum response length,
+ * and invokes the provided `onSave` callback with the current profile values when the form is submitted.
+ *
+ * @param props.profile - Optional initial values to prefill the form (partial VoiceProfile).
+ * @param props.onSave - Optional callback invoked with the updated partial VoiceProfile on submit.
+ *
  */
 export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [formData, setFormData] = useState({

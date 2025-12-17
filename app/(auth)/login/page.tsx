@@ -5,6 +5,14 @@ export const metadata: Metadata = {
   description: "Sign in to your ReplyStack account",
 };
 
+/**
+ * Renders the login page layout and a placeholder for the sign-in form.
+ *
+ * The component displays a centered heading and subheading, followed by a boxed
+ * placeholder area indicating that the login form will be added later.
+ *
+ * @returns The JSX element for the login page.
+ */
 export default function LoginPage() {
   return (
     <div className="space-y-6">

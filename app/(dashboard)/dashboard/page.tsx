@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Manage your Google Business reviews",
 };
 
+/**
+ * Renders the Dashboard page for ReplyStack, showing a header, quick-stats placeholders, and a "Get Started" card with onboarding steps and a settings CTA.
+ *
+ * @returns The JSX content for the dashboard page.
+ */
 export default function DashboardPage() {
   return (
     <div className="space-y-8">

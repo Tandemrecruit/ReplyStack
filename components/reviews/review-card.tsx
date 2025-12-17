@@ -11,6 +11,12 @@ const STATUS_STYLES: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
 };
 
+/**
+ * Render a compact status badge styled according to the given status.
+ *
+ * @param status - The status label to display; used to determine visual styling. If the label is not present in `STATUS_STYLES`, the "pending" style is applied.
+ * @returns The badge element containing the provided `status` text
+ */
 function StatusBadge({ status }: { status: string }) {
   const styleClass = STATUS_STYLES[status] ?? STATUS_STYLES.pending;
   return (
@@ -23,15 +29,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Card component for displaying a single review
+ * Display a single customer review with rating, reviewer metadata, response status, and an optional "Generate Response" action.
  *
- * TODO: Implement full review card with:
- * - Star rating display
- * - Reviewer info
- * - Review text
- * - Response status
- * - Generate response button
- * - View/edit response action
+ * Renders reviewer avatar initial, name (falls back to "Anonymous"), review date (formatted or "Unknown date"), a five-star rating visual, review text (or "No review text"), and a status badge. When `review.status` is "pending" and `onGenerateResponse` is provided, shows a "Generate Response" button that invokes the callback with the review's `id`.
+ *
+ * @param review - The review data to display (rating, reviewer_name, review_date, review_text, status, id).
+ * @param onGenerateResponse - Optional callback invoked as `onGenerateResponse(reviewId)` when the "Generate Response" button is clicked.
  */
 export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
   const stars = Array.from({ length: 5 }, (_, i) => i < (review.rating ?? 0));
