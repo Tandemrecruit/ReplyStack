@@ -144,13 +144,12 @@ interface SaveLocationsBody {
 }
 
 /**
- * POST /api/locations - Save selected locations to the database
+ * Upserts the provided locations into the user's organization and returns the saved records.
  *
- * Upserts the provided locations into the database, linking them
- * to the user's organization.
+ * If the authenticated user has no organization, one is created and the user is associated with it.
  *
- * @param request - Request with JSON body containing locations array
- * @returns JSON with `saved` count and `locations` array, or error
+ * @param request - Request whose JSON body must contain a `locations` array of location objects to save
+ * @returns JSON object with `saved` (number of saved locations) and `locations` (array of saved location records)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -254,12 +253,17 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/locations - Deactivate a location
+ * Deactivate a location associated with the authenticated user's organization.
  *
- * Sets is_active to false for the specified location.
+ * Expects a JSON body with a `location_id` string and sets `is_active` to `false`
+ * for that location within the user's organization.
  *
- * @param request - Request with JSON body containing location_id
- * @returns JSON with success status or error
+ * @param request - Request whose JSON body must include `{ location_id: string }`
+ * @returns `{ success: true }` on success; on failure returns an error message and an appropriate HTTP status:
+ * - 401 if the user is not authenticated
+ * - 404 if the user's organization is not found
+ * - 400 if `location_id` is missing
+ * - 500 for database or unexpected server errors
  */
 export async function DELETE(request: NextRequest) {
   try {

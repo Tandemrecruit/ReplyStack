@@ -106,7 +106,10 @@ interface ReviewsResponse {
 }
 
 /**
- * Parse Google's star rating enum to a number
+ * Convert a Google star rating enum into its numeric value.
+ *
+ * @param starRating - Google star rating enum value
+ * @returns The numeric rating 1–5 for recognized enums; `0` if `starRating` is undefined or unrecognized
  */
 function parseStarRating(
   starRating?: "ONE" | "TWO" | "THREE" | "FOUR" | "FIVE",
@@ -122,7 +125,10 @@ function parseStarRating(
 }
 
 /**
- * Format a Google address object into a single string
+ * Convert a GoogleAddress into a single, comma-separated address string.
+ *
+ * @param address - The GoogleAddress to format; may be undefined.
+ * @returns A comma-separated address composed of available address lines, locality, administrative area, and postal code, or an empty string if no address is provided.
  */
 function formatAddress(address?: GoogleAddress): string {
   if (!address) return "";
@@ -136,11 +142,11 @@ function formatAddress(address?: GoogleAddress): string {
 }
 
 /**
- * Obtain a new OAuth2 access token using the provided refresh token.
+ * Exchange a Google OAuth2 refresh token for a new access token.
  *
- * @param refreshToken - A valid OAuth2 refresh token issued by Google
- * @returns The new access token string
- * @throws GoogleAPIError if token refresh fails
+ * @param refreshToken - A valid OAuth2 refresh token issued by Google.
+ * @returns The refreshed access token string.
+ * @throws GoogleAPIError when OAuth client credentials are not configured (status 500), when the refresh fails due to expired/invalid credentials (status 401), or when the token endpoint returns another error status.
  */
 export async function refreshAccessToken(
   refreshToken: string,

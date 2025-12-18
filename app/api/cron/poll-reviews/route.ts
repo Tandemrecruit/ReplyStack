@@ -28,17 +28,17 @@ interface LocationWithUser {
 }
 
 /**
- * Cron job to poll Google Business Profile for new reviews
- * Runs every 15 minutes via Vercel Cron
+ * Polls Google Business Profile for new reviews for active locations and upserts them into the database.
  *
- * vercel.json config:
- * {
- *   "crons": [{
- *     "path": "/api/cron/poll-reviews",
- *     "schedule": "0/15 * * * *"
- *   }]
- * }
- */
+ * This handler is intended to run as a cron job (configured to run regularly) and will:
+ * - verify an optional cron secret for authorization,
+ * - fetch active locations and associated users with Google refresh tokens,
+ * - refresh access tokens per user and fetch reviews for each of their locations,
+ * - upsert retrieved reviews (deduplicated by external_review_id) and infer sentiment from rating,
+ * - clear expired refresh tokens for users if detected, and
+ * - return accumulated metrics and any errors encountered.
+ *
+ * @returns A JSON NextResponse containing either a success payload with metrics (`locationsProcessed`, `newReviews`), `errors`, `duration`, and `timestamp`, or an error payload with an appropriate HTTP status (401 for unauthorized, 500 for failures).
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const results = {
@@ -257,7 +257,10 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Determine sentiment based on star rating
+ * Map a numeric star rating to a sentiment label.
+ *
+ * @param rating - Star rating (typically 1–5)
+ * @returns `"positive"` if `rating` is greater than or equal to 4, `"neutral"` if `rating` is greater than or equal to 3, `"negative"` otherwise
  */
 function determineSentiment(rating: number): string {
   if (rating >= 4) return "positive";

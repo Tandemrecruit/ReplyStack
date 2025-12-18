@@ -38,7 +38,10 @@ interface SaveResponse {
 }
 
 /**
- * Groups locations by their account
+ * Group a list of locations by their Google account.
+ *
+ * @param locations - The locations to group by `google_account_id`
+ * @returns An array of account groups; each group contains `account_name`, `account_id`, and the corresponding `locations` for that account
  */
 function groupByAccount(locations: LocationData[]): AccountGroup[] {
   const groups = new Map<string, AccountGroup>();
@@ -59,8 +62,16 @@ function groupByAccount(locations: LocationData[]): AccountGroup[] {
 }
 
 /**
- * LocationSelector component for selecting which Google Business Profile
- * locations to sync reviews from.
+ * Render a UI that fetches Google Business Profile locations, groups them by
+ * Google account, and lets the user select which locations should be synced.
+ *
+ * The component requests locations from the API, handles Google connection and
+ * auth-expired states, pre-selects locations already marked as synced, provides
+ * per-location selection controls grouped by account, and saves the selected
+ * subset back to the API while reflecting saved state and presenting success or
+ * error feedback.
+ *
+ * @returns The rendered LocationSelector React element
  */
 export function LocationSelector() {
   const [locations, setLocations] = useState<LocationData[]>([]);
