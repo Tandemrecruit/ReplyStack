@@ -1,7 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { encryptToken } from "@/lib/crypto/encryption";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { UserInsert } from "@/lib/supabase/types";
 
 /**
  * Handle Supabase OAuth callback, exchange the authorization code for a session, and redirect the client.
@@ -9,6 +11,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
  * If an authorization `code` is present the handler exchanges it for a session; on exchange error it redirects
  * to `/login` with the error message as the `error` query parameter. If no error occurs (or no `code` is present)
  * the handler redirects to the `next` query parameter value or `/dashboard` when `next` is not provided.
+ *
+ * For Google OAuth, also captures and stores the provider_refresh_token for API access.
  *
  * @returns A redirect `NextResponse` to the post-auth destination (`next` or `/dashboard`), or to `/login` with an `error` query parameter when the code exchange fails.
  */
@@ -19,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error("Auth callback error:", error.message);
@@ -29,6 +33,44 @@ export async function GET(request: NextRequest) {
           requestUrl.origin,
         ),
       );
+    }
+
+    // After successful code exchange, capture Google provider token if present
+    const { session } = data ?? {};
+
+    if (session?.provider_refresh_token && session.user) {
+      // Store the Google refresh token for API access
+      // Token is encrypted with AES-256-GCM before storage (see lib/crypto/encryption.ts)
+
+      // Ensure email is non-empty: users.email is NOT NULL, so we use a provider-scoped
+      // synthetic email as fallback if the OAuth provider didn't return an email.
+      // This ensures we never pass an empty string to the database.
+      // Uses RFC 2606 reserved .invalid suffix to make the address unambiguously invalid
+      const email =
+        session.user.email?.trim() || `${session.user.id}@no-email.invalid`;
+
+      if (!session.user.email?.trim()) {
+        console.warn(
+          `Missing email in OAuth session for user ${session.user.id}, using RFC 2606 .invalid fallback address`,
+        );
+      }
+
+      const userData: UserInsert = {
+        id: session.user.id,
+        email,
+        google_refresh_token: encryptToken(session.provider_refresh_token),
+      };
+      const { error: upsertError } = await supabase
+        .from("users")
+        .upsert(userData, { onConflict: "id" });
+
+      if (upsertError) {
+        console.error(
+          "Failed to store Google refresh token:",
+          upsertError.message,
+        );
+        // Continue with redirect - user can re-authenticate later if needed
+      }
     }
   }
 

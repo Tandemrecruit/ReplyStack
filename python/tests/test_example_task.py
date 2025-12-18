@@ -9,7 +9,7 @@ from pathlib import Path
 def test_example_task_writes_file(tmp_path: Path):
     """example_task writes a timestamped line to the requested output file."""
     output_file = tmp_path / "out.txt"
-    result = subprocess.run(
+    subprocess.run(
         ["python", "-m", "python.automation.example_task", "--output", str(output_file)],
         check=True,
         capture_output=True,
@@ -18,5 +18,3 @@ def test_example_task_writes_file(tmp_path: Path):
     assert output_file.exists()
     content = output_file.read_text(encoding="utf-8")
     assert "Ran at" in content
-
-

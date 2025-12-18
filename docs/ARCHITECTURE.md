@@ -208,10 +208,34 @@ Benefits: Smaller bundle, faster initial load, simpler data fetching.
 
 ### 2. Token Encryption
 
-Google refresh tokens encrypted at rest:
-- **Option A (preferred):** Supabase Vault for automatic encryption
-- **Option B:** Application-level encryption with `crypto.subtle`
-- Key stored in environment variable, rotated quarterly
+Google refresh tokens are encrypted at the application layer before database storage using AES-256-GCM:
+
+**Implementation:** `lib/crypto/encryption.ts`
+
+- **Algorithm:** AES-256-GCM (authenticated encryption)
+- **Key:** 32-byte (256-bit) key from `TOKEN_ENCRYPTION_KEY` env var
+- **IV:** 12 random bytes per encryption (GCM recommendation)
+- **Auth Tag:** 16 bytes (128-bit) for integrity verification
+- **Storage Format:** `base64(IV || ciphertext || authTag)`
+
+**Key Management:**
+
+- Generate key: `openssl rand -hex 32`
+- Store in environment variable (never in code or logs)
+- Rotate quarterly or upon suspected compromise
+
+**Key Rotation Procedure:**
+
+1. **Prepare:** Set new key in `TOKEN_ENCRYPTION_KEY`, old key in `TOKEN_ENCRYPTION_KEY_OLD`
+2. **Deploy:** The `decryptToken()` function automatically tries primary key first, falls back to old key
+3. **Re-encrypt:** Run `npx tsx scripts/reencrypt-tokens.ts` (use `--dry-run` first to verify)
+4. **Cleanup:** Remove `TOKEN_ENCRYPTION_KEY_OLD` after all tokens are re-encrypted
+
+**Error Handling:**
+
+- Decryption failures (corrupted data, wrong key) throw `TokenDecryptionError`
+- API routes catch this error, clear the corrupted token, and prompt user to re-authenticate
+- Invalid key configuration throws `TokenEncryptionConfigError` at startup
 
 ### 3. Background Jobs via Vercel Cron
 

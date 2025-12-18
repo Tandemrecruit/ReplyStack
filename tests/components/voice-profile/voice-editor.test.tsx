@@ -66,7 +66,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 
-  it("handles empty max_length input", async () => {
+  it("defaults max_length to 150 when input is empty", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
@@ -80,8 +80,10 @@ describe("components/voice-profile/VoiceEditor", () => {
       screen.getByRole("button", { name: "Save Voice Profile" }),
     );
 
-    const payload = onSave.mock.calls[0][0];
-    expect(Number.isNaN(payload.max_length as number)).toBe(true);
+    expect(onSave).toHaveBeenCalled();
+    const payload = onSave.mock.calls[0]?.[0];
+    expect(payload).toBeDefined();
+    expect(payload.max_length).toBe(150);
   });
 
   it("accepts min boundary value for max_length", async () => {

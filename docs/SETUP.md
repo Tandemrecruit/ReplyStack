@@ -42,11 +42,23 @@ npm run dev
 # visits http://localhost:3000
 ```
 
-## Supabase Notes
+## Supabase Setup
 
-- Use Supabase project console to configure auth (email + Google) and enable RLS.
-- Regenerate types after schema changes:
+**📖 For detailed Supabase setup instructions, see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)**
 
+Quick steps:
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your API credentials from Settings → API
+3. Add credentials to `.env.local`
+4. Run the migration SQL from `supabase/migrations/001_initial_schema.sql` in the Supabase SQL Editor
+5. Configure authentication providers (Email + Google OAuth)
+6. Generate TypeScript types:
+
+```bash
+npm run supabase:types
+```
+
+Or manually:
 ```bash
 npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
 ```

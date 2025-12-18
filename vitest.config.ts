@@ -15,6 +15,5 @@ export default defineConfig({
     restoreMocks: true,
     mockReset: true,
     clearMocks: true,
-    environmentMatchGlobs: [["**/*.test.ts", "node"]],
   },
 });

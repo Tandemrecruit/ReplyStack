@@ -11,7 +11,9 @@ def main() -> int:
     """
     Run the example automation task which writes a UTC timestamp to a file.
 
-    Writes a line in the form "Ran at <ISO8601 UTC timestamp>Z" to the file specified by the `--output` command-line option (defaults to "automation-output.txt").
+    Writes a line in the form "Ran at <ISO8601 UTC timestamp>Z" to the file
+    specified by the `--output` command-line option (defaults to
+    "automation-output.txt").
 
     Returns:
         exit_code (int): Process exit code (0 on success).
@@ -33,4 +35,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

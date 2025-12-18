@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { GoogleConnectButton } from "@/components/settings/google-connect-button";
+import { LocationSelector } from "@/components/settings/location-selector";
 
 const TONE_OPTIONS = [
   { value: "friendly", label: "Friendly" },
@@ -13,6 +14,17 @@ const TONE_OPTIONS = [
 
 const DEFAULT_TONE = TONE_OPTIONS[0]?.value ?? "";
 
+/**
+ * Renders the Settings client UI for managing account integrations, connected locations,
+ * voice profile, and notification preferences.
+ *
+ * The component loads the user's email notification preference on mount, provides
+ * controls to toggle email notifications with optimistic UI and error handling,
+ * and exposes a voice profile form (tone, personality notes, sign-off) with client-side
+ * validation and a save action that persists changes to the server.
+ *
+ * @returns The Settings screen as a React element
+ */
 export function SettingsClient() {
   const [tone, setTone] = useState<string>(DEFAULT_TONE);
   const [personalityNotes, setPersonalityNotes] = useState<string>("");
@@ -171,6 +183,19 @@ export function SettingsClient() {
         </p>
         <div className="mt-4">
           <GoogleConnectButton />
+        </div>
+      </section>
+
+      {/* Connected Locations */}
+      <section className="p-6 bg-surface rounded-lg border border-border">
+        <h2 className="text-lg font-semibold text-foreground">
+          Connected Locations
+        </h2>
+        <p className="mt-1 text-sm text-foreground-secondary">
+          Select which locations to sync reviews from
+        </p>
+        <div className="mt-4">
+          <LocationSelector />
         </div>
       </section>
 

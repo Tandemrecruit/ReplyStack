@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 
+/*
  * ReplyStack Design System
  * A professional yet distinctive palette for a business review tool
  * Primary: Terracotta - warm, human, local-business feel
@@ -10,18 +10,27 @@
  */
 
 :root {
-  /* Color Palette - Light Mode */
-  --color-primary-50: #fff1eb;
-  --color-primary-100: #ffddcf;
-  --color-primary-200: #ffc2ab;
-  --color-primary-300: #ffa07b;
-  --color-primary-400: #f47b4d;
-  --color-primary-500: #e95f33;
-  --color-primary-600: #d94625;
-  --color-primary-700: #b2351b;
-  --color-primary-800: #8c2a17;
-  --color-primary-900: #6f2416;
-  --color-primary-950: #3c1009;
+  /* Color Palette - Light Mode
+   *
+   * Usage examples:
+   * - Subtle backgrounds: primary-50
+   * - Borders/hover states: primary-200
+   * - Interactive elements (buttons, links): primary-600
+   * - Hover states on buttons: primary-700
+   * - Text on light backgrounds: primary-700 or primary-800
+   *
+   * See docs/DESIGN_SYSTEM.md for complete usage guide. */
+  --color-primary-50: #fff1eb; /* Subtle backgrounds, cards */
+  --color-primary-100: #ffddcf; /* Slightly darker backgrounds */
+  --color-primary-200: #ffc2ab; /* Borders, dividers */
+  --color-primary-300: #ffa07b; /* Hover states on subtle elements */
+  --color-primary-400: #f47b4d; /* Medium emphasis backgrounds */
+  --color-primary-500: #e95f33; /* Base brand color, focus rings */
+  --color-primary-600: #d94625; /* Primary buttons, links, CTAs */
+  --color-primary-700: #b2351b; /* Button hover states, active links */
+  --color-primary-800: #8c2a17; /* Text on light backgrounds, strong emphasis */
+  --color-primary-900: #6f2416; /* High contrast text, important labels */
+  --color-primary-950: #3c1009; /* Maximum contrast text (rare use) */
 
   --color-accent-50: #fff9e8;
   --color-accent-100: #ffeec2;
@@ -99,6 +108,68 @@
     --border: #304344;
     --border-hover: #3c5152;
 
+    /* Primary palette dark mode overrides
+     *
+     * ⚠️ IMPORTANT: Semantic inversion in dark mode
+     * In dark mode, shade numbers 50-500 have INVERTED semantic meaning:
+     * - Light mode: primary-50 = very light, primary-950 = very dark
+     * - Dark mode: primary-50 = very dark, primary-500 = medium, primary-600-950 = lighter
+     *
+     * Usage examples (use these, don't rely on number semantics):
+     * - Subtle backgrounds: primary-50 (light mode) or primary-50 (dark mode)
+     * - Borders/hover states: primary-200 (light mode) or primary-200 (dark mode)
+     * - Interactive elements (buttons, links): primary-600 (light mode) or primary-600 (dark mode)
+     * - Hover states on buttons: primary-700 (both modes)
+     * - Text on light backgrounds: primary-700 or primary-800 (both modes)
+     *
+     * Strategy: 50-500 are darker shades for backgrounds/subtle uses (inverted semantic meaning).
+     * 600-950 maintain brand identity with smooth gradient from 500, adjusted for dark backgrounds.
+     * This preserves brand recognition while ensuring WCAG contrast compliance.
+     *
+     * See docs/DESIGN_SYSTEM.md for complete usage guide. */
+    --color-primary-50: #3c2a1f; /* Subtle backgrounds, cards */
+    --color-primary-100: #4a3526; /* Slightly lighter backgrounds */
+    --color-primary-200: #5d422f; /* Borders, dividers */
+    --color-primary-300: #75543a; /* Hover states on subtle elements */
+    --color-primary-400: #926b47; /* Medium emphasis backgrounds */
+    --color-primary-500: #b87d55; /* Base brand color, focus rings */
+    /* Smooth transition from 500: lighter, more vibrant terracotta for interactive elements */
+    --color-primary-600: #d46a3d; /* Primary buttons, links, CTAs */
+    --color-primary-700: #e95f33; /* Button hover states, active links */
+    --color-primary-800: #d94625; /* Text on light backgrounds, strong emphasis */
+    --color-primary-900: #b2351b; /* High contrast text, important labels */
+    --color-primary-950: #8c2a17; /* Maximum contrast text (rare use) */
+
+    /* Accent palette dark mode overrides
+     *
+     * ⚠️ IMPORTANT: Semantic inversion in dark mode
+     * In dark mode, shade numbers 50-400 are darker, 500-900 are lighter (inverted from light mode).
+     *
+     * Usage examples (use these, don't rely on number semantics):
+     * - Subtle backgrounds: accent-50 (light mode) or accent-50 (dark mode)
+     * - Borders: accent-200 (light mode) or accent-200 (dark mode)
+     * - CTAs and highlights: accent-400 (light mode) or accent-600 (dark mode)
+     * - Text on dark backgrounds: accent-800 (light mode) or accent-800 (dark mode)
+     *
+     * Strategy: Inverted scale where lower numbers (50-400) are darker for backgrounds/borders,
+     * and higher numbers (500-900) are lighter for text/CTAs. This maintains semantic usage patterns
+     * (accent-50 as background, accent-800 as text) while ensuring WCAG contrast compliance.
+     * The main brand color (accent-400) remains recognizable as goldenrod.
+     *
+     * See docs/DESIGN_SYSTEM.md for complete usage guide. */
+    --color-accent-50: #2d2414; /* Subtle backgrounds */
+    --color-accent-100: #3d2f1a; /* Slightly lighter backgrounds */
+    --color-accent-200: #4a3a1f; /* Borders, dividers */
+    --color-accent-300: #5d4826; /* Medium backgrounds */
+    --color-accent-400: #b77a0f; /* Base brand color (goldenrod) */
+    --color-accent-500: #d99912; /* CTAs, highlights */
+    --color-accent-600: #f4b41a; /* Primary CTAs, star ratings */
+    --color-accent-700: #ffc24d; /* Hover states on CTAs */
+    --color-accent-800: #ffd988; /* Text on dark backgrounds */
+    --color-accent-900: #ffeec2; /* High contrast text (rare use) */
+
+    /* Star rating colors - maintains consistent gold (#f4b41a) across modes */
+    --color-star: #f4b41a;
     --color-star-empty: #4a5a5b;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
