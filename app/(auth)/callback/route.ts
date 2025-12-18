@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { UserInsert } from "@/lib/supabase/types";
 
 /**
  * Handle Supabase OAuth callback, exchange the authorization code for a session, and redirect the client.
@@ -9,6 +10,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
  * If an authorization `code` is present the handler exchanges it for a session; on exchange error it redirects
  * to `/login` with the error message as the `error` query parameter. If no error occurs (or no `code` is present)
  * the handler redirects to the `next` query parameter value or `/dashboard` when `next` is not provided.
+ *
+ * For Google OAuth, also captures and stores the provider_refresh_token for API access.
  *
  * @returns A redirect `NextResponse` to the post-auth destination (`next` or `/dashboard`), or to `/login` with an `error` query parameter when the code exchange fails.
  */
@@ -29,6 +32,33 @@ export async function GET(request: NextRequest) {
           requestUrl.origin,
         ),
       );
+    }
+
+    // After successful code exchange, capture Google provider token if present
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.provider_refresh_token && session.user) {
+      // Store the Google refresh token for API access
+      // Note: Token is stored as-is; encryption should be handled at database level via Supabase Vault
+      const userData: UserInsert = {
+        id: session.user.id,
+        email: session.user.email ?? "",
+        google_refresh_token: session.provider_refresh_token,
+      };
+      // @ts-expect-error - Supabase client type inference issue with upsert
+      const { error: upsertError } = await supabase
+        .from("users")
+        .upsert(userData, { onConflict: "id" });
+
+      if (upsertError) {
+        console.error(
+          "Failed to store Google refresh token:",
+          upsertError.message,
+        );
+        // Continue with redirect - user can re-authenticate later if needed
+      }
     }
   }
 

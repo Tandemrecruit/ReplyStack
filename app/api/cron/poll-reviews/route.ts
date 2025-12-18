@@ -1,6 +1,32 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import {
+  fetchReviews,
+  GoogleAPIError,
+  refreshAccessToken,
+} from "@/lib/google/client";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import type { ReviewInsert } from "@/lib/supabase/types";
+
+/**
+ * Maximum number of locations to process per cron invocation
+ * to stay within rate limits and timeout constraints
+ */
+const MAX_LOCATIONS_PER_RUN = 50;
+
+/**
+ * Location with user data for polling
+ */
+interface LocationWithUser {
+  id: string;
+  google_account_id: string;
+  google_location_id: string;
+  name: string;
+  user_id: string;
+  google_refresh_token: string;
+}
+
 /**
  * Cron job to poll Google Business Profile for new reviews
  * Runs every 15 minutes via Vercel Cron
@@ -9,13 +35,18 @@ import { NextResponse } from "next/server";
  * {
  *   "crons": [{
  *     "path": "/api/cron/poll-reviews",
- *     "schedule": "* /15 * * * *"
+ *     "schedule": "0/15 * * * *"
  *   }]
  * }
- *
- * TODO: Implement review polling logic
  */
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  const results = {
+    locationsProcessed: 0,
+    newReviews: 0,
+    errors: [] as string[],
+  };
+
   try {
     // Verify cron secret for security
     const authHeader = request.headers.get("authorization");
@@ -25,21 +56,211 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // TODO: Implement review polling
-    // 1. Get all active locations
-    // 2. For each location, fetch new reviews from Google API
-    // 3. Store new reviews in database
-    // 4. Send notifications for new reviews
+    const supabase = createAdminSupabaseClient();
 
-    console.warn("Cron job poll-reviews not yet implemented");
+    // Get all active locations with their users' refresh tokens
+    // Join through organizations to get user data
+    const { data: locations, error: locationsError } = await supabase
+      .from("locations")
+      .select(`
+        id,
+        google_account_id,
+        google_location_id,
+        name,
+        organization_id
+      `)
+      .eq("is_active", true)
+      .limit(MAX_LOCATIONS_PER_RUN);
+
+    if (locationsError) {
+      console.error("Failed to fetch locations:", locationsError.message);
+      return NextResponse.json(
+        { error: "Failed to fetch locations" },
+        { status: 500 },
+      );
+    }
+
+    if (!locations || locations.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "No active locations to poll",
+        ...results,
+        duration: Date.now() - startTime,
+      });
+    }
+
+    // Get unique organization IDs
+    const orgIds = [
+      ...new Set(locations.map((l) => l.organization_id).filter(Boolean)),
+    ];
+
+    // Get users with refresh tokens for these organizations
+    const { data: users, error: usersError } = await supabase
+      .from("users")
+      .select("id, organization_id, google_refresh_token")
+      .in("organization_id", orgIds)
+      .not("google_refresh_token", "is", null);
+
+    if (usersError) {
+      console.error("Failed to fetch users:", usersError.message);
+      return NextResponse.json(
+        { error: "Failed to fetch users" },
+        { status: 500 },
+      );
+    }
+
+    // Create a map of organization_id to user with refresh token
+    const orgToUser = new Map<
+      string,
+      { id: string; google_refresh_token: string }
+    >();
+    for (const user of users ?? []) {
+      if (user.organization_id && user.google_refresh_token) {
+        orgToUser.set(user.organization_id, {
+          id: user.id,
+          google_refresh_token: user.google_refresh_token,
+        });
+      }
+    }
+
+    // Build list of locations with user data
+    const locationsWithUsers: LocationWithUser[] = [];
+    for (const location of locations) {
+      if (!location.organization_id) continue;
+      const user = orgToUser.get(location.organization_id);
+      if (!user) continue;
+
+      locationsWithUsers.push({
+        id: location.id,
+        google_account_id: location.google_account_id,
+        google_location_id: location.google_location_id,
+        name: location.name,
+        user_id: user.id,
+        google_refresh_token: user.google_refresh_token,
+      });
+    }
+
+    // Group locations by user to minimize token refreshes
+    const locationsByUser = new Map<string, LocationWithUser[]>();
+    for (const location of locationsWithUsers) {
+      const existing = locationsByUser.get(location.user_id) ?? [];
+      existing.push(location);
+      locationsByUser.set(location.user_id, existing);
+    }
+
+    // Process each user's locations
+    for (const [userId, userLocations] of locationsByUser) {
+      const firstLocation = userLocations[0];
+      if (!firstLocation) continue;
+
+      let accessToken: string;
+
+      try {
+        // Get fresh access token for this user
+        accessToken = await refreshAccessToken(
+          firstLocation.google_refresh_token,
+        );
+      } catch (error) {
+        const message =
+          error instanceof GoogleAPIError
+            ? error.message
+            : "Token refresh failed";
+        results.errors.push(`User ${userId}: ${message}`);
+
+        // If token is expired, clear it from database
+        if (error instanceof GoogleAPIError && error.status === 401) {
+          await supabase
+            .from("users")
+            .update({ google_refresh_token: null })
+            .eq("id", userId);
+        }
+        continue;
+      }
+
+      // Poll reviews for each location
+      for (const location of userLocations) {
+        try {
+          const { reviews } = await fetchReviews(
+            accessToken,
+            location.google_account_id,
+            location.google_location_id,
+          );
+
+          results.locationsProcessed++;
+
+          if (reviews.length === 0) continue;
+
+          // Prepare reviews for upsert
+          const reviewsToInsert: ReviewInsert[] = reviews.map((review) => ({
+            location_id: location.id,
+            platform: "google",
+            external_review_id: review.external_review_id ?? "",
+            reviewer_name: review.reviewer_name,
+            reviewer_photo_url: review.reviewer_photo_url,
+            rating: review.rating,
+            review_text: review.review_text,
+            review_date: review.review_date,
+            has_response: review.has_response ?? false,
+            status: review.status ?? "pending",
+            sentiment: determineSentiment(review.rating ?? 0),
+          }));
+
+          // Upsert reviews (dedupe by external_review_id)
+          const { data: upsertedReviews, error: upsertError } = await supabase
+            .from("reviews")
+            .upsert(reviewsToInsert, {
+              onConflict: "external_review_id",
+              ignoreDuplicates: false,
+            })
+            .select("id");
+
+          if (upsertError) {
+            console.error(
+              `Failed to upsert reviews for location ${location.id}:`,
+              upsertError.message,
+            );
+            results.errors.push(
+              `Location ${location.name}: Failed to save reviews`,
+            );
+          } else {
+            // Count newly inserted reviews (rough estimate)
+            results.newReviews += upsertedReviews?.length ?? 0;
+          }
+        } catch (error) {
+          const message =
+            error instanceof GoogleAPIError
+              ? error.message
+              : "Failed to fetch reviews";
+          results.errors.push(`Location ${location.name}: ${message}`);
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Poll reviews cron job executed (not yet implemented)",
+      message: "Poll reviews cron job completed",
+      ...results,
+      duration: Date.now() - startTime,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Poll reviews cron error:", error);
-    return NextResponse.json({ error: "Cron job failed" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Cron job failed",
+        ...results,
+        duration: Date.now() - startTime,
+      },
+      { status: 500 },
+    );
   }
+}
+
+/**
+ * Determine sentiment based on star rating
+ */
+function determineSentiment(rating: number): string {
+  if (rating >= 4) return "positive";
+  if (rating >= 3) return "neutral";
+  return "negative";
 }

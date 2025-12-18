@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { GoogleConnectButton } from "@/components/settings/google-connect-button";
+import { LocationSelector } from "@/components/settings/location-selector";
 
 const TONE_OPTIONS = [
   { value: "friendly", label: "Friendly" },
@@ -171,6 +172,19 @@ export function SettingsClient() {
         </p>
         <div className="mt-4">
           <GoogleConnectButton />
+        </div>
+      </section>
+
+      {/* Connected Locations */}
+      <section className="p-6 bg-surface rounded-lg border border-border">
+        <h2 className="text-lg font-semibold text-foreground">
+          Connected Locations
+        </h2>
+        <p className="mt-1 text-sm text-foreground-secondary">
+          Select which locations to sync reviews from
+        </p>
+        <div className="mt-4">
+          <LocationSelector />
         </div>
       </section>
 
