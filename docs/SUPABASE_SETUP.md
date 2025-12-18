@@ -32,6 +32,7 @@ Complete guide for connecting and setting up your Supabase database for ReplySta
 ## Step 3: Configure Environment Variables
 
 1. If you haven't already, copy the environment template:
+
    ```bash
    cp .env.local.example .env.local
    ```
@@ -140,9 +141,11 @@ You need to authenticate before generating types. Choose one method:
 4. Copy the token (you'll only see it once)
 
 **Method 2: Login via CLI**
+
 ```bash
 npx supabase login
 ```
+
 Follow the prompts to authenticate in your browser.
 
 ### Option 1: Use the Helper Script (Recommended)
@@ -150,16 +153,19 @@ Follow the prompts to authenticate in your browser.
 Once you have an access token, use the helper script:
 
 **Windows PowerShell:**
+
 ```powershell
 $env:SUPABASE_ACCESS_TOKEN="your-token-here"; npm run supabase:types
 ```
 
 **macOS/Linux:**
+
 ```bash
 SUPABASE_ACCESS_TOKEN="your-token-here" npm run supabase:types
 ```
 
 Or if you logged in via CLI (Method 2), just run:
+
 ```bash
 npm run supabase:types
 ```
@@ -175,12 +181,14 @@ This script automatically:
 If you prefer to run it manually, you'll need to set the access token first:
 
 **Windows PowerShell:**
+
 ```powershell
 $env:SUPABASE_ACCESS_TOKEN="your-token-here"
 npx supabase gen types typescript --project-id YOUR_PROJECT_REF > lib/supabase/types.ts
 ```
 
 **macOS/Linux:**
+
 ```bash
 SUPABASE_ACCESS_TOKEN="your-token-here" npx supabase gen types typescript --project-id YOUR_PROJECT_REF > lib/supabase/types.ts
 ```
@@ -194,6 +202,7 @@ Replace `YOUR_PROJECT_REF` with your actual project reference ID:
 If you want the CLI installed for other features (like local development), you can install it via:
 
 **Windows (using Scoop):**
+
 ```powershell
 # First install Scoop (if not already installed)
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -204,6 +213,7 @@ scoop install supabase
 ```
 
 **macOS/Linux:**
+
 ```bash
 brew install supabase/tap/supabase
 ```
@@ -213,6 +223,7 @@ brew install supabase/tap/supabase
 ## Step 8: Test the Connection
 
 1. Start your development server:
+
    ```bash
    npm run dev
    ```
@@ -238,7 +249,8 @@ brew install supabase/tap/supabase
 ### Type Generation Fails
 
 - Verify your project ID is correct
-- Ensure you have the Supabase CLI installed: `npm install -g supabase`
+- If using `npx`, ensure you have a stable internet connection
+- Try clearing the npx cache: `npx clear-npx-cache` or use `npx supabase@latest ...
 - Try using the project reference instead of project ID
 
 ### Google OAuth Not Working
@@ -258,7 +270,7 @@ This error occurs when your Google OAuth consent screen is in **Testing** mode a
 3. Navigate to **APIs & Services** → **OAuth consent screen**
 4. Scroll down to the **Test users** section
 5. Click **"Add Users"**
-6. Enter the email address of the user trying to sign in (e.g., `Ryan.Hoover.Rox@gmail.com`)
+6. Enter the email address of the user trying to sign in (e.g., `your.email@gmail.com`)
 7. Click **"Add"**
 8. The user should now be able to sign in
 

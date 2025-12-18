@@ -14,7 +14,7 @@ CREATE TABLE organizations (
 
 -- Users
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT,
@@ -88,7 +88,8 @@ CREATE INDEX idx_reviews_location_date ON reviews(location_id, review_date DESC)
 CREATE INDEX idx_responses_review ON responses(review_id);
 CREATE INDEX idx_locations_org ON locations(organization_id);
 CREATE INDEX idx_users_org ON users(organization_id);
-CREATE INDEX idx_users_email ON users(email);
+-- Note: idx_users_email is not needed - users.email has UNIQUE constraint which creates an index automatically
+DROP INDEX IF EXISTS idx_users_email;
 
 -- Row Level Security (RLS) Policies
 -- Enable RLS on all tables

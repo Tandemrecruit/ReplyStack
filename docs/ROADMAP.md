@@ -2,7 +2,7 @@
 
 ## Phase 1: MVP (Week 1-2)
 
-**Current Status (Dec 2025):** Project scaffolding and authentication are complete. Remaining: Google integration, AI generation, dashboard flows, Stripe, and email.
+**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, and landing page are complete. Remaining: AI response generation, dashboard data integration, response editing UI, Stripe, and email notifications.
 
 **Goal:** One location, core response loop, payments working
 
@@ -23,18 +23,18 @@
   - [x] Protected route middleware
   - [x] Email verification enforcement
 
-- [ ] **Google Business Profile integration**
-  - [ ] OAuth consent screen setup
-  - [ ] OAuth flow implementation
-  - [ ] Fetch and store refresh token (encrypted)
-  - [ ] Location listing and selection
-  - [ ] Store selected location
+- [X] **Google Business Profile integration**
+  - [x] OAuth consent screen setup
+  - [x] OAuth flow implementation
+  - [x] Fetch and store refresh token (encrypted)
+  - [x] Location listing and selection
+  - [x] Store selected location
 
-- [ ] **Review polling and storage**
-  - [ ] Review fetch from Google API
-  - [ ] Store reviews in database
-  - [ ] Cron job for polling (every 15 min)
-  - [ ] Deduplication logic
+- [X] **Review polling and storage**
+  - [x] Review fetch from Google API
+  - [x] Store reviews in database
+  - [x] Cron job for polling (every 15 min)
+  - [x] Deduplication logic
 
 - [ ] **AI response generation**
   - [ ] Claude API integration
@@ -42,31 +42,31 @@
   - [ ] Generate response endpoint
   - [ ] Token usage tracking
 
-- [ ] **Basic dashboard UI**
-  - [ ] Review list component
-  - [ ] Rating filter
-  - [ ] Status filter
-  - [ ] Generate response button
-  - [ ] Response preview
+- [~] **Basic dashboard UI**
+  - [x] Review list component (ReviewCard component exists)
+  - [x] Rating filter (UI exists, needs data integration)
+  - [x] Status filter (UI exists, needs data integration)
+  - [x] Generate response button (component exists, needs AI integration)
+  - [ ] Response preview (not yet implemented)
 
 ### Week 2: Polish & Launch
 
-- [ ] **Response editing and publishing**
+- [~] **Response editing and publishing**
   - [ ] Edit modal component
   - [ ] Character/word count
   - [ ] Save draft functionality
-  - [ ] Publish to Google API
+  - [x] Publish to Google API (endpoint implemented)
   - [ ] Optimistic UI updates
   - [ ] Error handling and retry
 
-- [ ] **Voice profile setup wizard**
-  - [ ] Tone selection step
-  - [ ] Personality notes input
-  - [ ] Example responses input
-  - [ ] Sign-off configuration
-  - [ ] Words to use/avoid
-  - [ ] Max length setting
-  - [ ] Save and update profile
+- [~] **Voice profile setup**
+  - [x] Tone selection step
+  - [x] Personality notes input
+  - [ ] Example responses input (API supports, UI missing)
+  - [x] Sign-off configuration
+  - [ ] Words to use/avoid (API supports, UI missing)
+  - [~] Max length setting (exists in VoiceEditor component, missing from settings page)
+  - [x] Save and update profile (API fully implemented, UI partially implemented)
 
 - [ ] **Stripe integration**
   - [ ] Products and prices in Stripe Dashboard
@@ -82,12 +82,12 @@
   - [ ] Welcome email
   - [ ] Notification preferences
 
-- [ ] **Landing page**
-  - [ ] Hero section
-  - [ ] Feature highlights
-  - [ ] Pricing section
-  - [ ] FAQ
-  - [ ] CTA buttons
+- [X] **Landing page**
+  - [x] Hero section
+  - [x] Feature highlights
+  - [x] Pricing section
+  - [x] FAQ (pricing-faq page exists)
+  - [x] CTA buttons
 
 - [ ] **Soft launch**
   - [ ] Deploy to production

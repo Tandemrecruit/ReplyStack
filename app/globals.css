@@ -99,19 +99,41 @@
     --border: #304344;
     --border-hover: #3c5152;
 
-    /* Primary palette dark mode overrides - darker shades for contrast with light text */
+    /* Primary palette dark mode overrides
+     * Strategy: 50-500 are darker shades for backgrounds/subtle uses (inverted semantic meaning).
+     * 600-950 maintain brand identity with smooth gradient from 500, adjusted for dark backgrounds.
+     * This preserves brand recognition while ensuring WCAG contrast compliance. */
     --color-primary-50: #3c2a1f;
     --color-primary-100: #4a3526;
     --color-primary-200: #5d422f;
     --color-primary-300: #75543a;
     --color-primary-400: #926b47;
     --color-primary-500: #b87d55;
-    --color-primary-600: #d94625;
-    --color-primary-700: #b2351b;
-    --color-primary-800: #8c2a17;
-    --color-primary-900: #6f2416;
-    --color-primary-950: #3c1009;
+    /* Smooth transition from 500: lighter, more vibrant terracotta for interactive elements */
+    --color-primary-600: #d46a3d;
+    --color-primary-700: #e95f33;
+    --color-primary-800: #d94625;
+    --color-primary-900: #b2351b;
+    --color-primary-950: #8c2a17;
 
+    /* Accent palette dark mode overrides
+     * Strategy: Inverted scale where lower numbers (50-400) are darker for backgrounds/borders,
+     * and higher numbers (500-900) are lighter for text/CTAs. This maintains semantic usage patterns
+     * (accent-50 as background, accent-800 as text) while ensuring WCAG contrast compliance.
+     * The main brand color (accent-400) remains recognizable as goldenrod. */
+    --color-accent-50: #2d2414;
+    --color-accent-100: #3d2f1a;
+    --color-accent-200: #4a3a1f;
+    --color-accent-300: #5d4826;
+    --color-accent-400: #b77a0f;
+    --color-accent-500: #d99912;
+    --color-accent-600: #f4b41a;
+    --color-accent-700: #ffc24d;
+    --color-accent-800: #ffd988;
+    --color-accent-900: #ffeec2;
+
+    /* Star rating colors - adjusted for dark mode */
+    --color-star: #f4b41a;
     --color-star-empty: #4a5a5b;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);

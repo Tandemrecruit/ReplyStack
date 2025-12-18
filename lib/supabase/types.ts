@@ -437,8 +437,19 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+export type ReviewInsert = TablesInsert<"reviews">
+export type UserInsert = TablesInsert<"users">
+
 export const Constants = {
   public: {
     Enums: {},
   },
 } as const
+
+/**
+ * Convenience type aliases for common table row types
+ */
+export type Review = Database["public"]["Tables"]["reviews"]["Row"]
+export type VoiceProfile = Database["public"]["Tables"]["voice_profiles"]["Row"]
+export type Location = Database["public"]["Tables"]["locations"]["Row"]
+

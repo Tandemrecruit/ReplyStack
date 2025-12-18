@@ -47,9 +47,6 @@ export async function GET(request: NextRequest) {
       };
       const { error: upsertError } = await supabase
         .from("users")
-        // TODO: Remove suppression once Supabase TypeScript inference is fixed
-        // See: https://github.com/supabase/supabase-js/issues/1636
-        // @ts-expect-error - Supabase client type inference issue: .from() returns never type for upsert parameter
         .upsert(userData, { onConflict: "id" });
 
       if (upsertError) {

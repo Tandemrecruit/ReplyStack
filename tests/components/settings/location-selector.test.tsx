@@ -209,8 +209,14 @@ describe("components/settings/LocationSelector", () => {
     });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[0]); // Select loc-1
-    await user.click(checkboxes[1]); // Select loc-2
+    expect(checkboxes.length).toBeGreaterThanOrEqual(2);
+    const checkbox1 = checkboxes[0];
+    const checkbox2 = checkboxes[1];
+    if (!checkbox1 || !checkbox2) {
+      throw new Error("Expected at least 2 checkboxes to be present");
+    }
+    await user.click(checkbox1); // Select loc-1
+    await user.click(checkbox2); // Select loc-2
 
     const saveButton = screen.getByRole("button", { name: "Save Locations" });
     await user.click(saveButton);

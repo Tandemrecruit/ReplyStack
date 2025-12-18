@@ -1,6 +1,6 @@
 """Tests for the example_module utilities."""
 
-from example_module import normalize
+from example_module import normalize  # pyright: ignore[reportMissingImports]
 
 
 def test_normalize_empty():
@@ -18,4 +18,3 @@ def test_normalize_spread():
 def test_normalize_constant():
     """normalize maps identical values to zeros to avoid division by zero."""
     assert normalize([3, 3, 3]) == [0.0, 0.0, 0.0]
-

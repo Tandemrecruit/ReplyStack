@@ -1,23 +1,30 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 
-type VoiceProfileUpdate = Database["public"]["Tables"]["voice_profiles"]["Update"];
+type VoiceProfileUpdate =
+  Database["public"]["Tables"]["voice_profiles"]["Update"];
+
+/**
+ * Zod schema for validating PUT /api/voice-profile request body
+ */
+const updateVoiceProfileSchema = z.object({
+  tone: z.string().optional(),
+  personality_notes: z.string().optional(),
+  sign_off_style: z.string().optional(),
+  max_length: z.number().int().positive().optional(),
+  words_to_use: z.array(z.string()).optional(),
+  words_to_avoid: z.array(z.string()).optional(),
+  example_responses: z.array(z.string()).optional(),
+});
 
 /**
  * Request body for PUT /api/voice-profile
  */
-interface UpdateVoiceProfileBody {
-  tone?: string;
-  personality_notes?: string;
-  sign_off_style?: string;
-  max_length?: number;
-  words_to_use?: string[];
-  words_to_avoid?: string[];
-  example_responses?: string[];
-}
+type UpdateVoiceProfileBody = z.infer<typeof updateVoiceProfileSchema>;
 
 /**
  * Update the voice profile for the authenticated user's organization.
@@ -58,8 +65,24 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body = (await request.json()) as UpdateVoiceProfileBody;
+    // Parse and validate request body
+    let body: UpdateVoiceProfileBody;
+    try {
+      const rawBody = await request.json();
+      const parseResult = updateVoiceProfileSchema.safeParse(rawBody);
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { error: "Invalid request body" },
+          { status: 400 },
+        );
+      }
+      body = parseResult.data;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body: JSON parsing failed" },
+        { status: 400 },
+      );
+    }
 
     // Build update object with only provided fields
     const updateData: VoiceProfileUpdate = {};
@@ -69,7 +92,8 @@ export async function PUT(request: NextRequest) {
     if (body.sign_off_style !== undefined)
       updateData.sign_off_style = body.sign_off_style;
     if (body.max_length !== undefined) updateData.max_length = body.max_length;
-    if (body.words_to_use !== undefined) updateData.words_to_use = body.words_to_use;
+    if (body.words_to_use !== undefined)
+      updateData.words_to_use = body.words_to_use;
     if (body.words_to_avoid !== undefined)
       updateData.words_to_avoid = body.words_to_avoid;
     if (body.example_responses !== undefined)
@@ -189,4 +213,3 @@ export async function GET() {
     );
   }
 }
-

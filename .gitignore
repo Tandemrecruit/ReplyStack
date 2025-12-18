@@ -63,3 +63,4 @@ venv/
 
 # supabase
 .supabase/
+**/scripts/generate-types.js

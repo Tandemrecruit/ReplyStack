@@ -126,8 +126,11 @@ describe("GET /auth/callback", () => {
 
     // Verify upsert was called with correct data
     expect(mockSupabase.from).toHaveBeenCalledWith("users");
-    const upsertCall = vi.mocked(mockSupabase.from).mock.results[0].value
-      .upsert as ReturnType<typeof vi.fn>;
+    const fromCallResult = vi.mocked(mockSupabase.from).mock.results[0];
+    if (!fromCallResult?.value) {
+      throw new Error("Expected from() to return a value");
+    }
+    const upsertCall = fromCallResult.value.upsert as ReturnType<typeof vi.fn>;
     expect(upsertCall).toHaveBeenCalledWith(
       {
         id: "user-1",

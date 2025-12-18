@@ -30,10 +30,10 @@ interface ReviewWithLocation {
   rating: number | null;
   review_text: string | null;
   review_date: string | null;
-  has_response: boolean;
-  status: string;
+  has_response: boolean | null;
+  status: string | null;
   sentiment: string | null;
-  created_at: string;
+  created_at: string | null;
   location_id: string | null;
   locations: ReviewLocation | null;
 }

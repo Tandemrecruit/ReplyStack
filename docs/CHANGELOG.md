@@ -2,13 +2,41 @@
 
 ## 2025-12-19
 
+- Corrected roadmap voice profile setup status: marked as partially complete (~) instead of fully complete (X) - API supports all fields (example_responses, words_to_use, words_to_avoid, max_length) but settings UI is missing these input fields
+- Fixed line length linting error in python/automation/example_task.py: split long docstring line (162 chars) into multiple lines to comply with 100-character limit
+- Fixed Python import resolution error in python/tests/test_example_module.py: added pyright ignore comment and configured pyrightconfig.json with extraPaths to resolve example_module import (works at runtime via pytest pythonpath, but linter needed explicit configuration)
+- Fixed unused variable warning in python/tests/test_example_task.py: removed unused `result` variable assignment from subprocess.run() call since check=True already ensures command success
+- Fixed TypeScript "Object is possibly 'undefined'" error in tests/app/(auth)/callback/route.test.ts: added runtime check for mock result value before accessing upsert property to satisfy type safety requirements
+- Fixed TypeScript array index type error in tests/components/settings/location-selector.test.tsx: added length assertion and runtime check before accessing checkbox array elements to ensure type safety
+
+### Documentation
+
+- Updated roadmap to reflect current implementation status: marked Google Business Profile integration, review polling, voice profile setup, and landing page as complete; updated dashboard UI and response publishing status to reflect partial completion
+
+## 2025-12-18
+
+- Fixed missing type exports in lib/supabase/types.ts: added Review, VoiceProfile, and Location type aliases to resolve import errors in lib/claude/client.ts and other files
+- Fixed line length linting error in python/automation/example_task.py: split long docstring line (162 chars) into multiple lines to comply with 100-character limit
+
+### Components
+
+- Fixed TypeScript type error in location-selector: added null check for `result.value.error` before pushing to errors array to handle `string | undefined` type
+- Fixed missing VoiceProfile export in voice-editor: replaced import with Database type pattern (`Database["public"]["Tables"]["voice_profiles"]["Row"]`) to match Supabase type structure
+
 ### API Routes
 
+- Fixed TypeScript type errors in reviews route: updated `ReviewWithLocation` interface to allow nullable types for `has_response`, `status`, and `created_at` fields to match Supabase query result types
+- Added explicit export for `UserInsert` type in `lib/supabase/types.ts` (export type UserInsert = TablesInsert<"users">) to fix missing export used by auth callback route
+- Removed unused `@ts-expect-error` directive from auth callback route; type inference now works correctly with UserInsert type
+- Added explicit export for `ReviewInsert` type in `lib/supabase/types.ts` (export type ReviewInsert = TablesInsert<"reviews">) to fix missing export used by poll-reviews route
+- Added runtime validation for voice-profile PUT route request body using Zod schema to validate types (strings, positive integers for max_length, string arrays) and prevent malformed input from causing unexpected behavior
+- Fixed locations route type imports: replaced non-existent exported types (LocationInsert, LocationUpdate, OrganizationInsert, UserUpdate) with local type definitions using Database type, following the pattern used in voice-profile route
 - Fixed locations POST route to parse and validate request body before organization creation, preventing organizations from being created for invalid requests; body parsing and validation (ensuring body exists and body.locations is an Array) now runs immediately after authentication and returns 400 immediately on invalid input
 
 ### UI/UX
 
 - Fixed text contrast on billing page "Upgrade to Pro" card in dark mode: added dark mode overrides for primary color palette (primary-50 through primary-950) to ensure proper contrast with light foreground text, improving contrast ratio from 1.05:1 to 11.76:1 (WCAG AAA compliant)
+- Refined dark mode color scale strategy: fixed primary palette gradient discontinuity (smooth transition from primary-500 to primary-600), added comprehensive dark mode overrides for accent palette (goldenrod) with inverted scale strategy maintaining semantic usage patterns, and documented color system strategy in CSS comments to clarify the intentional partial inversion approach for WCAG contrast compliance
 
 ### Documentation
 
@@ -27,14 +55,22 @@
 ### Infrastructure
 
 - Created helper script (`scripts/generate-types.js`) to automatically extract Supabase project ID from environment variables and generate TypeScript types
+- Added validation for Supabase project ID format in `scripts/generate-types.js`: validates extracted project IDs against 20-character alphanumeric pattern before use, treating invalid formats as not found to prevent errors from malformed URLs
+- Fixed command injection vulnerability in `scripts/generate-types.js`: replaced `execSync` with shell interpolation with `spawnSync` using argument array, removed `shell: true`, pass `projectId` as separate argument, and use `createWriteStream` to pipe stdout to file instead of shell redirection
 
 ### Database
 
 - Added migration for `notification_preferences` table (`supabase/migrations/002_add_notification_preferences.sql`) to support user email notification settings with RLS policies
+- Changed `created_at` and `updated_at` columns in `notification_preferences` table from `TIMESTAMP` to `TIMESTAMPTZ` to store timezone-aware timestamps
+- Added reusable `update_updated_at_column()` trigger function and BEFORE UPDATE trigger on `notification_preferences` table to automatically refresh `updated_at` timestamp on row modifications
+- Removed redundant `CREATE INDEX idx_notification_preferences_user_id` from notification_preferences migration since `user_id` PRIMARY KEY already provides the necessary index
+- Fixed users table id column in initial schema: replaced `DEFAULT gen_random_uuid()` with `REFERENCES auth.users(id) ON DELETE CASCADE` to ensure profile rows match authenticated user IDs and RLS policies using `auth.uid()` work correctly
+- Removed redundant `CREATE INDEX idx_users_email` from initial schema: replaced with `DROP INDEX IF EXISTS idx_users_email` since `users.email` UNIQUE constraint already creates an index automatically, preventing duplicate index conflicts
 
 ### API Routes
 
 - Created `/api/voice-profile` route handler with GET and PUT methods for fetching and updating voice profiles for authenticated users' organizations
+
 
 ## 2025-12-18
 

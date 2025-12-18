@@ -8,13 +8,13 @@ import {
   refreshAccessToken,
 } from "@/lib/google/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type {
-  Database,
-  LocationInsert,
-  LocationUpdate,
-  OrganizationInsert,
-  UserUpdate,
-} from "@/lib/supabase/types";
+import type { Database } from "@/lib/supabase/types";
+
+type LocationInsert = Database["public"]["Tables"]["locations"]["Insert"];
+type LocationUpdate = Database["public"]["Tables"]["locations"]["Update"];
+type OrganizationInsert =
+  Database["public"]["Tables"]["organizations"]["Insert"];
+type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 
 /**
  * Location data returned from the API with sync status
@@ -440,7 +440,15 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Parse request body
-    const body = (await request.json()) as { location_id: string };
+    let body: { location_id: string };
+    try {
+      body = (await request.json()) as { location_id: string };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body: JSON parsing failed" },
+        { status: 400 },
+      );
+    }
 
     if (!body.location_id) {
       return NextResponse.json(

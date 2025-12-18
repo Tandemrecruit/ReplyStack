@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-import type { VoiceProfile } from "@/lib/supabase/types";
+import type { Database } from "@/lib/supabase/types";
+
+type VoiceProfile = Database["public"]["Tables"]["voice_profiles"]["Row"];
 
 interface VoiceEditorProps {
   profile?: Partial<VoiceProfile>;

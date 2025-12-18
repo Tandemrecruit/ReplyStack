@@ -198,7 +198,7 @@ export function LocationSelector() {
               ? result.reason.message
               : "Failed to deactivate location",
           );
-        } else if (!result.value.success) {
+        } else if (!result.value.success && result.value.error) {
           errors.push(result.value.error);
         }
       }
