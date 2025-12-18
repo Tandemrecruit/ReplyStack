@@ -45,8 +45,7 @@ export async function GET(request: NextRequest) {
       // synthetic email as fallback if the OAuth provider didn't return an email.
       // This ensures we never pass an empty string to the database.
       const email =
-        session.user.email?.trim() ||
-        `${session.user.id}@google-noreply`;
+        session.user.email?.trim() || `${session.user.id}@google-noreply`;
 
       if (!session.user.email?.trim()) {
         console.warn(

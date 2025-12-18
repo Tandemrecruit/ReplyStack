@@ -20,17 +20,17 @@
    * - Text on light backgrounds: primary-700 or primary-800
    *
    * See docs/DESIGN_SYSTEM.md for complete usage guide. */
-  --color-primary-50: #fff1eb;   /* Subtle backgrounds, cards */
-  --color-primary-100: #ffddcf;   /* Slightly darker backgrounds */
-  --color-primary-200: #ffc2ab;   /* Borders, dividers */
-  --color-primary-300: #ffa07b;   /* Hover states on subtle elements */
-  --color-primary-400: #f47b4d;   /* Medium emphasis backgrounds */
-  --color-primary-500: #e95f33;   /* Base brand color, focus rings */
-  --color-primary-600: #d94625;   /* Primary buttons, links, CTAs */
-  --color-primary-700: #b2351b;   /* Button hover states, active links */
-  --color-primary-800: #8c2a17;   /* Text on light backgrounds, strong emphasis */
-  --color-primary-900: #6f2416;   /* High contrast text, important labels */
-  --color-primary-950: #3c1009;   /* Maximum contrast text (rare use) */
+  --color-primary-50: #fff1eb; /* Subtle backgrounds, cards */
+  --color-primary-100: #ffddcf; /* Slightly darker backgrounds */
+  --color-primary-200: #ffc2ab; /* Borders, dividers */
+  --color-primary-300: #ffa07b; /* Hover states on subtle elements */
+  --color-primary-400: #f47b4d; /* Medium emphasis backgrounds */
+  --color-primary-500: #e95f33; /* Base brand color, focus rings */
+  --color-primary-600: #d94625; /* Primary buttons, links, CTAs */
+  --color-primary-700: #b2351b; /* Button hover states, active links */
+  --color-primary-800: #8c2a17; /* Text on light backgrounds, strong emphasis */
+  --color-primary-900: #6f2416; /* High contrast text, important labels */
+  --color-primary-950: #3c1009; /* Maximum contrast text (rare use) */
 
   --color-accent-50: #fff9e8;
   --color-accent-100: #ffeec2;
@@ -127,18 +127,18 @@
      * This preserves brand recognition while ensuring WCAG contrast compliance.
      *
      * See docs/DESIGN_SYSTEM.md for complete usage guide. */
-    --color-primary-50: #3c2a1f;   /* Subtle backgrounds, cards */
-    --color-primary-100: #4a3526;   /* Slightly lighter backgrounds */
-    --color-primary-200: #5d422f;   /* Borders, dividers */
-    --color-primary-300: #75543a;   /* Hover states on subtle elements */
-    --color-primary-400: #926b47;   /* Medium emphasis backgrounds */
-    --color-primary-500: #b87d55;   /* Base brand color, focus rings */
+    --color-primary-50: #3c2a1f; /* Subtle backgrounds, cards */
+    --color-primary-100: #4a3526; /* Slightly lighter backgrounds */
+    --color-primary-200: #5d422f; /* Borders, dividers */
+    --color-primary-300: #75543a; /* Hover states on subtle elements */
+    --color-primary-400: #926b47; /* Medium emphasis backgrounds */
+    --color-primary-500: #b87d55; /* Base brand color, focus rings */
     /* Smooth transition from 500: lighter, more vibrant terracotta for interactive elements */
-    --color-primary-600: #d46a3d;   /* Primary buttons, links, CTAs */
-    --color-primary-700: #e95f33;   /* Button hover states, active links */
-    --color-primary-800: #d94625;   /* Text on light backgrounds, strong emphasis */
-    --color-primary-900: #b2351b;   /* High contrast text, important labels */
-    --color-primary-950: #8c2a17;   /* Maximum contrast text (rare use) */
+    --color-primary-600: #d46a3d; /* Primary buttons, links, CTAs */
+    --color-primary-700: #e95f33; /* Button hover states, active links */
+    --color-primary-800: #d94625; /* Text on light backgrounds, strong emphasis */
+    --color-primary-900: #b2351b; /* High contrast text, important labels */
+    --color-primary-950: #8c2a17; /* Maximum contrast text (rare use) */
 
     /* Accent palette dark mode overrides
      *
@@ -157,16 +157,16 @@
      * The main brand color (accent-400) remains recognizable as goldenrod.
      *
      * See docs/DESIGN_SYSTEM.md for complete usage guide. */
-    --color-accent-50: #2d2414;   /* Subtle backgrounds */
-    --color-accent-100: #3d2f1a;   /* Slightly lighter backgrounds */
-    --color-accent-200: #4a3a1f;   /* Borders, dividers */
-    --color-accent-300: #5d4826;   /* Medium backgrounds */
-    --color-accent-400: #b77a0f;   /* Base brand color (goldenrod) */
-    --color-accent-500: #d99912;   /* CTAs, highlights */
-    --color-accent-600: #f4b41a;   /* Primary CTAs, star ratings */
-    --color-accent-700: #ffc24d;   /* Hover states on CTAs */
-    --color-accent-800: #ffd988;   /* Text on dark backgrounds */
-    --color-accent-900: #ffeec2;   /* High contrast text (rare use) */
+    --color-accent-50: #2d2414; /* Subtle backgrounds */
+    --color-accent-100: #3d2f1a; /* Slightly lighter backgrounds */
+    --color-accent-200: #4a3a1f; /* Borders, dividers */
+    --color-accent-300: #5d4826; /* Medium backgrounds */
+    --color-accent-400: #b77a0f; /* Base brand color (goldenrod) */
+    --color-accent-500: #d99912; /* CTAs, highlights */
+    --color-accent-600: #f4b41a; /* Primary CTAs, star ratings */
+    --color-accent-700: #ffc24d; /* Hover states on CTAs */
+    --color-accent-800: #ffd988; /* Text on dark backgrounds */
+    --color-accent-900: #ffeec2; /* High contrast text (rare use) */
 
     /* Star rating colors - maintains consistent gold (#f4b41a) across modes */
     --color-star: #f4b41a;

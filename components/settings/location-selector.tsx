@@ -158,8 +158,8 @@ export function LocationSelector() {
     try {
       // Find locations to deactivate (were synced but now unselected)
       const locationsToDeactivate = locations.filter(
-        (loc) =>
-          loc.is_synced && !selectedIds.has(loc.google_location_id) && loc.id,
+        (loc): loc is LocationData & { id: string } =>
+          loc.is_synced && !selectedIds.has(loc.google_location_id) && !!loc.id,
       );
 
       // Deactivate unselected locations in parallel
@@ -167,7 +167,7 @@ export function LocationSelector() {
         const deleteResponse = await fetch("/api/locations", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ location_id: loc.id! }),
+          body: JSON.stringify({ location_id: loc.id }),
         });
 
         if (!deleteResponse.ok) {
@@ -178,8 +178,7 @@ export function LocationSelector() {
             success: false,
             location: loc,
             error:
-              deleteData.error ??
-              `Failed to deactivate location: ${loc.name}`,
+              deleteData.error ?? `Failed to deactivate location: ${loc.name}`,
           };
         }
 
