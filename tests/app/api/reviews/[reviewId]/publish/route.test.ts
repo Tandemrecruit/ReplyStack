@@ -179,23 +179,48 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
   });
 
   it("returns 404 when review not found", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+    const mockSupabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: "user-1" } },
         }),
       },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: "Review not found" },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "user-1",
+                    organization_id: "org-1",
+                    google_refresh_token: "refresh-token",
+                  },
+                  error: null,
+                }),
+              }),
             }),
-          }),
-        }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: { message: "Review not found" },
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
       }),
-    } as never);
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
 
     const request = makeNextRequest(
       "http://localhost/api/reviews/review-1/publish",
@@ -305,6 +330,29 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
                     id: "user-1",
                     organization_id: "org-1",
                     google_refresh_token: "refresh-token",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "review-1",
+                    external_review_id: "ext-1",
+                    location_id: "loc-1",
+                    has_response: false,
+                    locations: {
+                      id: "loc-1",
+                      google_account_id: "acc-1",
+                      google_location_id: "loc-1",
+                      organization_id: "org-1",
+                    },
                   },
                   error: null,
                 }),

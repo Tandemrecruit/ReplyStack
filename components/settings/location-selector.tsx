@@ -162,23 +162,53 @@ export function LocationSelector() {
           loc.is_synced && !selectedIds.has(loc.google_location_id) && loc.id,
       );
 
-      // Deactivate unselected locations
-      for (const loc of locationsToDeactivate) {
-        if (!loc.id) continue;
-        const deleteResponse = await fetch("/api/locations", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ location_id: loc.id }),
+      // Deactivate unselected locations in parallel
+      const deletePromises = locationsToDeactivate
+        .filter((loc) => loc.id)
+        .map(async (loc) => {
+          const deleteResponse = await fetch("/api/locations", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ location_id: loc.id }),
+          });
+
+          if (!deleteResponse.ok) {
+            const deleteData = (await deleteResponse.json()) as {
+              error?: string;
+            };
+            return {
+              success: false,
+              location: loc,
+              error:
+                deleteData.error ??
+                `Failed to deactivate location: ${loc.name}`,
+            };
+          }
+
+          return { success: true, location: loc };
         });
 
-        if (!deleteResponse.ok) {
-          const deleteData = (await deleteResponse.json()) as {
-            error?: string;
-          };
-          throw new Error(
-            deleteData.error ?? `Failed to deactivate location: ${loc.name}`,
+      const deleteResults = await Promise.allSettled(deletePromises);
+      const errors: string[] = [];
+
+      for (const result of deleteResults) {
+        if (result.status === "rejected") {
+          errors.push(
+            result.reason instanceof Error
+              ? result.reason.message
+              : "Failed to deactivate location",
           );
+        } else if (!result.value.success) {
+          errors.push(result.value.error);
         }
+      }
+
+      if (errors.length > 0) {
+        throw new Error(
+          errors.length === 1
+            ? errors[0]
+            : `Failed to deactivate ${errors.length} location(s): ${errors.join("; ")}`,
+        );
       }
 
       // Save selected locations

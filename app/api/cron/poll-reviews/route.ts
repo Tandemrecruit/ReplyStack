@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -111,16 +112,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Create a map of organization_id to user with refresh token
+    // Keep the first user found per organization (deterministic behavior)
     const orgToUser = new Map<
       string,
       { id: string; google_refresh_token: string }
     >();
     for (const user of users ?? []) {
       if (user.organization_id && user.google_refresh_token) {
-        orgToUser.set(user.organization_id, {
-          id: user.id,
-          google_refresh_token: user.google_refresh_token,
-        });
+        if (!orgToUser.has(user.organization_id)) {
+          orgToUser.set(user.organization_id, {
+            id: user.id,
+            google_refresh_token: user.google_refresh_token,
+          });
+        }
       }
     }
 
@@ -191,20 +195,67 @@ export async function GET(request: NextRequest) {
 
           if (reviews.length === 0) continue;
 
-          // Prepare reviews for upsert
-          const reviewsToInsert: ReviewInsert[] = reviews.map((review) => ({
-            location_id: location.id,
-            platform: "google",
-            external_review_id: review.external_review_id ?? "",
-            reviewer_name: review.reviewer_name,
-            reviewer_photo_url: review.reviewer_photo_url,
-            rating: review.rating,
-            review_text: review.review_text,
-            review_date: review.review_date,
-            has_response: review.has_response ?? false,
-            status: review.status ?? "pending",
-            sentiment: determineSentiment(review.rating ?? 0),
-          }));
+          // Prepare reviews for upsert with validation for external_review_id
+          const reviewsToInsert: ReviewInsert[] = [];
+          let skippedCount = 0;
+          let syntheticIdCount = 0;
+
+          for (const review of reviews) {
+            let externalReviewId = review.external_review_id;
+
+            // If external_review_id is missing, generate a stable unique ID
+            if (!externalReviewId || externalReviewId.trim() === "") {
+              // Require location_id, reviewer_name, and review_date to generate unique ID
+              if (
+                !location.id ||
+                !review.reviewer_name ||
+                !review.review_date
+              ) {
+                skippedCount++;
+                console.warn(
+                  `Skipping review for location ${location.name}: missing external_review_id and insufficient data to generate synthetic ID (location_id: ${location.id}, reviewer_name: ${review.reviewer_name ?? "null"}, review_date: ${review.review_date ?? "null"})`,
+                );
+                continue;
+              }
+
+              // Generate stable synthetic ID
+              externalReviewId = generateSyntheticReviewId(
+                location.id,
+                review.reviewer_name,
+                review.review_date,
+              );
+              syntheticIdCount++;
+              console.log(
+                `Generated synthetic external_review_id for review at location ${location.name}: ${externalReviewId}`,
+              );
+            }
+
+            reviewsToInsert.push({
+              location_id: location.id,
+              platform: "google",
+              external_review_id: externalReviewId,
+              reviewer_name: review.reviewer_name ?? null,
+              reviewer_photo_url: review.reviewer_photo_url ?? null,
+              rating: review.rating ?? null,
+              review_text: review.review_text ?? null,
+              review_date: review.review_date ?? null,
+              has_response: review.has_response ?? false,
+              status: review.status ?? "pending",
+              sentiment: determineSentiment(review.rating ?? 0),
+            });
+          }
+
+          // Log summary if any reviews were skipped or got synthetic IDs
+          if (skippedCount > 0 || syntheticIdCount > 0) {
+            console.log(
+              `Location ${location.name}: ${syntheticIdCount} reviews with synthetic IDs, ${skippedCount} reviews skipped`,
+            );
+          }
+
+          // Skip upsert if no valid reviews to insert
+          if (reviewsToInsert.length === 0) {
+            continue;
+          }
 
           // Upsert reviews (dedupe by external_review_id)
           const { data: upsertedReviews, error: upsertError } = await supabase
@@ -255,6 +306,28 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Generate a stable unique ID for a review missing external_review_id.
+ * Uses SHA-256 hash of location_id + reviewer_name + review_date.
+ *
+ * @param locationId - The location ID
+ * @param reviewerName - The reviewer's name (can be null)
+ * @param reviewDate - The review date (can be null)
+ * @returns A stable unique identifier prefixed with "synthetic_"
+ */
+function generateSyntheticReviewId(
+  locationId: string,
+  reviewerName: string | null | undefined,
+  reviewDate: string | null | undefined,
+): string {
+  const components = [locationId, reviewerName ?? "", reviewDate ?? ""].join(
+    "|",
+  );
+  const hash = createHash("sha256").update(components).digest("hex");
+  // Use first 32 chars of hash for readability, prefixed to indicate synthetic
+  return `synthetic_${hash.slice(0, 32)}`;
 }
 
 /**

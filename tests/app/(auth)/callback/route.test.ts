@@ -73,11 +73,10 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
+          data: { session: null },
           error: null,
         }),
-        getSession: vi.fn().mockResolvedValue({
-          data: { session: null },
-        }),
+        getSession: vi.fn(),
       },
     } as never);
 
@@ -94,11 +93,9 @@ describe("GET /auth/callback", () => {
     const mockSupabase = {
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
-          error: null,
-        }),
-        getSession: vi.fn().mockResolvedValue({
           data: {
             session: {
+              access_token: "mock-access-token",
               user: {
                 id: "user-1",
                 email: "user@example.com",
@@ -106,7 +103,9 @@ describe("GET /auth/callback", () => {
               provider_refresh_token: "google-refresh-token",
             },
           },
+          error: null,
         }),
+        getSession: vi.fn(),
       },
       from: vi.fn().mockReturnValue({
         upsert: vi.fn().mockResolvedValue({ error: null }),
@@ -145,11 +144,9 @@ describe("GET /auth/callback", () => {
     const mockSupabase = {
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
-          error: null,
-        }),
-        getSession: vi.fn().mockResolvedValue({
           data: {
             session: {
+              access_token: "mock-access-token",
               user: {
                 id: "user-1",
                 email: "user@example.com",
@@ -157,7 +154,9 @@ describe("GET /auth/callback", () => {
               provider_refresh_token: "google-refresh-token",
             },
           },
+          error: null,
         }),
+        getSession: vi.fn(),
       },
       from: vi.fn().mockReturnValue({
         upsert: vi.fn().mockResolvedValue({
@@ -187,11 +186,10 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
+          data: { session: null },
           error: null,
         }),
-        getSession: vi.fn().mockResolvedValue({
-          data: { session: null },
-        }),
+        getSession: vi.fn(),
       },
     } as never);
 
@@ -208,18 +206,18 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
-          error: null,
-        }),
-        getSession: vi.fn().mockResolvedValue({
           data: {
             session: {
+              access_token: "mock-access-token",
               user: {
                 id: "user-1",
                 email: "user@example.com",
               },
             },
           },
+          error: null,
         }),
+        getSession: vi.fn(),
       },
     } as never);
 
@@ -236,6 +234,7 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
+          data: { session: null },
           error: null,
         }),
         getSession: vi.fn().mockResolvedValue({

@@ -1,6 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
 import {
   fetchAccounts,
   fetchLocations,
@@ -8,7 +8,13 @@ import {
   refreshAccessToken,
 } from "@/lib/google/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { LocationInsert, OrganizationInsert } from "@/lib/supabase/types";
+import type {
+  Database,
+  LocationInsert,
+  LocationUpdate,
+  OrganizationInsert,
+  UserUpdate,
+} from "@/lib/supabase/types";
 
 /**
  * Location data returned from the API with sync status
@@ -21,6 +27,78 @@ interface LocationWithStatus {
   address: string;
   account_name: string;
   is_synced: boolean;
+}
+
+/**
+ * User data with Google refresh token and organization ID
+ */
+interface UserData {
+  google_refresh_token: string | null;
+  organization_id: string | null;
+}
+
+/**
+ * User data with organization ID only
+ */
+interface UserOrgData {
+  organization_id: string | null;
+}
+
+/**
+ * Synced location data from database
+ */
+interface SyncedLocation {
+  id: string;
+  google_location_id: string;
+}
+
+/**
+ * New organization data
+ */
+interface NewOrg {
+  id: string;
+}
+
+/**
+ * Typed helper for Supabase insert operations.
+ * Uses type assertion internally to work around Supabase's complex generic inference limitations.
+ */
+function typedInsert<T extends keyof Database["public"]["Tables"]>(
+  supabase: SupabaseClient<Database>,
+  table: T,
+  values: Database["public"]["Tables"][T]["Insert"],
+) {
+  // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to Supabase's complex generic inference
+  return supabase.from(table).insert(values as any);
+}
+
+/**
+ * Typed helper for Supabase update operations.
+ * Uses type assertion internally to work around Supabase's complex generic inference limitations.
+ */
+function typedUpdate<T extends keyof Database["public"]["Tables"]>(
+  supabase: SupabaseClient<Database>,
+  table: T,
+  values: Database["public"]["Tables"][T]["Update"],
+) {
+  // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to Supabase's complex generic inference
+  return supabase.from(table).update(values as any);
+}
+
+/**
+ * Typed helper for Supabase upsert operations.
+ * Uses type assertion internally to work around Supabase's complex generic inference limitations.
+ */
+function typedUpsert<T extends keyof Database["public"]["Tables"]>(
+  supabase: SupabaseClient<Database>,
+  table: T,
+  values:
+    | Database["public"]["Tables"][T]["Insert"]
+    | Database["public"]["Tables"][T]["Insert"][],
+  options?: { onConflict?: string; ignoreDuplicates?: boolean },
+) {
+  // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to Supabase's complex generic inference
+  return supabase.from(table).upsert(values as any, options);
 }
 
 /**
@@ -56,10 +134,6 @@ export async function GET() {
     }
 
     // Type assertion: userData is guaranteed to exist after the check above
-    type UserData = {
-      google_refresh_token: string | null;
-      organization_id: string | null;
-    };
     const typedUserData = userData as UserData;
 
     if (!typedUserData.google_refresh_token) {
@@ -113,7 +187,6 @@ export async function GET() {
         .eq("is_active", true);
 
       // Type assertion: syncedLocations is an array of objects with id and google_location_id
-      type SyncedLocation = { id: string; google_location_id: string };
       const typedSyncedLocations = (syncedLocations ?? []) as SyncedLocation[];
 
       const syncedMap = new Map<string, string>();
@@ -201,9 +274,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Type assertion: userData is guaranteed to exist after the check above
-    type UserOrgData = {
-      organization_id: string | null;
-    };
     const typedUserData = userData as UserOrgData;
 
     // Create organization if user doesn't have one
@@ -213,10 +283,11 @@ export async function POST(request: NextRequest) {
       const orgData: OrganizationInsert = {
         name: user.email ?? "My Organization",
       };
-      const { data: newOrg, error: orgError } = await supabase
-        .from("organizations")
-        // @ts-expect-error - Supabase type inference limitation: insert type not properly inferred from Database type
-        .insert(orgData)
+      const { data: newOrg, error: orgError } = await typedInsert(
+        supabase,
+        "organizations",
+        orgData,
+      )
         .select("id")
         .single();
 
@@ -229,16 +300,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Type assertion: newOrg is guaranteed to exist after the check above
-      type NewOrg = { id: string };
       const typedNewOrg = newOrg as NewOrg;
       organizationId = typedNewOrg.id;
 
       // Link user to organization
-      const { error: updateError } = await supabase
-        .from("users")
-        // @ts-expect-error - Supabase type inference limitation: update type not properly inferred from Database type
-        .update({ organization_id: organizationId })
-        .eq("id", user.id);
+      const { error: updateError } = await typedUpdate(supabase, "users", {
+        organization_id: organizationId,
+      } satisfies UserUpdate).eq("id", user.id);
 
       if (updateError) {
         console.error(
@@ -289,14 +357,15 @@ export async function POST(request: NextRequest) {
     }));
 
     // Upsert locations (update if google_location_id exists for this org)
-    const { data: savedLocations, error: saveError } = await supabase
-      .from("locations")
-      // @ts-expect-error - Supabase type inference limitation: upsert type not properly inferred from Database type
-      .upsert(locationsToSave, {
+    const { data: savedLocations, error: saveError } = await typedUpsert(
+      supabase,
+      "locations",
+      locationsToSave,
+      {
         onConflict: "organization_id,google_location_id",
         ignoreDuplicates: false,
-      })
-      .select();
+      },
+    ).select();
 
     if (saveError) {
       console.error("Failed to save locations:", saveError.message);
@@ -353,9 +422,6 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     // Type assertion: userData type not properly inferred from Supabase query
-    type UserOrgData = {
-      organization_id: string | null;
-    };
     const typedUserData = userData as UserOrgData | null;
 
     if (userError || !typedUserData?.organization_id) {
@@ -391,10 +457,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Deactivate the location
-    const { error: updateError } = await supabase
-      .from("locations")
-      // @ts-expect-error - Supabase type inference limitation: update type not properly inferred from Database type
-      .update({ is_active: false })
+    const { error: updateError } = await typedUpdate(supabase, "locations", {
+      is_active: false,
+    } satisfies LocationUpdate)
       .eq("id", body.location_id)
       .eq("organization_id", typedUserData.organization_id);
 

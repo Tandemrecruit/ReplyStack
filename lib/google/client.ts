@@ -198,12 +198,16 @@ async function fetchWithTimeout(
       }
       controller.abort();
     } else {
-      existingSignal.addEventListener("abort", () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-        controller.abort();
-      });
+      existingSignal.addEventListener(
+        "abort",
+        () => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          controller.abort();
+        },
+        { once: true },
+      );
     }
   }
 
@@ -276,9 +280,6 @@ export async function refreshAccessToken(
         401,
         "Google authentication expired. Please reconnect your account.",
       );
-    }
-    if (response.status === 400) {
-      throw new GoogleAPIError(response.status, errorMessage);
     }
     throw new GoogleAPIError(response.status, errorMessage);
   }
