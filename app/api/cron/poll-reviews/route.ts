@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
         let decryptedToken: string;
         try {
           decryptedToken = decryptToken(firstLocation.google_refresh_token);
-        } catch (error) {
+        } catch (error: unknown) {
           if (error instanceof TokenDecryptionError) {
             console.error(
               `Failed to decrypt Google refresh token for user ${userId}:`,
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
 
         // Get fresh access token for this user
         accessToken = await refreshAccessToken(decryptedToken);
-      } catch (error) {
+      } catch (error: unknown) {
         const message =
           error instanceof GoogleAPIError
             ? error.message
@@ -332,7 +332,7 @@ export async function GET(request: NextRequest) {
             // Count all processed reviews (includes both inserts and updates)
             results.reviewsProcessed += upsertedReviews?.length ?? 0;
           }
-        } catch (error) {
+        } catch (error: unknown) {
           const message =
             error instanceof GoogleAPIError
               ? error.message
@@ -349,7 +349,7 @@ export async function GET(request: NextRequest) {
       duration: Date.now() - startTime,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Poll reviews cron error:", error);
     return NextResponse.json(
       {

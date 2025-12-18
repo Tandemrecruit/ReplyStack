@@ -22,6 +22,19 @@ const REVIEWS_API = "https://mybusiness.googleapis.com/v4";
 const REQUEST_TIMEOUT_MS = 30000;
 
 /**
+ * Custom error class for Google API errors
+ */
+export class GoogleAPIError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "GoogleAPIError";
+    this.status = status;
+  }
+}
+
+/**
  * Google Business Profile OAuth configuration
  */
 export const GOOGLE_OAUTH_CONFIG = {

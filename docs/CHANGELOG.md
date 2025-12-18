@@ -22,6 +22,7 @@
 - Extracted shared typed Supabase helpers (typedUpdate, typedInsert, typedUpsert) into `lib/supabase/typed-helpers.ts` to centralize type-safe database operations and eliminate inline `as any` casts and biome-ignore comments from poll-reviews cron route
 - Fixed null rating handling in poll-reviews cron: reviews without ratings now correctly set sentiment to null instead of defaulting to "negative", accurately representing text-only reviews without star ratings
 - Made determineSentiment function type-safe: changed return type from `string` to `Sentiment` union type (`"positive" | "neutral" | "negative"`) to ensure only valid sentiment values are returned
+- Fixed error type handling in poll-reviews cron: properly typed all catch blocks as `unknown` and used type guards for error handling
 - Fixed memory leak in Google API client's fetchWithTimeout function by using { once: true } option for abort event listener, ensuring it auto-removes after firing
 - Removed redundant 400 status check in refreshAccessToken function that duplicated the unconditional error throw
 - Fixed review-card component to handle null status values
