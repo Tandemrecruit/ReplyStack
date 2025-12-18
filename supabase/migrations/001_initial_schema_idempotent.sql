@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     role TEXT DEFAULT 'owner',
-    google_refresh_token TEXT, -- Encrypted at rest via Supabase Vault
+    google_refresh_token TEXT, -- Stored as TEXT; protected by Supabase default at-rest encryption
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -153,6 +153,7 @@ CREATE POLICY "Users can update users in their organization"
         organization_id IN (
             SELECT organization_id FROM users WHERE id = auth.uid()
         )
+        OR id = auth.uid()
     );
 
 DROP POLICY IF EXISTS "Users can insert their own record" ON users;

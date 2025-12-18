@@ -2,46 +2,67 @@
 
 ## 2025-12-19
 
+### Database
+
+- Added self-update fallback to users UPDATE policy: modified the "Users can update users in their organization" policy in 001_initial_schema_idempotent.sql to include `OR id = auth.uid()` in the USING clause, matching the SELECT policy pattern, so users can update their own record even when organization_id is not yet set
+- Corrected google_refresh_token encryption comment: updated misleading "Encrypted at rest via Supabase Vault" comment in both 001_initial_schema.sql and 001_initial_schema_idempotent.sql to accurately reflect "Stored as TEXT; protected by Supabase default at-rest encryption" since no column-level encryption is configured, also updated corresponding comments in auth callback route and ADR-013 to match actual implementation
 - Fixed fragile self-referential RLS policy for users table: replaced the SELECT policy's self-referential subquery pattern in 001_initial_schema_idempotent.sql with a direct equality comparison (`organization_id = (SELECT organization_id FROM users WHERE id = auth.uid())`) and added explicit self-view fallback (`OR id = auth.uid()`) so users can always see their own row even if the organization check fails, making the policy more robust
 - Simplified RLS enabling in idempotent migration: removed unnecessary DO blocks with exception handling around ALTER TABLE ... ENABLE ROW LEVEL SECURITY statements in 001_initial_schema_idempotent.sql since ENABLE ROW LEVEL SECURITY is already idempotent, replaced with simple ALTER TABLE statements for organizations, users, voice_profiles, locations, reviews, and responses tables
 - Enhanced database cleanup migration: added explicit DROP POLICY statements for all RLS policies in 000_drop_all.sql before dropping tables, added notification_preferences table to cleanup, and documented that DROP INDEX statements are intentional (redundant but explicit for clarity) since DROP TABLE CASCADE already removes dependent indexes
-- Strictened Python type checking settings: changed typeCheckingMode from "basic" to "standard" and reportMissingImports from "warning" to "error" in pyrightconfig.json to enforce stricter type checking and treat missing imports as errors
-- Added three new ADRs to DECISIONS.md: ADR-017 (Multi-tenant Database Architecture), ADR-018 (Location Sync Workflow Pattern), and ADR-019 (Voice Profile API Structure) documenting key architectural decisions for tenant isolation, location synchronization, and voice profile management
-- Updated OAuth callback fallback email to use RFC 2606 .invalid suffix: changed synthetic email fallback from `${session.user.id}@google-noreply` to `${session.user.id}@no-email.invalid` in app/(auth)/callback/route.ts to make the address unambiguously invalid and non-routable, updated warning message accordingly, and added inline comment noting RFC 2606 compliance
-- Fixed voice-editor test to match default-150 behavior: updated test/components/voice-profile/voice-editor.test.tsx to expect max_length === 150 (using toBe(150)) instead of NaN when input is empty, and updated test description from "handles empty max_length input" to "defaults max_length to 150 when input is empty" to reflect the actual fallback behavior
-
 - Updated all timestamp columns to use TIMESTAMPTZ consistently: changed organizations.trial_ends_at, organizations.created_at, users.created_at, voice_profiles.created_at, locations.created_at, reviews.review_date, reviews.created_at, responses.published_at, and responses.created_at from TIMESTAMP to TIMESTAMPTZ in both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to ensure all timestamps store timezone information consistently with 002_add_notification_preferences.sql
-- Added missing type aliases to lib/supabase/types.ts: exported convenience types (Review, ReviewInsert, ReviewUpdate, VoiceProfile, VoiceProfileInsert, VoiceProfileUpdate, Location, LocationInsert, LocationUpdate, User, UserInsert, UserUpdate, Organization, OrganizationInsert, OrganizationUpdate, Response, ResponseInsert, ResponseUpdate) to fix TypeScript import errors
-- Fixed TypeScript errors: updated review-card component to handle null status values, fixed vitest.config.ts by removing unsupported environmentMatchGlobs property, and added null check in voice-editor test
 - Added INSERT and DELETE policies for organizations table: added "Authenticated users can create organizations" policy (WITH CHECK auth.uid() IS NOT NULL) and "Users can delete their own organization" policy (USING id IN (SELECT organization_id FROM users WHERE id = auth.uid())) to both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to support organization creation and deletion by authenticated users
 - Added INSERT policy for users table: added "Users can insert their own record" policy (WITH CHECK id = auth.uid()) to both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to allow OAuth callback to upsert user records during authentication flow
-- Fixed location-selector test to query checkboxes by accessible name: replaced `getAllByRole("checkbox")` array indexing with `getByRole("checkbox", { name: /Location 1/i })` and similar queries to make tests independent of DOM order and more maintainable
-- Removed non-null assertion in location-selector component: replaced `loc.id!` with a type guard in the filter function using type predicate `(loc): loc is LocationData & { id: string }` to properly narrow the type and eliminate the need for non-null assertion
+- Made notification_preferences migration (002_add_notification_preferences.sql) idempotent: added IF NOT EXISTS clauses, DROP POLICY IF EXISTS, and DROP TRIGGER IF EXISTS to allow safe reruns without errors
 
-- Updated generate-types.js warning message with cross-platform examples: replaced PowerShell-only syntax with POSIX (macOS/Linux), PowerShell (Windows), and cross-env examples so users on all platforms know how to set SUPABASE_ACCESS_TOKEN environment variable
-- Added python/tests to pyrightconfig.json extraPaths: included "python/tests" in extraPaths array alongside python/src and python/automation to ensure pyright can resolve imports in test files consistently with other Python modules
-- Enhanced generate-types.js script to read SUPABASE_ACCESS_TOKEN from .env.local: added getAccessToken() function that checks environment variable first, then falls back to .env.local file, with proper quote and whitespace handling; fixed Windows compatibility by using shell: true option for spawnSync
-- Added generated-file header and manual additions delimiter to lib/supabase/types.ts: added header comment at top indicating auto-generated content and delimiter comment before manual convenience aliases section to clearly mark which portions are safe to edit
-- Fixed truncated command in Supabase setup troubleshooting: replaced incomplete `npx supabase@latest ...` with complete type generation command including `gen types typescript` subcommand, `--project-id`/`--project-ref` flag, `--schema public` flag, and output redirection to `lib/supabase/types.ts` with placeholders for project ID/ref
-- Merged duplicate 2025-12-18 sections in changelog: consolidated two "## 2025-12-18" headings into a single section, merged duplicate subsections (Code Quality, Testing, Components, API Routes, Infrastructure, Documentation) and removed the empty duplicate heading to fix MD024 linting error
+### Code Quality
+
+- Strictened Python type checking settings: changed typeCheckingMode from "basic" to "standard" and reportMissingImports from "warning" to "error" in pyrightconfig.json to enforce stricter type checking and treat missing imports as errors
+- Added missing type aliases to lib/supabase/types.ts: exported convenience types (Review, ReviewInsert, ReviewUpdate, VoiceProfile, VoiceProfileInsert, VoiceProfileUpdate, Location, LocationInsert, LocationUpdate, User, UserInsert, UserUpdate, Organization, OrganizationInsert, OrganizationUpdate, Response, ResponseInsert, ResponseUpdate) to fix TypeScript import errors
+- Fixed TypeScript errors: updated review-card component to handle null status values, fixed vitest.config.ts by removing unsupported environmentMatchGlobs property, and added null check in voice-editor test
+- Removed non-null assertion in location-selector component: replaced `loc.id!` with a type guard in the filter function using type predicate `(loc): loc is LocationData & { id: string }` to properly narrow the type and eliminate the need for non-null assertion
 - Replaced local VoiceProfile type derivation in voice-editor component with direct import from shared types: removed `type VoiceProfile = Database["public"]["Tables"]["voice_profiles"]["Row"]` and updated import to use exported `VoiceProfile` from `@/lib/supabase/types` for consistency
 - Removed redundant filter in location-selector deactivation pipeline: eliminated duplicate `loc.id` check by mapping directly over `locationsToDeactivate` (which already filters for `loc.id`) instead of filtering again before mapping, added non-null assertion for type safety
-- Fixed misleading comment in app/globals.css: updated "Star rating colors - adjusted for dark mode" to "Star rating colors - maintains consistent gold (#f4b41a) across modes" to accurately reflect that the star color value remains the same in both light and dark modes
-- Enhanced color system documentation: added comprehensive usage examples and warnings about semantic inversion in CSS comments, created design system guide (docs/DESIGN_SYSTEM.md) with use case mappings, quick reference tables, and common patterns to reduce cognitive load when working with partially inverted color scales in dark mode
 - Refactored voice-profile route update object construction: replaced verbose field-by-field checks with concise Object.entries/Object.fromEntries approach that filters out undefined values, maintaining same runtime behavior and VoiceProfileUpdate type safety
-- Fixed potential empty string insertion in auth callback route: added email validation to ensure non-empty email before upserting to users table (NOT NULL constraint); uses provider-scoped synthetic email fallback (`${user.id}@google-noreply`) when OAuth provider doesn't return an email, with warning log for monitoring
-- Fixed potential NaN issue in voice-editor component: added fallback value (150) for max_length when parseInt returns NaN on invalid input
-- Made notification_preferences migration (002_add_notification_preferences.sql) idempotent: added IF NOT EXISTS clauses, DROP POLICY IF EXISTS, and DROP TRIGGER IF EXISTS to allow safe reruns without errors
-- Corrected roadmap voice profile setup status: marked as partially complete (~) instead of fully complete (X) - API supports all fields (example_responses, words_to_use, words_to_avoid, max_length) but settings UI is missing these input fields
 - Fixed line length linting error in python/automation/example_task.py: split long docstring line (162 chars) into multiple lines to comply with 100-character limit
 - Fixed Python import resolution error in python/tests/test_example_module.py: added pyright ignore comment and configured pyrightconfig.json with extraPaths to resolve example_module import (works at runtime via pytest pythonpath, but linter needed explicit configuration)
 - Fixed unused variable warning in python/tests/test_example_task.py: removed unused `result` variable assignment from subprocess.run() call since check=True already ensures command success
 - Fixed TypeScript "Object is possibly 'undefined'" error in tests/app/(auth)/callback/route.test.ts: added runtime check for mock result value before accessing upsert property to satisfy type safety requirements
 - Fixed TypeScript array index type error in tests/components/settings/location-selector.test.tsx: added length assertion and runtime check before accessing checkbox array elements to ensure type safety
 
+### Components
+
+- Fixed potential NaN issue in voice-editor component: added fallback value (150) for max_length when parseInt returns NaN on invalid input
+
+### API Routes
+
+- Updated OAuth callback fallback email to use RFC 2606 .invalid suffix: changed synthetic email fallback from `${session.user.id}@google-noreply` to `${session.user.id}@no-email.invalid` in app/(auth)/callback/route.ts to make the address unambiguously invalid and non-routable, updated warning message accordingly, and added inline comment noting RFC 2606 compliance
+- Fixed potential empty string insertion in auth callback route: added email validation to ensure non-empty email before upserting to users table (NOT NULL constraint); uses provider-scoped synthetic email fallback (`${user.id}@google-noreply`) when OAuth provider doesn't return an email, with warning log for monitoring
+
+### Testing
+
+- Fixed voice-editor test to match default-150 behavior: updated test/components/voice-profile/voice-editor.test.tsx to expect max_length === 150 (using toBe(150)) instead of NaN when input is empty, and updated test description from "handles empty max_length input" to "defaults max_length to 150 when input is empty" to reflect the actual fallback behavior
+- Fixed location-selector test to query checkboxes by accessible name: replaced `getAllByRole("checkbox")` array indexing with `getByRole("checkbox", { name: /Location 1/i })` and similar queries to make tests independent of DOM order and more maintainable
+
+### Infrastructure
+
+- Updated generate-types.js warning message with cross-platform examples: replaced PowerShell-only syntax with POSIX (macOS/Linux), PowerShell (Windows), and cross-env examples so users on all platforms know how to set SUPABASE_ACCESS_TOKEN environment variable
+- Added python/tests to pyrightconfig.json extraPaths: included "python/tests" in extraPaths array alongside python/src and python/automation to ensure pyright can resolve imports in test files consistently with other Python modules
+- Enhanced generate-types.js script to read SUPABASE_ACCESS_TOKEN from .env.local: added getAccessToken() function that checks environment variable first, then falls back to .env.local file, with proper quote and whitespace handling; fixed Windows compatibility by using shell: true option for spawnSync
+- Added generated-file header and manual additions delimiter to lib/supabase/types.ts: added header comment at top indicating auto-generated content and delimiter comment before manual convenience aliases section to clearly mark which portions are safe to edit
+
 ### Documentation
 
+- Fixed MD022 lint errors and reorganized 2025-12-19 changelog section: added blank lines after all `###` subsection headings to satisfy MD022 requirements, and reorganized flat list entries into categorical subsections (Database, Code Quality, Components, API Routes, Testing, Infrastructure, Documentation, UI/UX) matching the 2025-12-18 pattern for consistent structure
+- Added three new ADRs to DECISIONS.md: ADR-017 (Multi-tenant Database Architecture), ADR-018 (Location Sync Workflow Pattern), and ADR-019 (Voice Profile API Structure) documenting key architectural decisions for tenant isolation, location synchronization, and voice profile management
+- Fixed truncated command in Supabase setup troubleshooting: replaced incomplete `npx supabase@latest ...` with complete type generation command including `gen types typescript` subcommand, `--project-id`/`--project-ref` flag, `--schema public` flag, and output redirection to `lib/supabase/types.ts` with placeholders for project ID/ref
+- Merged duplicate 2025-12-18 sections in changelog: consolidated two "## 2025-12-18" headings into a single section, merged duplicate subsections (Code Quality, Testing, Components, API Routes, Infrastructure, Documentation) and removed the empty duplicate heading to fix MD024 linting error
+- Corrected roadmap voice profile setup status: marked as partially complete (~) instead of fully complete (X) - API supports all fields (example_responses, words_to_use, words_to_avoid, max_length) but settings UI is missing these input fields
 - Updated roadmap to reflect current implementation status: marked Google Business Profile integration, review polling, voice profile setup, and landing page as complete; updated dashboard UI and response publishing status to reflect partial completion
+
+### UI/UX
+
+- Fixed misleading comment in app/globals.css: updated "Star rating colors - adjusted for dark mode" to "Star rating colors - maintains consistent gold (#f4b41a) across modes" to accurately reflect that the star color value remains the same in both light and dark modes
+- Enhanced color system documentation: added comprehensive usage examples and warnings about semantic inversion in CSS comments, created design system guide (docs/DESIGN_SYSTEM.md) with use case mappings, quick reference tables, and common patterns to reduce cognitive load when working with partially inverted color scales in dark mode
 
 ## 2025-12-18
 

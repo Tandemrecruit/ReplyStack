@@ -339,7 +339,7 @@ Store Google refresh tokens in the `users` table (`google_refresh_token` column)
 
 ### Rationale
 
-- Refresh tokens are long-lived and can be stored securely in the database (encrypted at rest via Supabase Vault)
+- Refresh tokens are long-lived and can be stored securely in the database (protected by Supabase default at-rest encryption)
 - Access tokens are short-lived (typically 1 hour) and should be refreshed on-demand to avoid expiration issues
 - On-demand refresh simplifies token lifecycle management and avoids cache invalidation complexity
 - Storing refresh tokens in the database allows cron jobs and user-initiated actions to share the same authentication mechanism
@@ -348,7 +348,7 @@ Store Google refresh tokens in the `users` table (`google_refresh_token` column)
 
 - Every API call requires a token refresh operation (adds ~100-200ms latency)
 - Token refresh failures (401) automatically clear the refresh token from the database, requiring user re-authentication
-- Encryption at rest must be handled at the database level (Supabase Vault) rather than application-level
+- Tokens are stored as plaintext TEXT but benefit from Supabase's default at-rest encryption at the database level
 
 ---
 

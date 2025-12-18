@@ -19,7 +19,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     role TEXT DEFAULT 'owner',
-    google_refresh_token TEXT, -- Encrypted at rest via Supabase Vault
+    google_refresh_token TEXT, -- Stored as TEXT; protected by Supabase default at-rest encryption
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

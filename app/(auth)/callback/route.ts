@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (session?.provider_refresh_token && session.user) {
       // Store the Google refresh token for API access
-      // Note: Token is stored as-is; encryption should be handled at database level via Supabase Vault
+      // Note: Token is stored as plaintext TEXT; protected by Supabase default at-rest encryption
 
       // Ensure email is non-empty: users.email is NOT NULL, so we use a provider-scoped
       // synthetic email as fallback if the OAuth provider didn't return an email.
