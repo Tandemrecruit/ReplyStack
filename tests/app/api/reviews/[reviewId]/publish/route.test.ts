@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { makeNextRequest } from "@/tests/helpers/next";
 
 vi.mock("@/lib/supabase/server", () => {
@@ -23,6 +24,7 @@ vi.mock("@/lib/google/client", () => {
 });
 
 import { POST } from "@/app/api/reviews/[reviewId]/publish/route";
+import { encryptToken } from "@/lib/crypto/encryption";
 import {
   GoogleAPIError,
   publishResponse,
@@ -30,9 +32,18 @@ import {
 } from "@/lib/google/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Generate a valid test encryption key (32 bytes = 64 hex chars)
+const TEST_ENCRYPTION_KEY = randomBytes(32).toString("hex");
+
 describe("POST /api/reviews/[reviewId]/publish", () => {
+  beforeEach(() => {
+    // Set up encryption key for tests
+    process.env.TOKEN_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.TOKEN_ENCRYPTION_KEY;
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -460,6 +471,9 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
   });
 
   it("returns 401 and clears token when Google auth expires", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
     const mockSupabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -475,7 +489,7 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
                   data: {
                     id: "user-1",
                     organization_id: "org-1",
-                    google_refresh_token: "refresh-token",
+                    google_refresh_token: encryptedToken,
                   },
                   error: null,
                 }),
@@ -542,6 +556,9 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
   });
 
   it("publishes response successfully", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
     const mockSupabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -557,7 +574,7 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
                   data: {
                     id: "user-1",
                     organization_id: "org-1",
-                    google_refresh_token: "refresh-token",
+                    google_refresh_token: encryptedToken,
                   },
                   error: null,
                 }),
@@ -652,6 +669,9 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
   });
 
   it("returns error when Google API publish fails", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
     const mockSupabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -667,7 +687,7 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
                   data: {
                     id: "user-1",
                     organization_id: "org-1",
-                    google_refresh_token: "refresh-token",
+                    google_refresh_token: encryptedToken,
                   },
                   error: null,
                 }),

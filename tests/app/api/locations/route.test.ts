@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { makeNextRequest } from "@/tests/helpers/next";
 
 vi.mock("@/lib/supabase/server", () => {
@@ -24,6 +25,7 @@ vi.mock("@/lib/google/client", () => {
 });
 
 import { DELETE, GET, POST } from "@/app/api/locations/route";
+import { encryptToken } from "@/lib/crypto/encryption";
 import {
   fetchAccounts,
   fetchLocations,
@@ -32,9 +34,18 @@ import {
 } from "@/lib/google/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Generate a valid test encryption key (32 bytes = 64 hex chars)
+const TEST_ENCRYPTION_KEY = randomBytes(32).toString("hex");
+
 describe("GET /api/locations", () => {
+  beforeEach(() => {
+    // Set up encryption key for tests
+    process.env.TOKEN_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.TOKEN_ENCRYPTION_KEY;
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -110,6 +121,9 @@ describe("GET /api/locations", () => {
   });
 
   it("returns locations with sync status", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
     const mockSupabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -124,7 +138,7 @@ describe("GET /api/locations", () => {
                 single: vi.fn().mockResolvedValue({
                   data: {
                     id: "user-1",
-                    google_refresh_token: "refresh-token",
+                    google_refresh_token: encryptedToken,
                     organization_id: "org-1",
                   },
                   error: null,
@@ -198,6 +212,9 @@ describe("GET /api/locations", () => {
   });
 
   it("returns 401 when Google auth expires", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -210,7 +227,7 @@ describe("GET /api/locations", () => {
             single: vi.fn().mockResolvedValue({
               data: {
                 id: "user-1",
-                google_refresh_token: "refresh-token",
+                google_refresh_token: encryptedToken,
                 organization_id: "org-1",
               },
               error: null,

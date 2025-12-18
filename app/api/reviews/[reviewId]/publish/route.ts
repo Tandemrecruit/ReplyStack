@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { decryptToken, TokenDecryptionError } from "@/lib/crypto/encryption";
 import {
   GoogleAPIError,
   publishResponse,
@@ -128,10 +129,38 @@ export async function POST(
       );
     }
 
-    // Get access token
+    // Decrypt and get access token
     let accessToken: string;
     try {
-      accessToken = await refreshAccessToken(userData.google_refresh_token);
+      let decryptedToken: string;
+      try {
+        decryptedToken = decryptToken(userData.google_refresh_token);
+      } catch (error) {
+        if (error instanceof TokenDecryptionError) {
+          console.error(
+            "Failed to decrypt Google refresh token for user:",
+            user.id,
+            error.message,
+          );
+          // Clear the corrupted token
+          await supabase
+            .from("users")
+            .update({ google_refresh_token: null })
+            .eq("id", user.id);
+
+          return NextResponse.json(
+            {
+              error:
+                "Google authentication data corrupted. Please reconnect your account.",
+              code: "GOOGLE_AUTH_EXPIRED",
+            },
+            { status: 401 },
+          );
+        }
+        throw error;
+      }
+
+      accessToken = await refreshAccessToken(decryptedToken);
     } catch (error) {
       if (error instanceof GoogleAPIError && error.status === 401) {
         // Clear invalid token

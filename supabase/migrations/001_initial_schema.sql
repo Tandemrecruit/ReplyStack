@@ -19,7 +19,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     role TEXT DEFAULT 'owner',
-    google_refresh_token TEXT, -- Stored as TEXT; protected by Supabase default at-rest encryption
+    google_refresh_token TEXT, -- Encrypted with AES-256-GCM at application layer (see lib/crypto/encryption.ts)
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -133,9 +133,10 @@ CREATE POLICY "Users can delete their own organization"
 CREATE POLICY "Users can view users in their organization"
     ON users FOR SELECT
     USING (
-        organization_id IN (
+        organization_id = (
             SELECT organization_id FROM users WHERE id = auth.uid()
         )
+        OR id = auth.uid()
     );
 
 CREATE POLICY "Users can update users in their organization"
@@ -144,6 +145,7 @@ CREATE POLICY "Users can update users in their organization"
         organization_id IN (
             SELECT organization_id FROM users WHERE id = auth.uid()
         )
+        OR id = auth.uid()
     );
 
 CREATE POLICY "Users can insert their own record"

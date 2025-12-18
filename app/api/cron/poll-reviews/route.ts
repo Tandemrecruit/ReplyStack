@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { decryptToken, TokenDecryptionError } from "@/lib/crypto/encryption";
 import {
   fetchReviews,
   GoogleAPIError,
@@ -188,10 +189,32 @@ export async function GET(request: NextRequest) {
       let accessToken: string;
 
       try {
+        // Decrypt the stored refresh token
+        let decryptedToken: string;
+        try {
+          decryptedToken = decryptToken(firstLocation.google_refresh_token);
+        } catch (error) {
+          if (error instanceof TokenDecryptionError) {
+            console.error(
+              `Failed to decrypt Google refresh token for user ${userId}:`,
+              error.message,
+            );
+            results.errors.push(
+              `User ${userId}: Token decryption failed - data may be corrupted`,
+            );
+            // Clear the corrupted token
+            // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
+            const clearQuery = (supabase.from("users") as any)
+              .update({ google_refresh_token: null })
+              .eq("id", userId);
+            await clearQuery;
+            continue;
+          }
+          throw error;
+        }
+
         // Get fresh access token for this user
-        accessToken = await refreshAccessToken(
-          firstLocation.google_refresh_token,
-        );
+        accessToken = await refreshAccessToken(decryptedToken);
       } catch (error) {
         const message =
           error instanceof GoogleAPIError

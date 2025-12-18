@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     role TEXT DEFAULT 'owner',
-    google_refresh_token TEXT, -- Stored as TEXT; protected by Supabase default at-rest encryption
+    google_refresh_token TEXT, -- Encrypted with AES-256-GCM at application layer (see lib/crypto/encryption.ts)
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

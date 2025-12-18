@@ -327,7 +327,7 @@ Adopt shared components:
 
 ## ADR-013: Google OAuth Token Strategy
 
-**Status:** Accepted
+**Status:** Depreciated
 
 ### Context
 
@@ -348,7 +348,7 @@ Store Google refresh tokens in the `users` table (`google_refresh_token` column)
 
 - Every API call requires a token refresh operation (adds ~100-200ms latency)
 - Token refresh failures (401) automatically clear the refresh token from the database, requiring user re-authentication
-- Tokens are stored as plaintext TEXT but benefit from Supabase's default at-rest encryption at the database level
+- **SECURITY RISK / TECHNICAL DEBT:** Tokens are stored as plaintext TEXT. While Supabase provides default at-rest encryption at the database level, this does not protect against exposure via database backups, exports, or direct database access. Application-level encryption is required for production-grade security. See ADR-020 for remediation plan.
 
 ---
 
@@ -522,6 +522,136 @@ Implement a single-voice-profile-per-organization pattern with `GET /api/voice-p
 - PUT endpoint must fetch existing profile to determine insert vs update, adding a query overhead
 - Clients must handle `null` response from GET when no profile exists yet
 - Future multi-profile support would require adding a `voice_profile_id` to locations and changing the API structure
+
+---
+
+## ADR-020: Application-Level Encryption for Google Refresh Tokens
+
+**Status:** Accepted
+
+### Context
+
+ADR-013 stores Google refresh tokens as plaintext TEXT in the `users` table, relying solely on Supabase's default database-level at-rest encryption. This creates a security risk: tokens are exposed in database backups, exports, direct database access, and any scenario where the database storage layer is compromised. Application-level encryption is required to protect tokens even when database-level protections are bypassed.
+
+### Threat Model
+
+- **Database backups/exports:** Plaintext tokens in SQL dumps or backup files can be accessed by anyone with backup access
+- **Direct database access:** Service role keys or compromised database credentials expose all tokens
+- **Database-level encryption limitations:** Supabase's default encryption protects against disk theft but not authorized database access
+- **Compliance requirements:** Many security frameworks require application-level encryption for sensitive credentials
+
+### Decision
+
+Implement application-level encryption for `google_refresh_token` and any future sensitive token columns using AES-256-GCM with per-row initialization vectors (IVs). Store encryption keys in environment variables (development) and Supabase Vault (production), with key rotation support. Create a migration plan to re-encrypt existing plaintext tokens.
+
+### Remediation Options Considered
+
+1. **AES-256-GCM at-rest encryption in-app (RECOMMENDED)**
+   - Encrypt tokens before database write, decrypt on read
+   - Per-row IVs stored alongside encrypted data
+   - Keys stored in environment variables or Supabase Vault
+   - Pros: Full control, no external dependencies, works with any database
+   - Cons: Key management responsibility, requires migration of existing tokens
+
+2. **Envelope encryption with KMS (AWS KMS, Google Cloud KMS)**
+   - Data encryption keys (DEKs) encrypted by master keys (MEKs) in KMS
+   - Pros: Automatic key rotation, audit logging, compliance-friendly
+   - Cons: Vendor lock-in, additional cost, complexity for MVP
+
+3. **Supabase Vault for token storage**
+   - Use Supabase Vault's built-in encryption for sensitive columns
+   - Pros: Native integration, managed service
+   - Cons: Limited to Supabase, less flexible for migrations
+
+4. **Hybrid approach: Vault for keys, in-app encryption**
+   - Store encryption keys in Supabase Vault, perform encryption in application code
+   - Pros: Best of both worlds: managed key storage + application control
+   - Cons: Slightly more complex setup
+
+### Preferred Approach
+
+**AES-256-GCM with per-row IVs, keys in Supabase Vault (post-MVP), environment variables (development)**
+
+- Use Node.js `crypto` module for AES-256-GCM encryption/decryption
+- Store IV (12 bytes) alongside encrypted token in database (e.g., `encrypted_token_iv` column)
+- Encryption key stored in `ENCRYPTION_KEY` environment variable (32 bytes for AES-256)
+- Post-MVP: Migrate keys to Supabase Vault for production key management
+- Support key rotation: maintain current + previous key during rotation window
+
+### Migration Plan
+
+1. **Schema changes:**
+   - Add `encrypted_token_iv` column (BYTEA) to `users` table
+   - Keep `google_refresh_token` column temporarily for migration
+
+2. **Encryption utility:**
+   - Create `lib/encryption/tokens.ts` with `encryptToken()` and `decryptToken()` functions
+   - Functions handle IV generation, encryption, and decryption
+
+3. **Code updates:**
+   - Update all token read/write paths to use encryption utilities
+   - Token reads: decrypt on fetch
+   - Token writes: encrypt before insert/update
+
+4. **Data migration:**
+   - One-time migration script: fetch all plaintext tokens, encrypt with new IV, store encrypted value + IV
+   - Clear plaintext `google_refresh_token` column after verification
+   - Optional: Rename column to `google_refresh_token_encrypted` for clarity
+
+5. **Rollback plan:**
+   - Keep plaintext column until migration verified
+   - Support both encrypted and plaintext reads during transition
+   - Remove plaintext support after full migration
+
+### Implementation Details
+
+- **Encryption algorithm:** AES-256-GCM (authenticated encryption)
+- **IV size:** 12 bytes (96 bits, recommended for GCM)
+- **Key derivation:** Direct use of 32-byte key from environment (no PBKDF2 needed for single-purpose key)
+- **Storage format:** Base64-encoded encrypted token + separate IV column
+- **Error handling:** Graceful failure if decryption fails (treat as invalid token, prompt re-auth)
+
+### Owner
+
+Backend/Infrastructure team (post-MVP)
+
+### Priority
+
+**High (post-MVP, before production scale)**
+
+- Not blocking MVP launch (acceptable risk for initial users)
+- Must be implemented before handling sensitive customer data at scale
+- Required for compliance certifications (SOC 2, ISO 27001)
+
+### Acceptance Criteria
+
+- [ ] All Google refresh tokens encrypted at application level before database write
+- [ ] Per-row IVs stored and used for decryption
+- [ ] Encryption keys stored in Supabase Vault (production) or environment variables (development)
+- [ ] Migration script successfully encrypts all existing plaintext tokens
+- [ ] Plaintext token column removed or deprecated after migration
+- [ ] Key rotation process documented and tested
+- [ ] Decryption failures handled gracefully (clear token, prompt re-auth)
+- [ ] Unit tests for encryption/decryption utilities
+- [ ] Integration tests verify encrypted tokens work with Google API calls
+- [ ] Documentation updated with key management procedures
+
+### Consequences
+
+- **Positive:**
+  - Tokens protected even if database backups/exports are compromised
+  - Meets security best practices and compliance requirements
+  - Foundation for encrypting other sensitive data (Stripe tokens, API keys)
+
+- **Negative:**
+  - Adds ~1-2ms overhead per token read/write (encryption/decryption)
+  - Key management complexity (rotation, secure storage)
+  - Migration requires careful coordination to avoid service interruption
+  - Debugging encrypted data is more difficult (requires decryption utilities)
+
+### Supersedes
+
+This ADR supersedes the encryption aspect of ADR-013. ADR-013's token storage strategy remains valid; this ADR adds the application-level encryption layer that was identified as technical debt.
 
 ---
 

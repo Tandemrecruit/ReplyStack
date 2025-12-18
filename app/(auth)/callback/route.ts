@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { encryptToken } from "@/lib/crypto/encryption";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserInsert } from "@/lib/supabase/types";
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     if (session?.provider_refresh_token && session.user) {
       // Store the Google refresh token for API access
-      // Note: Token is stored as plaintext TEXT; protected by Supabase default at-rest encryption
+      // Token is encrypted with AES-256-GCM before storage (see lib/crypto/encryption.ts)
 
       // Ensure email is non-empty: users.email is NOT NULL, so we use a provider-scoped
       // synthetic email as fallback if the OAuth provider didn't return an email.
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
       const userData: UserInsert = {
         id: session.user.id,
         email,
-        google_refresh_token: session.provider_refresh_token,
+        google_refresh_token: encryptToken(session.provider_refresh_token),
       };
       const { error: upsertError } = await supabase
         .from("users")

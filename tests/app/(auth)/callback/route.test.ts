@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { makeNextRequest } from "@/tests/helpers/next";
 
 vi.mock("@/lib/supabase/server", () => {
@@ -9,9 +10,18 @@ vi.mock("@/lib/supabase/server", () => {
 import { GET } from "@/app/(auth)/callback/route";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Generate a valid test encryption key (32 bytes = 64 hex chars)
+const TEST_ENCRYPTION_KEY = randomBytes(32).toString("hex");
+
 describe("GET /auth/callback", () => {
+  beforeEach(() => {
+    // Set up encryption key for tests that store tokens
+    process.env.TOKEN_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.TOKEN_ENCRYPTION_KEY;
   });
 
   it("redirects to /dashboard when no code is present", async () => {
@@ -89,7 +99,7 @@ describe("GET /auth/callback", () => {
     expect(response.headers.get("location")).toBe("http://localhost/dashboard");
   });
 
-  it("stores Google refresh token when provider_refresh_token is present", async () => {
+  it("stores Google refresh token encrypted when provider_refresh_token is present", async () => {
     const mockSupabase = {
       auth: {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
@@ -124,21 +134,33 @@ describe("GET /auth/callback", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost/dashboard");
 
-    // Verify upsert was called with correct data
+    // Verify upsert was called with encrypted token
     expect(mockSupabase.from).toHaveBeenCalledWith("users");
     const fromCallResult = vi.mocked(mockSupabase.from).mock.results[0];
     if (!fromCallResult?.value) {
       throw new Error("Expected from() to return a value");
     }
     const upsertCall = fromCallResult.value.upsert as ReturnType<typeof vi.fn>;
-    expect(upsertCall).toHaveBeenCalledWith(
-      {
-        id: "user-1",
-        email: "user@example.com",
-        google_refresh_token: "google-refresh-token",
-      },
-      { onConflict: "id" },
-    );
+    expect(upsertCall).toHaveBeenCalled();
+
+    // Get the actual call arguments
+    const callArgs = upsertCall.mock.calls[0];
+    if (!callArgs) {
+      throw new Error("Expected upsert() to be called with arguments");
+    }
+    const userData = callArgs[0] as {
+      id: string;
+      email: string;
+      google_refresh_token: string;
+    };
+
+    expect(userData.id).toBe("user-1");
+    expect(userData.email).toBe("user@example.com");
+
+    // Token should be encrypted (base64 encoded, not plaintext)
+    expect(userData.google_refresh_token).not.toBe("google-refresh-token");
+    // Should be valid base64
+    expect(userData.google_refresh_token).toMatch(/^[A-Za-z0-9+/]+=*$/);
   });
 
   it("continues redirect even if token storage fails", async () => {

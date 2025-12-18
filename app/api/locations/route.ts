@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+
+import { decryptToken, TokenDecryptionError } from "@/lib/crypto/encryption";
 import {
   fetchAccounts,
   fetchLocations,
@@ -146,10 +148,36 @@ export async function GET() {
       );
     }
 
-    // Get access token
-    const accessToken = await refreshAccessToken(
-      typedUserData.google_refresh_token,
-    );
+    // Decrypt and get access token
+    let decryptedToken: string;
+    try {
+      decryptedToken = decryptToken(typedUserData.google_refresh_token);
+    } catch (error) {
+      if (error instanceof TokenDecryptionError) {
+        console.error(
+          "Failed to decrypt Google refresh token for user:",
+          user.id,
+          error.message,
+        );
+        // Clear the corrupted token
+        await supabase
+          .from("users")
+          .update({ google_refresh_token: null })
+          .eq("id", user.id);
+
+        return NextResponse.json(
+          {
+            error:
+              "Google authentication data corrupted. Please reconnect your account.",
+            code: "GOOGLE_AUTH_EXPIRED",
+          },
+          { status: 401 },
+        );
+      }
+      throw error;
+    }
+
+    const accessToken = await refreshAccessToken(decryptedToken);
 
     // Fetch accounts from Google
     const accounts = await fetchAccounts(accessToken);
