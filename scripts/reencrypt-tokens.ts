@@ -39,10 +39,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 import {
-  decryptToken,
+  decryptTokenWithVersion,
   encryptToken,
   isEncryptionConfigured,
   TokenDecryptionError,
+  KEY_VERSION_PRIMARY,
 } from "../lib/crypto/encryption";
 
 interface UserWithToken {
@@ -128,20 +129,20 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
     }
 
     try {
-      // Decrypt with current key (or fallback to old key)
-      const plaintext = decryptToken(user.google_refresh_token);
+      // Decrypt with current key (or fallback to old key) and get key version
+      const result = decryptTokenWithVersion(user.google_refresh_token);
 
-      // Re-encrypt with current key
-      const reencrypted = encryptToken(plaintext);
-
-      // Check if token actually changed (already using new key)
-      if (reencrypted === user.google_refresh_token) {
+      // Check if token is already encrypted with the primary key
+      if (result.keyVersion === KEY_VERSION_PRIMARY) {
         console.log(
           `⏭️  User ${user.id}: Token unchanged (already using current key)`,
         );
         stats.skipped++;
         continue;
       }
+
+      // Re-encrypt with current key (token was encrypted with old key)
+      const reencrypted = encryptToken(result.plaintext);
 
       if (dryRun) {
         console.log(`🔍 User ${user.id}: Would re-encrypt token (dry run)`);

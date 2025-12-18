@@ -19,6 +19,11 @@ import type { Database, ReviewInsert } from "@/lib/supabase/types";
 const MAX_LOCATIONS_PER_RUN = 50;
 
 /**
+ * Valid sentiment values for reviews
+ */
+type Sentiment = "positive" | "neutral" | "negative";
+
+/**
  * Location data from database query
  */
 interface LocationQueryResult {
@@ -380,9 +385,15 @@ function generateSyntheticReviewId(
   reviewerName: string | null | undefined,
   reviewDate: string | null | undefined,
 ): string {
-  const components = [locationId, reviewerName ?? "", reviewDate ?? ""].join(
-    "|",
-  );
+  // Use length-prefixed encoding to avoid separator collisions
+  // Each component is encoded as "<length>:<value>" and concatenated
+  const components = [
+    locationId ?? "",
+    reviewerName ?? "",
+    reviewDate ?? "",
+  ]
+    .map((comp) => `${comp.length}:${comp}`)
+    .join("");
   const hash = createHash("sha256").update(components).digest("hex");
   // Use first 32 chars of hash for readability, prefixed to indicate synthetic
   return `synthetic_${hash.slice(0, 32)}`;
@@ -394,7 +405,7 @@ function generateSyntheticReviewId(
  * @param rating - Star rating (typically 1–5)
  * @returns `"positive"` if `rating` is greater than or equal to 4, `"neutral"` if `rating` is greater than or equal to 3, `"negative"` otherwise
  */
-function determineSentiment(rating: number): string {
+function determineSentiment(rating: number): Sentiment {
   if (rating >= 4) return "positive";
   if (rating >= 3) return "neutral";
   return "negative";

@@ -28,7 +28,6 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn(),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -43,7 +42,6 @@ describe("GET /auth/callback", () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn(),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -62,7 +60,6 @@ describe("GET /auth/callback", () => {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
           error: { message: "Invalid code" },
         }),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -86,7 +83,6 @@ describe("GET /auth/callback", () => {
           data: { session: null },
           error: null,
         }),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -115,7 +111,6 @@ describe("GET /auth/callback", () => {
           },
           error: null,
         }),
-        getSession: vi.fn(),
       },
       from: vi.fn().mockReturnValue({
         upsert: vi.fn().mockResolvedValue({ error: null }),
@@ -181,7 +176,6 @@ describe("GET /auth/callback", () => {
           },
           error: null,
         }),
-        getSession: vi.fn(),
       },
       from: vi.fn().mockReturnValue({
         upsert: vi.fn().mockResolvedValue({
@@ -214,7 +208,6 @@ describe("GET /auth/callback", () => {
           data: { session: null },
           error: null,
         }),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -242,7 +235,6 @@ describe("GET /auth/callback", () => {
           },
           error: null,
         }),
-        getSession: vi.fn(),
       },
     } as never);
 
@@ -261,9 +253,6 @@ describe("GET /auth/callback", () => {
         exchangeCodeForSession: vi.fn().mockResolvedValue({
           data: { session: null },
           error: null,
-        }),
-        getSession: vi.fn().mockResolvedValue({
-          data: { session: null },
         }),
       },
     } as never);

@@ -327,7 +327,7 @@ Adopt shared components:
 
 ## ADR-013: Google OAuth Token Strategy
 
-**Status:** Depreciated
+**Status:** Deprecated
 
 ### Context
 

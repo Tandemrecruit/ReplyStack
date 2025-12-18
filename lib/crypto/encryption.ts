@@ -4,9 +4,13 @@
  * Provides AES-256-GCM encryption for sensitive tokens (e.g., Google refresh tokens)
  * stored in the database. Uses a 32-byte key from the TOKEN_ENCRYPTION_KEY env var.
  *
- * Encrypted format: base64(IV || ciphertext || authTag)
+ * Encrypted format (new): base64(keyVersion || IV || ciphertext || authTag)
+ * - Key version: 1 byte (0x01 for primary key, 0x00 for old/legacy key)
  * - IV: 12 bytes (96 bits) - recommended size for GCM
  * - Auth tag: 16 bytes (128 bits) - appended by GCM mode
+ *
+ * Legacy format (backward compatible): base64(IV || ciphertext || authTag)
+ * - Tokens without version byte are treated as encrypted with old key (version 0x00)
  *
  * ## Key Rotation Strategy
  *
@@ -33,6 +37,13 @@ const IV_LENGTH = 12;
 
 /** Auth tag length in bytes (128 bits) */
 const AUTH_TAG_LENGTH = 16;
+
+/** Key version byte length */
+const KEY_VERSION_LENGTH = 1;
+
+/** Key version identifiers */
+export const KEY_VERSION_PRIMARY = 0x01; // Current primary key (TOKEN_ENCRYPTION_KEY)
+const KEY_VERSION_OLD = 0x00; // Old key (TOKEN_ENCRYPTION_KEY_OLD) or legacy tokens without version
 
 /** Expected key length in bytes (256 bits) */
 const _KEY_LENGTH = 32;
@@ -123,14 +134,25 @@ function getFallbackKey(): Buffer | null {
 }
 
 /**
+ * Result of token decryption, including the plaintext and key version used.
+ */
+export interface DecryptionResult {
+  /** The decrypted plaintext token */
+  plaintext: string;
+  /** The key version that was used: 0x01 for primary key, 0x00 for old/legacy key */
+  keyVersion: number;
+}
+
+/**
  * Encrypts a plaintext token using AES-256-GCM.
  *
- * The output format is: base64(IV || ciphertext || authTag)
+ * The output format is: base64(keyVersion || IV || ciphertext || authTag)
+ * - Key version: 1 byte (0x01 for primary key)
  * - IV: 12 random bytes
  * - Auth tag: 16 bytes (appended automatically by GCM)
  *
  * @param plaintext - The token to encrypt
- * @returns Base64-encoded encrypted payload (IV + ciphertext + auth tag)
+ * @returns Base64-encoded encrypted payload (key version + IV + ciphertext + auth tag)
  * @throws TokenEncryptionConfigError if encryption key is not configured
  *
  * @example
@@ -154,8 +176,9 @@ export function encryptToken(plaintext: string): string {
 
   const authTag = cipher.getAuthTag();
 
-  // Combine IV + ciphertext + authTag
-  const combined = Buffer.concat([iv, encrypted, authTag]);
+  // Combine key version + IV + ciphertext + authTag
+  const keyVersion = Buffer.from([KEY_VERSION_PRIMARY]);
+  const combined = Buffer.concat([keyVersion, iv, encrypted, authTag]);
 
   return combined.toString("base64");
 }
@@ -166,7 +189,7 @@ export function encryptToken(plaintext: string): string {
  * Supports key rotation: if decryption with the primary key fails and
  * TOKEN_ENCRYPTION_KEY_OLD is set, attempts decryption with the old key.
  *
- * @param encrypted - Base64-encoded encrypted payload (IV + ciphertext + auth tag)
+ * @param encrypted - Base64-encoded encrypted payload (key version + IV + ciphertext + auth tag, or legacy format)
  * @returns The decrypted plaintext token
  * @throws TokenDecryptionError if decryption fails (invalid data, wrong key, tampered)
  * @throws TokenEncryptionConfigError if encryption key is not configured
@@ -178,17 +201,41 @@ export function encryptToken(plaintext: string): string {
  * ```
  */
 export function decryptToken(encrypted: string): string {
+  const result = decryptTokenWithVersion(encrypted);
+  return result.plaintext;
+}
+
+/**
+ * Decrypts a token and returns both the plaintext and the key version used.
+ *
+ * This is useful for re-encryption scripts that need to know which key was used
+ * to encrypt a token, so they can skip tokens already encrypted with the primary key.
+ *
+ * @param encrypted - Base64-encoded encrypted payload (key version + IV + ciphertext + auth tag, or legacy format)
+ * @returns DecryptionResult with plaintext and key version (0x01 for primary, 0x00 for old/legacy)
+ * @throws TokenDecryptionError if decryption fails (invalid data, wrong key, tampered)
+ * @throws TokenEncryptionConfigError if encryption key is not configured
+ *
+ * @example
+ * ```typescript
+ * const result = decryptTokenWithVersion(encryptedTokenFromDb);
+ * // Returns: { plaintext: "my-secret-refresh-token", keyVersion: 0x01 }
+ * ```
+ */
+export function decryptTokenWithVersion(encrypted: string): DecryptionResult {
   const key = getEncryptionKey();
 
   // Try primary key first
   try {
-    return decryptWithKey(encrypted, key);
+    const result = decryptWithKey(encrypted, key, KEY_VERSION_PRIMARY);
+    return result;
   } catch (error) {
     // If primary key fails, try fallback key for rotation support
     const fallbackKey = getFallbackKey();
     if (fallbackKey) {
       try {
-        return decryptWithKey(encrypted, fallbackKey);
+        const result = decryptWithKey(encrypted, fallbackKey, KEY_VERSION_OLD);
+        return result;
       } catch {
         // Both keys failed - throw the original error
       }
@@ -206,39 +253,109 @@ export function decryptToken(encrypted: string): string {
 }
 
 /**
+ * Validates that a string is properly base64-encoded.
+ *
+ * @param str - String to validate
+ * @returns true if valid base64, false otherwise
+ */
+function isValidBase64(str: string): boolean {
+  // Empty string is not valid base64
+  if (str.length === 0) {
+    return false;
+  }
+
+  // Base64 strings must have length that is a multiple of 4
+  if (str.length % 4 !== 0) {
+    return false;
+  }
+
+  // Padding (=) can only appear at the end, and must be 0, 1, or 2 = signs
+  const paddingMatch = str.match(/=+$/);
+  const paddingLength = paddingMatch ? paddingMatch[0].length : 0;
+  if (paddingLength > 2) {
+    return false;
+  }
+
+  // Check that padding only appears at the end (no = in the middle)
+  if (paddingLength > 0 && str.indexOf("=") !== str.length - paddingLength) {
+    return false;
+  }
+
+  // All characters must be valid base64 characters (A-Z, a-z, 0-9, +, /, =)
+  const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+  return base64Regex.test(str);
+}
+
+/**
  * Internal helper to decrypt with a specific key.
+ *
+ * Handles both new format (with key version byte) and legacy format (without version byte).
+ * Legacy tokens are assumed to be encrypted with the old key (version 0x00).
  *
  * @param encrypted - Base64-encoded encrypted payload
  * @param key - The encryption key to use
- * @returns The decrypted plaintext
+ * @param expectedVersion - The key version to assign if decryption succeeds (0x01 for primary, 0x00 for old)
+ * @returns DecryptionResult with plaintext and key version
  * @throws TokenDecryptionError on any decryption failure
  */
-function decryptWithKey(encrypted: string, key: Buffer): string {
-  let combined: Buffer;
-
-  try {
-    combined = Buffer.from(encrypted, "base64");
-  } catch {
+function decryptWithKey(
+  encrypted: string,
+  key: Buffer,
+  expectedVersion: number,
+): DecryptionResult {
+  // Validate base64 encoding before attempting decode
+  if (!isValidBase64(encrypted)) {
     throw new TokenDecryptionError(
       "Invalid base64 encoding in encrypted token",
     );
   }
 
-  // Minimum length: IV (12) + auth tag (16) = 28 (ciphertext can be 0 bytes for empty string)
-  const minLength = IV_LENGTH + AUTH_TAG_LENGTH;
-  if (combined.length < minLength) {
+  const combined = Buffer.from(encrypted, "base64");
+
+  // Minimum length for legacy format: IV (12) + auth tag (16) = 28
+  // Minimum length for new format: key version (1) + IV (12) + auth tag (16) = 29
+  const minLengthLegacy = IV_LENGTH + AUTH_TAG_LENGTH;
+  const minLengthNew = KEY_VERSION_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+
+  if (combined.length < minLengthLegacy) {
     throw new TokenDecryptionError(
-      `Encrypted token too short (${combined.length} bytes, minimum ${minLength})`,
+      `Encrypted token too short (${combined.length} bytes, minimum ${minLengthLegacy})`,
     );
   }
 
-  // Extract components
-  const iv = combined.subarray(0, IV_LENGTH);
-  const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
-  const ciphertext = combined.subarray(
-    IV_LENGTH,
-    combined.length - AUTH_TAG_LENGTH,
-  );
+  // Check if this is the new format (with key version byte)
+  // We detect this by checking if the first byte is a valid key version (0x00 or 0x01)
+  // and if the length suggests it has a version byte
+  let hasVersionByte = false;
+  let keyVersion = KEY_VERSION_OLD; // Default to old/legacy
+  let iv: Buffer;
+  let authTag: Buffer;
+  let ciphertext: Buffer;
+
+  if (
+    combined.length >= minLengthNew &&
+    (combined[0] === KEY_VERSION_PRIMARY || combined[0] === KEY_VERSION_OLD)
+  ) {
+    // New format: keyVersion || IV || ciphertext || authTag
+    hasVersionByte = true;
+    keyVersion = combined[0];
+    iv = combined.subarray(KEY_VERSION_LENGTH, KEY_VERSION_LENGTH + IV_LENGTH);
+    authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
+    ciphertext = combined.subarray(
+      KEY_VERSION_LENGTH + IV_LENGTH,
+      combined.length - AUTH_TAG_LENGTH,
+    );
+  } else {
+    // Legacy format: IV || ciphertext || authTag (no version byte)
+    iv = combined.subarray(0, IV_LENGTH);
+    authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
+    ciphertext = combined.subarray(
+      IV_LENGTH,
+      combined.length - AUTH_TAG_LENGTH,
+    );
+    // Legacy tokens are assumed to be encrypted with old key
+    keyVersion = KEY_VERSION_OLD;
+  }
 
   try {
     const decipher = createDecipheriv(ALGORITHM, key, iv, {
@@ -252,7 +369,14 @@ function decryptWithKey(encrypted: string, key: Buffer): string {
       decipher.final(),
     ]);
 
-    return decrypted.toString("utf8");
+    const plaintext = decrypted.toString("utf8");
+
+    // Return the version we detected (or expected version if we successfully decrypted)
+    // If we successfully decrypted, use the expected version (which indicates which key worked)
+    return {
+      plaintext,
+      keyVersion: hasVersionByte ? keyVersion : expectedVersion,
+    };
   } catch (error) {
     // GCM auth tag verification failure or other crypto error
     throw new TokenDecryptionError(
