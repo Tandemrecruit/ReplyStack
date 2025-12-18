@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error("Auth callback error:", error.message);
@@ -35,9 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // After successful code exchange, capture Google provider token if present
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { session } = data ?? {};
 
     if (session?.provider_refresh_token && session.user) {
       // Store the Google refresh token for API access
@@ -47,9 +45,11 @@ export async function GET(request: NextRequest) {
         email: session.user.email ?? "",
         google_refresh_token: session.provider_refresh_token,
       };
-      // @ts-expect-error - Supabase client type inference issue with upsert
       const { error: upsertError } = await supabase
         .from("users")
+        // TODO: Remove suppression once Supabase TypeScript inference is fixed
+        // See: https://github.com/supabase/supabase-js/issues/1636
+        // @ts-expect-error - Supabase client type inference issue: .from() returns never type for upsert parameter
         .upsert(userData, { onConflict: "id" });
 
       if (upsertError) {

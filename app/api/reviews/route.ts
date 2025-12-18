@@ -11,6 +11,34 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
 /**
+ * Location data included in review queries
+ */
+interface ReviewLocation {
+  id: string;
+  name: string;
+  google_location_id: string;
+}
+
+/**
+ * Review with joined location data from Supabase query
+ */
+interface ReviewWithLocation {
+  id: string;
+  external_review_id: string;
+  reviewer_name: string | null;
+  reviewer_photo_url: string | null;
+  rating: number | null;
+  review_text: string | null;
+  review_date: string | null;
+  has_response: boolean;
+  status: string;
+  sentiment: string | null;
+  created_at: string;
+  location_id: string | null;
+  locations: ReviewLocation | null;
+}
+
+/**
  * Valid status filter values
  */
 const VALID_STATUSES = ["pending", "responded", "ignored"] as const;
@@ -54,7 +82,20 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (userError || !userData?.organization_id) {
+    // Handle user lookup failures
+    if (userError) {
+      console.error("Failed to lookup user:", userError.message);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Handle case where user doesn't exist in users table
+    if (!userData) {
+      console.error("User data not found for authenticated user:", user.id);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Handle case where user exists but has no organization yet
+    if (!userData.organization_id) {
       return NextResponse.json({
         reviews: [],
         total: 0,
@@ -168,6 +209,9 @@ export async function GET(request: NextRequest) {
     // Execute query
     const { data: reviews, count, error: reviewsError } = await query;
 
+    // Type the reviews result
+    const typedReviews: ReviewWithLocation[] | null = reviews;
+
     if (reviewsError) {
       console.error("Failed to fetch reviews:", reviewsError.message);
       return NextResponse.json(
@@ -177,13 +221,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform reviews to include location name
-    const transformedReviews = (reviews ?? []).map((review) => {
-      const location = review.locations as unknown as {
-        id: string;
-        name: string;
-        google_location_id: string;
-      };
-
+    const transformedReviews = (typedReviews ?? []).map((review) => {
       return {
         id: review.id,
         external_review_id: review.external_review_id,
@@ -197,7 +235,7 @@ export async function GET(request: NextRequest) {
         sentiment: review.sentiment,
         created_at: review.created_at,
         location_id: review.location_id,
-        location_name: location?.name ?? "Unknown Location",
+        location_name: review.locations?.name ?? "Unknown Location",
       };
     });
 

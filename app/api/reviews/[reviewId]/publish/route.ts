@@ -106,7 +106,12 @@ export async function POST(
     }
 
     // Parse request body
-    const body = (await request.json()) as PublishRequestBody;
+    let body: PublishRequestBody;
+    try {
+      body = (await request.json()) as PublishRequestBody;
+    } catch {
+      return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
+    }
 
     if (!body.response_text || typeof body.response_text !== "string") {
       return NextResponse.json(
@@ -200,6 +205,29 @@ export async function POST(
 
     if (responseError) {
       console.error("Failed to save response record:", responseError.message);
+    }
+
+    // Check for database update failures after successful Google publish
+    const dbErrors: string[] = [];
+    if (updateReviewError) {
+      dbErrors.push("Failed to update review status");
+    }
+    if (responseError) {
+      dbErrors.push("Failed to save response record");
+    }
+
+    if (dbErrors.length > 0) {
+      // Response published to Google but database sync failed
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Response published to Google, but database sync failed",
+          warning: `Database inconsistency: ${dbErrors.join("; ")}. The response was published to Google but may not be reflected in the local database.`,
+          response_id: responseRecord?.id,
+          published_at: responseRecord?.published_at,
+        },
+        { status: 200 },
+      );
     }
 
     return NextResponse.json({

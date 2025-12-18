@@ -8,12 +8,13 @@ import {
   refreshAccessToken,
 } from "@/lib/google/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { LocationInsert } from "@/lib/supabase/types";
+import type { LocationInsert, OrganizationInsert } from "@/lib/supabase/types";
 
 /**
  * Location data returned from the API with sync status
  */
 interface LocationWithStatus {
+  id?: string;
   google_account_id: string;
   google_location_id: string;
   name: string;
@@ -54,7 +55,14 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (!userData.google_refresh_token) {
+    // Type assertion: userData is guaranteed to exist after the check above
+    type UserData = {
+      google_refresh_token: string | null;
+      organization_id: string | null;
+    };
+    const typedUserData = userData as UserData;
+
+    if (!typedUserData.google_refresh_token) {
       return NextResponse.json(
         {
           error: "Google account not connected",
@@ -65,7 +73,9 @@ export async function GET() {
     }
 
     // Get access token
-    const accessToken = await refreshAccessToken(userData.google_refresh_token);
+    const accessToken = await refreshAccessToken(
+      typedUserData.google_refresh_token,
+    );
 
     // Fetch accounts from Google
     const accounts = await fetchAccounts(accessToken);
@@ -73,10 +83,16 @@ export async function GET() {
     // Fetch locations for each account
     const allLocations: LocationWithStatus[] = [];
 
-    for (const account of accounts) {
-      const locations = await fetchLocations(accessToken, account.accountId);
+    const locationResults = await Promise.allSettled(
+      accounts.map((account) => fetchLocations(accessToken, account.accountId)),
+    );
 
-      for (const location of locations) {
+    for (let i = 0; i < accounts.length; i++) {
+      const account = accounts[i];
+      if (!account) continue;
+      const result = locationResults[i];
+      if (!result || result.status !== "fulfilled") continue;
+      for (const location of result.value) {
         allLocations.push({
           google_account_id: location.google_account_id ?? account.accountId,
           google_location_id: location.google_location_id ?? "",
@@ -89,19 +105,28 @@ export async function GET() {
     }
 
     // Check which locations are already synced
-    if (userData.organization_id && allLocations.length > 0) {
+    if (typedUserData.organization_id && allLocations.length > 0) {
       const { data: syncedLocations } = await supabase
         .from("locations")
-        .select("google_location_id")
-        .eq("organization_id", userData.organization_id)
+        .select("id, google_location_id")
+        .eq("organization_id", typedUserData.organization_id)
         .eq("is_active", true);
 
-      const syncedIds = new Set(
-        syncedLocations?.map((l) => l.google_location_id) ?? [],
-      );
+      // Type assertion: syncedLocations is an array of objects with id and google_location_id
+      type SyncedLocation = { id: string; google_location_id: string };
+      const typedSyncedLocations = (syncedLocations ?? []) as SyncedLocation[];
+
+      const syncedMap = new Map<string, string>();
+      for (const loc of typedSyncedLocations) {
+        syncedMap.set(loc.google_location_id, loc.id);
+      }
 
       for (const location of allLocations) {
-        location.is_synced = syncedIds.has(location.google_location_id);
+        const dbId = syncedMap.get(location.google_location_id);
+        if (dbId) {
+          location.is_synced = true;
+          location.id = dbId;
+        }
       }
     }
 
@@ -175,13 +200,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Type assertion: userData is guaranteed to exist after the check above
+    type UserOrgData = {
+      organization_id: string | null;
+    };
+    const typedUserData = userData as UserOrgData;
+
     // Create organization if user doesn't have one
-    let organizationId = userData.organization_id;
+    let organizationId = typedUserData.organization_id;
 
     if (!organizationId) {
+      const orgData: OrganizationInsert = {
+        name: user.email ?? "My Organization",
+      };
       const { data: newOrg, error: orgError } = await supabase
         .from("organizations")
-        .insert({ name: user.email ?? "My Organization" })
+        // @ts-expect-error - Supabase type inference limitation: insert type not properly inferred from Database type
+        .insert(orgData)
         .select("id")
         .single();
 
@@ -193,13 +228,44 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      organizationId = newOrg.id;
+      // Type assertion: newOrg is guaranteed to exist after the check above
+      type NewOrg = { id: string };
+      const typedNewOrg = newOrg as NewOrg;
+      organizationId = typedNewOrg.id;
 
       // Link user to organization
-      await supabase
+      const { error: updateError } = await supabase
         .from("users")
+        // @ts-expect-error - Supabase type inference limitation: update type not properly inferred from Database type
         .update({ organization_id: organizationId })
         .eq("id", user.id);
+
+      if (updateError) {
+        console.error(
+          "Failed to link user to organization:",
+          updateError.message,
+          { organizationId, userId: user.id },
+        );
+
+        // Roll back: delete the created organization
+        const { error: deleteError } = await supabase
+          .from("organizations")
+          .delete()
+          .eq("id", organizationId);
+
+        if (deleteError) {
+          console.error(
+            "Failed to roll back organization creation:",
+            deleteError.message,
+            { organizationId },
+          );
+        }
+
+        return NextResponse.json(
+          { error: "Failed to link user to organization" },
+          { status: 500 },
+        );
+      }
     }
 
     // Parse request body
@@ -225,6 +291,7 @@ export async function POST(request: NextRequest) {
     // Upsert locations (update if google_location_id exists for this org)
     const { data: savedLocations, error: saveError } = await supabase
       .from("locations")
+      // @ts-expect-error - Supabase type inference limitation: upsert type not properly inferred from Database type
       .upsert(locationsToSave, {
         onConflict: "organization_id,google_location_id",
         ignoreDuplicates: false,
@@ -261,7 +328,7 @@ export async function POST(request: NextRequest) {
  * @param request - Request whose JSON body must include `{ location_id: string }`
  * @returns `{ success: true }` on success; on failure returns an error message and an appropriate HTTP status:
  * - 401 if the user is not authenticated
- * - 404 if the user's organization is not found
+ * - 404 if the user's organization is not found or the location doesn't exist or doesn't belong to the organization
  * - 400 if `location_id` is missing
  * - 500 for database or unexpected server errors
  */
@@ -285,7 +352,13 @@ export async function DELETE(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (userError || !userData?.organization_id) {
+    // Type assertion: userData type not properly inferred from Supabase query
+    type UserOrgData = {
+      organization_id: string | null;
+    };
+    const typedUserData = userData as UserOrgData | null;
+
+    if (userError || !typedUserData?.organization_id) {
       return NextResponse.json(
         { error: "Organization not found" },
         { status: 404 },
@@ -302,12 +375,28 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Verify location exists and belongs to the organization
+    const { data: location, error: locationError } = await supabase
+      .from("locations")
+      .select("id")
+      .eq("id", body.location_id)
+      .eq("organization_id", typedUserData.organization_id)
+      .single();
+
+    if (locationError || !location) {
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 },
+      );
+    }
+
     // Deactivate the location
     const { error: updateError } = await supabase
       .from("locations")
+      // @ts-expect-error - Supabase type inference limitation: update type not properly inferred from Database type
       .update({ is_active: false })
       .eq("id", body.location_id)
-      .eq("organization_id", userData.organization_id);
+      .eq("organization_id", typedUserData.organization_id);
 
     if (updateError) {
       console.error("Failed to deactivate location:", updateError.message);

@@ -38,12 +38,13 @@ interface LocationWithUser {
  * - clear expired refresh tokens for users if detected, and
  * - return accumulated metrics and any errors encountered.
  *
- * @returns A JSON NextResponse containing either a success payload with metrics (`locationsProcessed`, `newReviews`), `errors`, `duration`, and `timestamp`, or an error payload with an appropriate HTTP status (401 for unauthorized, 500 for failures).
+ * @returns A JSON NextResponse containing either a success payload with metrics (`locationsProcessed`, `reviewsProcessed`), `errors`, `duration`, and `timestamp`, or an error payload with an appropriate HTTP status (401 for unauthorized, 500 for failures).
+ */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const results = {
     locationsProcessed: 0,
-    newReviews: 0,
+    reviewsProcessed: 0,
     errors: [] as string[],
   };
 
@@ -223,8 +224,8 @@ export async function GET(request: NextRequest) {
               `Location ${location.name}: Failed to save reviews`,
             );
           } else {
-            // Count newly inserted reviews (rough estimate)
-            results.newReviews += upsertedReviews?.length ?? 0;
+            // Count all processed reviews (includes both inserts and updates)
+            results.reviewsProcessed += upsertedReviews?.length ?? 0;
           }
         } catch (error) {
           const message =

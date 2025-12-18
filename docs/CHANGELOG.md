@@ -1,23 +1,63 @@
 # Changelog
 
+## 2025-12-18
+
+### Testing
+- Added comprehensive test coverage for Google API client, locations/publish/callback routes, and location-selector component with edge cases, error handling, and fetch parameter verification
+
+### Google API Client
+- Added 30-second timeout handling to all fetch calls using AbortController
+- Improved location ID extraction with regex validation and filtering of invalid IDs
+- Updated parseStarRating to return null for missing/unrecognized ratings
+- Fixed refreshAccessToken to handle 400 errors separately from 401 with proper status codes
+
+### Components
+- Fixed location selector save handler to properly deactivate unselected locations
+- Improved accessibility with semantic output element and ARIA attributes for loading state
+- Simplified hasChanges logic in location selector
+
+### API Routes
+- Improved type safety in reviews route with proper interfaces
+- Added proper error responses for user lookup failures and missing locations
+- Fixed database update failure handling in publish route to prevent silent state inconsistency
+- Added rollback logic for organization creation failures in locations route
+
+### Infrastructure
+- Fixed poll-reviews cron metric naming (newReviews → reviewsProcessed)
+- Refactored auth callback to use session directly from exchangeCodeForSession()
+- Fixed Biome linting errors
+- Added ADR-013 through ADR-016 documenting Google Business Profile API integration decisions
+
+### Documentation
+- Refactored changelog with category-based organization (Testing, Google API Client, Components, API Routes, Infrastructure) for improved readability
+
 ## 2025-12-17
 
+### Features
 - Implemented Google Business Profile API integration:
-  - Added OAuth token capture in auth callback to store provider_refresh_token
-  - Implemented 5 Google API client functions (refreshAccessToken, fetchAccounts, fetchLocations, fetchReviews, publishResponse)
-  - Created `/api/locations` route for fetching and saving Google Business locations
-  - Built LocationSelector component for selecting locations to sync
-  - Implemented review polling cron job at `/api/cron/poll-reviews`
-  - Created `/api/reviews/[reviewId]/publish` endpoint for publishing responses to Google
+  - OAuth token capture in auth callback to store provider_refresh_token
+  - 5 Google API client functions (refreshAccessToken, fetchAccounts, fetchLocations, fetchReviews, publishResponse)
+  - `/api/locations` route for fetching and saving Google Business locations
+  - LocationSelector component for selecting locations to sync
+  - Review polling cron job at `/api/cron/poll-reviews`
+  - `/api/reviews/[reviewId]/publish` endpoint for publishing responses to Google
   - Updated `/api/reviews` route with real database queries, filtering, and pagination
-  - Added comprehensive tests for Google API client
-- Fixed update password redirect timeout cleanup on unmount to avoid stale callback.
-- Introduced shared `AuthDivider` and `GoogleOAuthButton` components, refactoring auth forms to reuse them.
-- Added ADR-006 for Next.js 16 / React 19 / Tailwind v4 upgrade path.
-- Added ADRs documenting auth route grouping, Supabase auth flows, shared validation, middleware routing rules, and shared auth UI components.
-- Improved accessibility: removed redundant SVG titles, cleaned star icon aria attributes, and reordered input help text placement.
-- Refreshed documentation: updated architecture, roadmap, and spec to reflect current scaffolding state.
-- Added setup runbook, API overview, and changelog documentation.
-- Clarified README with development status and documentation links.
-- Added workspace rules covering performance monitoring, accessibility, secrets, testing, migrations, feature flags, and architecture docs.
+  - Comprehensive tests for Google API client
 
+### Components
+- Introduced shared `AuthDivider` and `GoogleOAuthButton` components
+- Refactored auth forms to reuse shared components
+- Fixed update password redirect timeout cleanup on unmount
+
+### Documentation
+- Added ADR-006 for Next.js 16 / React 19 / Tailwind v4 upgrade path
+- Added ADRs documenting auth route grouping, Supabase auth flows, shared validation, middleware routing rules, and shared auth UI components
+- Refreshed architecture, roadmap, and spec to reflect current scaffolding state
+- Added setup runbook, API overview, and changelog documentation
+- Clarified README with development status and documentation links
+- Added workspace rules covering performance monitoring, accessibility, secrets, testing, migrations, feature flags, and architecture docs
+
+### Accessibility
+- Removed redundant SVG titles
+- Cleaned star icon aria attributes
+- Reordered input help text placement

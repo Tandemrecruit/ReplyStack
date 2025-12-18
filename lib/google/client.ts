@@ -18,6 +18,9 @@ const ACCOUNTS_API = "https://mybusinessaccountmanagement.googleapis.com/v1";
 const LOCATIONS_API = "https://mybusinessbusinessinformation.googleapis.com/v1";
 const REVIEWS_API = "https://mybusiness.googleapis.com/v4";
 
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT_MS = 30000;
+
 /**
  * Google Business Profile OAuth configuration
  */
@@ -109,11 +112,11 @@ interface ReviewsResponse {
  * Convert a Google star rating enum into its numeric value.
  *
  * @param starRating - Google star rating enum value
- * @returns The numeric rating 1–5 for recognized enums; `0` if `starRating` is undefined or unrecognized
+ * @returns The numeric rating 1–5 for recognized enums; `null` if `starRating` is undefined or unrecognized
  */
 function parseStarRating(
   starRating?: "ONE" | "TWO" | "THREE" | "FOUR" | "FIVE",
-): number {
+): number | null {
   const ratings: Record<string, number> = {
     ONE: 1,
     TWO: 2,
@@ -121,7 +124,7 @@ function parseStarRating(
     FOUR: 4,
     FIVE: 5,
   };
-  return starRating ? (ratings[starRating] ?? 0) : 0;
+  return starRating ? (ratings[starRating] ?? null) : null;
 }
 
 /**
@@ -142,6 +145,97 @@ function formatAddress(address?: GoogleAddress): string {
 }
 
 /**
+ * Extract and validate a Google location ID from a location name.
+ *
+ * Expected format: `accounts/{accountId}/locations/{locationId}`
+ *
+ * @param name - The location name from Google API
+ * @returns The extracted location ID, or null if the format is invalid or the ID is empty
+ */
+function extractLocationId(name: string): string | null {
+  // Match the expected format: accounts/{accountId}/locations/{locationId}
+  const match = name.match(/^accounts\/[^/]+\/locations\/(.+)$/);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  const locationId = match[1].trim();
+  // Ensure the location ID is not empty after trimming
+  return locationId.length > 0 ? locationId : null;
+}
+
+/**
+ * Execute a fetch request with a configurable timeout.
+ *
+ * @param url - The URL to fetch
+ * @param options - Fetch options (if signal is provided, it will be composed with timeout signal)
+ * @param timeoutMs - Timeout in milliseconds (defaults to REQUEST_TIMEOUT_MS)
+ * @returns The fetch Response
+ * @throws GoogleAPIError with status 408 (Request Timeout) if the request times out, or rethrows other network errors
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  let timeoutId: NodeJS.Timeout | null = null;
+  let isTimeoutAbort = false;
+
+  // Set up timeout
+  timeoutId = setTimeout(() => {
+    isTimeoutAbort = true;
+    controller.abort();
+  }, timeoutMs);
+
+  // Compose with existing signal if provided
+  const existingSignal = options.signal;
+  if (existingSignal) {
+    if (existingSignal.aborted) {
+      // Signal already aborted, abort immediately
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      controller.abort();
+    } else {
+      existingSignal.addEventListener("abort", () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        controller.abort();
+      });
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    return response;
+  } catch (error) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    if (error instanceof Error && error.name === "AbortError") {
+      // Only throw timeout error if it was our timeout, not a user-provided signal
+      if (isTimeoutAbort) {
+        throw new GoogleAPIError(
+          408,
+          `Request timeout: ${url} did not respond within ${timeoutMs}ms`,
+        );
+      }
+      // If aborted by user signal, rethrow as-is
+      throw error;
+    }
+    throw error;
+  }
+}
+
+/**
  * Exchange a Google OAuth2 refresh token for a new access token.
  *
  * @param refreshToken - A valid OAuth2 refresh token issued by Google.
@@ -158,7 +252,7 @@ export async function refreshAccessToken(
     throw new GoogleAPIError(500, "Google OAuth credentials not configured");
   }
 
-  const response = await fetch(TOKEN_URL, {
+  const response = await fetchWithTimeout(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -177,11 +271,14 @@ export async function refreshAccessToken(
       (errorData as { error?: string }).error ??
       "Token refresh failed";
 
-    if (response.status === 400 || response.status === 401) {
+    if (response.status === 401) {
       throw new GoogleAPIError(
         401,
         "Google authentication expired. Please reconnect your account.",
       );
+    }
+    if (response.status === 400) {
+      throw new GoogleAPIError(response.status, errorMessage);
     }
     throw new GoogleAPIError(response.status, errorMessage);
   }
@@ -200,7 +297,7 @@ export async function refreshAccessToken(
 export async function fetchAccounts(
   accessToken: string,
 ): Promise<Array<{ accountId: string; name: string }>> {
-  const response = await fetch(`${ACCOUNTS_API}/accounts`, {
+  const response = await fetchWithTimeout(`${ACCOUNTS_API}/accounts`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -233,7 +330,7 @@ export async function fetchLocations(
 ): Promise<Array<Partial<Location>>> {
   const url = `${LOCATIONS_API}/accounts/${accountId}/locations?readMask=name,title,storefrontAddress`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -246,12 +343,34 @@ export async function fetchLocations(
 
   const data = (await response.json()) as LocationsResponse;
 
-  return (data.locations ?? []).map((location) => ({
-    google_account_id: accountId,
-    google_location_id: location.name.split("/").pop() ?? "",
-    name: location.title,
-    address: formatAddress(location.storefrontAddress),
-  }));
+  const validLocations: Array<Partial<Location>> = [];
+  let skippedCount = 0;
+
+  for (const location of data.locations ?? []) {
+    const locationId = extractLocationId(location.name);
+    if (!locationId) {
+      skippedCount++;
+      console.warn(
+        `Skipped location with invalid name format: "${location.name}" (expected format: accounts/{accountId}/locations/{locationId})`,
+      );
+      continue;
+    }
+
+    validLocations.push({
+      google_account_id: accountId,
+      google_location_id: locationId,
+      name: location.title,
+      address: formatAddress(location.storefrontAddress),
+    });
+  }
+
+  if (skippedCount > 0) {
+    console.warn(
+      `Skipped ${skippedCount} location(s) with invalid or missing location IDs`,
+    );
+  }
+
+  return validLocations;
 }
 
 /**
@@ -278,7 +397,7 @@ export async function fetchReviews(
     url.searchParams.set("pageToken", pageToken);
   }
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -332,7 +451,7 @@ export async function publishResponse(
 ): Promise<boolean> {
   const url = `${REVIEWS_API}/accounts/${accountId}/locations/${locationId}/reviews/${reviewId}/reply`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,

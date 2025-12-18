@@ -323,6 +323,120 @@ Adopt shared components:
 - New auth-related inputs/buttons should leverage these shared components to stay consistent.
 - Changes to these components propagate to all auth forms; test coverage should guard regressions.
 
+---
+
+## ADR-013: Google OAuth Token Strategy
+
+**Status:** Accepted
+
+### Context
+
+We need to authenticate with Google Business Profile API to fetch reviews and publish responses. Google uses OAuth 2.0 with refresh tokens for long-lived access.
+
+### Decision
+
+Store Google refresh tokens in the `users` table (`google_refresh_token` column), captured from Supabase OAuth callback's `provider_refresh_token`. Refresh access tokens on-demand before each API call using `refreshAccessToken()` in `lib/google/client.ts`. Do not cache access tokens; always refresh them fresh.
+
+### Rationale
+
+- Refresh tokens are long-lived and can be stored securely in the database (encrypted at rest via Supabase Vault)
+- Access tokens are short-lived (typically 1 hour) and should be refreshed on-demand to avoid expiration issues
+- On-demand refresh simplifies token lifecycle management and avoids cache invalidation complexity
+- Storing refresh tokens in the database allows cron jobs and user-initiated actions to share the same authentication mechanism
+
+### Consequences
+
+- Every API call requires a token refresh operation (adds ~100-200ms latency)
+- Token refresh failures (401) automatically clear the refresh token from the database, requiring user re-authentication
+- Encryption at rest must be handled at the database level (Supabase Vault) rather than application-level
+
+---
+
+## ADR-014: Google Business Profile API Client Structure
+
+**Status:** Accepted
+
+### Context
+
+We need a consistent way to interact with Google Business Profile API across multiple endpoints (accounts, locations, reviews, publishing responses).
+
+### Decision
+
+Centralize all Google Business Profile API interactions in `lib/google/client.ts` with individual exported functions: `refreshAccessToken()`, `fetchAccounts()`, `fetchLocations()`, `fetchReviews()`, and `publishResponse()`. All functions accept access tokens (not refresh tokens) and throw `GoogleAPIError` for consistent error handling.
+
+### Rationale
+
+- Single source of truth for API endpoint URLs and request formatting
+- Consistent error handling via `GoogleAPIError` class with status codes
+- Separation of concerns: token refresh is separate from API operations
+- Functions are pure and testable (accept tokens as parameters)
+- Easy to mock in tests and swap implementations if needed
+
+### Consequences
+
+- Callers must handle token refresh before calling API functions (or use a wrapper)
+- API endpoint changes require updates in one place
+- All functions are stateless, which simplifies testing but requires callers to manage token lifecycle
+
+---
+
+## ADR-015: Cron Polling for Google Business Profile Reviews
+
+**Status:** Accepted
+
+### Context
+
+Google Business Profile API does not provide webhooks for new review notifications. We need to detect new reviews to generate AI responses.
+
+### Decision
+
+Poll Google Business Profile API every 15 minutes via Vercel Cron (`/api/cron/poll-reviews`). Group locations by user to minimize token refreshes (one refresh per user, not per location). Process maximum 50 locations per run to stay within rate limits and timeout constraints. Use upsert with `external_review_id` for deduplication.
+
+### Rationale
+
+- No webhook alternative available from Google
+- 15-minute interval balances freshness with API rate limits (max 60 requests/minute across all users)
+- Grouping by user reduces token refresh operations (critical for rate limiting)
+- 50-location limit prevents timeout issues and respects Vercel function execution limits
+- Upsert with `external_review_id` ensures idempotency and handles pagination edge cases
+
+### Consequences
+
+- Reviews may be up to 15 minutes stale (acceptable for non-real-time use case)
+- Cron job must be monitored for failures and rate limit violations
+- Pagination is not fully implemented (only first page of reviews fetched per location)
+- If more than 50 locations exist, some will be processed in subsequent runs
+
+---
+
+## ADR-016: Google OAuth Token Management and Cleanup
+
+**Status:** Accepted
+
+### Context
+
+Refresh tokens can expire or be revoked by users. Failed API calls due to expired tokens should be handled gracefully without manual intervention.
+
+### Decision
+
+Automatically clear `google_refresh_token` from the database when token refresh fails with 401 status. Return user-friendly error messages prompting re-authentication. Both cron jobs (`app/api/cron/poll-reviews/route.ts`) and user-initiated actions (`app/api/reviews/[reviewId]/publish/route.ts`) implement this cleanup.
+
+### Rationale
+
+- Prevents repeated failed API calls with invalid tokens
+- Provides clear feedback to users about authentication state
+- Reduces error noise in logs and monitoring
+- Forces users to re-authenticate, ensuring tokens are valid before retrying operations
+
+### Consequences
+
+- Users must manually reconnect their Google account after token expiration
+- No automatic retry mechanism for expired tokens (by design, to avoid infinite loops)
+- Token expiration detection relies on Google's 401 response, which may not always be immediate
+- Users may experience service interruption until they re-authenticate
+
+---
+
 ## Template for New Decisions
 
 ```markdown

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
  * Location data from the API
  */
 interface LocationData {
+  id?: string;
   google_account_id: string;
   google_location_id: string;
   name: string;
@@ -155,6 +156,32 @@ export function LocationSelector() {
     setSuccessMessage(null);
 
     try {
+      // Find locations to deactivate (were synced but now unselected)
+      const locationsToDeactivate = locations.filter(
+        (loc) =>
+          loc.is_synced && !selectedIds.has(loc.google_location_id) && loc.id,
+      );
+
+      // Deactivate unselected locations
+      for (const loc of locationsToDeactivate) {
+        if (!loc.id) continue;
+        const deleteResponse = await fetch("/api/locations", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ location_id: loc.id }),
+        });
+
+        if (!deleteResponse.ok) {
+          const deleteData = (await deleteResponse.json()) as {
+            error?: string;
+          };
+          throw new Error(
+            deleteData.error ?? `Failed to deactivate location: ${loc.name}`,
+          );
+        }
+      }
+
+      // Save selected locations
       const selectedLocations = locations.filter((loc) =>
         selectedIds.has(loc.google_location_id),
       );
@@ -178,7 +205,17 @@ export function LocationSelector() {
         throw new Error(data.error ?? "Failed to save locations");
       }
 
-      setSuccessMessage(`${data.saved ?? 0} location(s) saved successfully.`);
+      const deactivatedCount = locationsToDeactivate.length;
+      const savedCount = data.saved ?? 0;
+      let message = "";
+      if (deactivatedCount > 0 && savedCount > 0) {
+        message = `${savedCount} location(s) saved, ${deactivatedCount} location(s) deactivated.`;
+      } else if (deactivatedCount > 0) {
+        message = `${deactivatedCount} location(s) deactivated.`;
+      } else {
+        message = `${savedCount} location(s) saved successfully.`;
+      }
+      setSuccessMessage(message);
 
       // Update local state to reflect saved locations
       setLocations((prev) =>
@@ -208,7 +245,11 @@ export function LocationSelector() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+      <output
+        aria-live="polite"
+        aria-atomic="true"
+        className="flex items-center gap-2 text-sm text-foreground-secondary"
+      >
         <svg
           className="animate-spin h-4 w-4"
           viewBox="0 0 24 24"
@@ -230,7 +271,7 @@ export function LocationSelector() {
           />
         </svg>
         Loading locations...
-      </div>
+      </output>
     );
   }
 
@@ -260,13 +301,9 @@ export function LocationSelector() {
   }
 
   const accountGroups = groupByAccount(locations);
-  const hasChanges =
-    locations.some(
-      (loc) => loc.is_synced !== selectedIds.has(loc.google_location_id),
-    ) ||
-    locations.some(
-      (loc) => !loc.is_synced && selectedIds.has(loc.google_location_id),
-    );
+  const hasChanges = locations.some(
+    (loc) => loc.is_synced !== selectedIds.has(loc.google_location_id),
+  );
 
   return (
     <div className="space-y-4">
