@@ -44,12 +44,13 @@ export async function GET(request: NextRequest) {
       // Ensure email is non-empty: users.email is NOT NULL, so we use a provider-scoped
       // synthetic email as fallback if the OAuth provider didn't return an email.
       // This ensures we never pass an empty string to the database.
+      // Uses RFC 2606 reserved .invalid suffix to make the address unambiguously invalid
       const email =
-        session.user.email?.trim() || `${session.user.id}@google-noreply`;
+        session.user.email?.trim() || `${session.user.id}@no-email.invalid`;
 
       if (!session.user.email?.trim()) {
         console.warn(
-          `Missing email in OAuth session for user ${session.user.id}, using fallback email`,
+          `Missing email in OAuth session for user ${session.user.id}, using RFC 2606 .invalid fallback address`,
         );
       }
 

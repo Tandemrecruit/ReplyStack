@@ -94,47 +94,12 @@ DROP INDEX IF EXISTS idx_users_email;
 
 -- Row Level Security (RLS) Policies
 -- Enable RLS on all tables (idempotent - safe to run multiple times)
-DO $$
-BEGIN
-    ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE voice_profiles ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
-EXCEPTION
-    WHEN OTHERS THEN NULL;
-END $$;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
 
 -- Organizations: Users can only access their own organization
 -- Drop and recreate policies to ensure they match current version
@@ -175,9 +140,10 @@ DROP POLICY IF EXISTS "Users can view users in their organization" ON users;
 CREATE POLICY "Users can view users in their organization"
     ON users FOR SELECT
     USING (
-        organization_id IN (
+        organization_id = (
             SELECT organization_id FROM users WHERE id = auth.uid()
         )
+        OR id = auth.uid()
     );
 
 DROP POLICY IF EXISTS "Users can update users in their organization" ON users;

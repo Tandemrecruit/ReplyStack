@@ -437,6 +437,94 @@ Automatically clear `google_refresh_token` from the database when token refresh 
 
 ---
 
+## ADR-017: Multi-tenant Database Architecture
+
+**Status:** Accepted
+
+### Context
+
+We need to support multiple organizations (tenants) in a single database instance while ensuring data isolation and security. Each organization should have its own users, locations, reviews, and voice profiles.
+
+### Decision
+
+Use a shared database with `organization_id` foreign keys on all tenant-scoped tables (`users`, `locations`, `voice_profiles`, `reviews`, `responses`). Enforce data isolation via Row Level Security (RLS) policies that filter all queries by the authenticated user's `organization_id`. The `organizations` table serves as the tenant root, with cascade deletes ensuring cleanup when an organization is removed.
+
+### Rationale
+
+- Single database simplifies deployment and reduces operational overhead compared to per-tenant databases
+- RLS policies enforce isolation at the database level, preventing accidental cross-tenant data access
+- Foreign key constraints with `ON DELETE CASCADE` ensure referential integrity and automatic cleanup
+- Standard PostgreSQL patterns that work well with Supabase's RLS implementation
+- Scales efficiently for our expected tenant count (hundreds to thousands, not millions)
+
+### Consequences
+
+- All queries must include `organization_id` filtering (enforced by RLS, but developers must be aware)
+- RLS policies add slight query overhead, but negligible for our scale
+- Organization deletion cascades to all related data (by design, but requires careful consideration)
+- Multi-tenant queries (e.g., analytics across organizations) require service role key and bypass RLS
+- Future features requiring cross-tenant data sharing would need architectural changes
+
+---
+
+## ADR-018: Location Sync Workflow Pattern
+
+**Status:** Accepted
+
+### Context
+
+Users need to select which Google Business Profile locations to monitor for reviews. The system must fetch available locations from Google, show sync status, allow selection, and persist choices to the database.
+
+### Decision
+
+Implement a three-step workflow: (1) `GET /api/locations` fetches all locations from Google Business Profile API, marks which are already synced by comparing `google_location_id` against the database, and returns locations with `is_synced` status; (2) `POST /api/locations` accepts an array of selected locations and upserts them to the database with `organization_id`, using `(organization_id, google_location_id)` as the unique constraint; (3) `DELETE /api/locations` soft-deletes by setting `is_active = false` rather than hard-deleting, preserving historical review associations.
+
+### Rationale
+
+- GET endpoint provides real-time sync status without requiring a separate sync state table
+- Upsert pattern (`onConflict`) handles both new selections and re-selections of previously synced locations
+- Soft delete preserves data integrity for historical reviews while allowing users to "unsync" locations
+- Unique constraint on `(organization_id, google_location_id)` prevents duplicate locations per organization
+- Client-side component (`LocationSelector`) groups locations by Google account for better UX
+
+### Consequences
+
+- Locations can be "synced" but inactive (soft-deleted), requiring `is_active = true` filters in queries
+- Re-syncing a previously soft-deleted location requires reactivating it (upsert handles this automatically)
+- GET endpoint makes multiple Google API calls (accounts + locations per account), adding latency
+- No automatic sync of location metadata changes (name, address) from Google after initial sync
+
+---
+
+## ADR-019: Voice Profile API Structure
+
+**Status:** Accepted
+
+### Context
+
+Organizations need to configure AI response personality (tone, word preferences, length limits) that applies to all generated responses. The system must support creating, reading, and updating voice profiles.
+
+### Decision
+
+Implement a single-voice-profile-per-organization pattern with `GET /api/voice-profile` and `PUT /api/voice-profile` endpoints. GET returns the existing profile or `null` if none exists. PUT performs upsert: if a profile exists for the organization, update it; otherwise, create a new one with `name: "Default"`. Validate request body with Zod schema, filtering out `undefined` values to support partial updates.
+
+### Rationale
+
+- Single profile per organization simplifies the mental model (one voice per business)
+- Upsert pattern in PUT eliminates the need for separate POST endpoint
+- Partial updates allow clients to modify only changed fields without sending full profile
+- Zod validation provides type-safe request parsing and clear error messages
+- `maybeSingle()` query pattern handles the "no profile exists" case gracefully
+
+### Consequences
+
+- Organizations cannot have multiple voice profiles (e.g., one per location) without schema changes
+- PUT endpoint must fetch existing profile to determine insert vs update, adding a query overhead
+- Clients must handle `null` response from GET when no profile exists yet
+- Future multi-profile support would require adding a `voice_profile_id` to locations and changing the API structure
+
+---
+
 ## Template for New Decisions
 
 ```markdown

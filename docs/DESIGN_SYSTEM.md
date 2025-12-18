@@ -31,6 +31,7 @@ Use for backgrounds that need a hint of brand color without overwhelming content
 | Elevated surfaces | `primary-200` | `primary-200` | Secondary card layers |
 
 **Example:**
+
 ```tsx
 <div className="bg-primary-50 border border-primary-200">
   {/* Card content */}
@@ -48,6 +49,7 @@ Use for subtle separation and structure.
 | Strong borders | `primary-400` | `primary-400` | Focused input borders |
 
 **Example:**
+
 ```tsx
 <div className="border border-primary-200 hover:border-primary-300">
   {/* Content */}
@@ -66,6 +68,7 @@ Use for primary actions and navigation.
 | Active/visited links | `primary-700` | `primary-700` | Active navigation items |
 
 **Example:**
+
 ```tsx
 <button className="bg-primary-600 hover:bg-primary-700 text-white">
   Submit
@@ -83,6 +86,7 @@ Use for text that needs to stand out on light surfaces.
 | Maximum contrast | `primary-900` | `primary-950` | Rare, only for critical text |
 
 **Example:**
+
 ```tsx
 <h2 className="text-primary-700">Important Heading</h2>
 ```
@@ -96,6 +100,7 @@ Use for focus indicators and accessibility features.
 | Focus rings | `primary-500` | `primary-500` | Keyboard focus indicators |
 
 **Example:**
+
 ```tsx
 <input className="focus:ring-2 focus:ring-primary-500" />
 ```
@@ -114,6 +119,7 @@ Use for goldenrod-tinted backgrounds.
 | Borders | `accent-200` | `accent-200` | Accent borders |
 
 **Example:**
+
 ```tsx
 <div className="bg-accent-50 border border-accent-200">
   {/* Highlighted content */}
@@ -131,6 +137,7 @@ Use for attention-grabbing elements.
 | Hover states | `accent-500` | `accent-700` | CTA hover effects |
 
 **Example:**
+
 ```tsx
 <button className="bg-accent-400 dark:bg-accent-600 hover:bg-accent-500 dark:hover:bg-accent-700">
   Get Started
@@ -146,6 +153,7 @@ Use for readable text in dark contexts.
 | Text on dark | `accent-800` | `accent-800` | Text on dark surfaces |
 
 **Example:**
+
 ```tsx
 <div className="bg-gray-900 text-accent-800">
   {/* Text content */}

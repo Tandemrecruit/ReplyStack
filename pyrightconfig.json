@@ -3,6 +3,6 @@
   "exclude": ["**/__pycache__", "**/node_modules"],
   "extraPaths": ["python/src", "python/automation", "python/tests"],
   "pythonVersion": "3.11",
-  "typeCheckingMode": "basic",
-  "reportMissingImports": "warning"
+  "typeCheckingMode": "standard",
+  "reportMissingImports": "error"
 }
