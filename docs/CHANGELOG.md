@@ -2,6 +2,10 @@
 
 ## 2025-12-18
 
+### Code Quality
+
+- Fixed version control configuration: removed incorrect `.gitignore` entry for `scripts/generate-types.js` (utility script should be tracked), added missing `lib/supabase/typed-helpers.ts` to version control
+
 ### Security
 
 - Fixed base64 validation in token decryption: removed ineffective try/catch around `Buffer.from()` (which doesn't throw on invalid base64), added explicit base64 validation function that checks for valid characters, proper padding, and correct length before decoding, ensuring `TokenDecryptionError` is thrown for clearly invalid base64 input
@@ -13,6 +17,9 @@
 
 ### Code Quality
 
+- Added interactive confirmation prompt to token re-encryption script: requires typing "YES" to proceed in live mode (prevents accidental production modifications), added `--force` flag for non-interactive runs (CI/automation), script exits with non-zero code if confirmation is cancelled
+- Fixed token re-encryption script dry-run statistics: added `wouldReencrypt` counter to track dry-run outcomes separately from actual re-encryptions, ensuring `stats.success` only increments for real database updates; updated summary output to show "Would re-encrypt (dry run)" count in dry-run mode and "Successfully re-encrypted" count in live mode
+- Extracted shared typed Supabase helpers (typedUpdate, typedInsert, typedUpsert) into `lib/supabase/typed-helpers.ts` to centralize type-safe database operations and eliminate inline `as any` casts and biome-ignore comments from poll-reviews cron route
 - Fixed null rating handling in poll-reviews cron: reviews without ratings now correctly set sentiment to null instead of defaulting to "negative", accurately representing text-only reviews without star ratings
 - Made determineSentiment function type-safe: changed return type from `string` to `Sentiment` union type (`"positive" | "neutral" | "negative"`) to ensure only valid sentiment values are returned
 - Fixed memory leak in Google API client's fetchWithTimeout function by using { once: true } option for abort event listener, ensuring it auto-removes after firing

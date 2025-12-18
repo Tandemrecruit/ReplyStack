@@ -10,6 +10,7 @@ import {
   refreshAccessToken,
 } from "@/lib/google/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { typedUpdate, typedUpsert } from "@/lib/supabase/typed-helpers";
 import type { Database, ReviewInsert } from "@/lib/supabase/types";
 
 /**
@@ -208,11 +209,9 @@ export async function GET(request: NextRequest) {
               `User ${userId}: Token decryption failed - data may be corrupted`,
             );
             // Clear the corrupted token
-            // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
-            const clearQuery = (supabase.from("users") as any)
-              .update({ google_refresh_token: null })
-              .eq("id", userId);
-            await clearQuery;
+            await typedUpdate(supabase, "users", {
+              google_refresh_token: null,
+            }).eq("id", userId);
             continue;
           }
           throw error;
@@ -229,12 +228,9 @@ export async function GET(request: NextRequest) {
 
         // If token is expired, clear it from database
         if (error instanceof GoogleAPIError && error.status === 401) {
-          // Type assertion needed due to Supabase's complex generic inference limitations with admin client
-          // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
-          const updateQuery = (supabase.from("users") as any)
-            .update({ google_refresh_token: null })
-            .eq("id", userId);
-          await updateQuery;
+          await typedUpdate(supabase, "users", {
+            google_refresh_token: null,
+          }).eq("id", userId);
         }
         continue;
       }
@@ -318,16 +314,11 @@ export async function GET(request: NextRequest) {
           }
 
           // Upsert reviews (dedupe by external_review_id)
-          // Type assertion needed due to Supabase's complex generic inference limitations with admin client
-          // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
-          const upsertQuery = (supabase.from("reviews") as any)
-            .upsert(reviewsToInsert, {
+          const { data: upsertedReviews, error: upsertError } =
+            await typedUpsert(supabase, "reviews", reviewsToInsert, {
               onConflict: "external_review_id",
               ignoreDuplicates: false,
-            })
-            .select("id");
-          const { data: upsertedReviews, error: upsertError } =
-            await upsertQuery;
+            }).select("id");
 
           if (upsertError) {
             console.error(
@@ -387,11 +378,7 @@ function generateSyntheticReviewId(
 ): string {
   // Use length-prefixed encoding to avoid separator collisions
   // Each component is encoded as "<length>:<value>" and concatenated
-  const components = [
-    locationId ?? "",
-    reviewerName ?? "",
-    reviewDate ?? "",
-  ]
+  const components = [locationId ?? "", reviewerName ?? "", reviewDate ?? ""]
     .map((comp) => `${comp.length}:${comp}`)
     .join("");
   const hash = createHash("sha256").update(components).digest("hex");

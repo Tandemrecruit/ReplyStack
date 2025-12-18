@@ -1,4 +1,5 @@
 #!/usr/bin/env npx tsx
+
 /**
  * Token Re-encryption Script
  *
@@ -21,8 +22,11 @@
  * # Dry run (no changes made)
  * npx tsx scripts/reencrypt-tokens.ts --dry-run
  *
- * # Actually re-encrypt tokens
+ * # Actually re-encrypt tokens (interactive confirmation required)
  * npx tsx scripts/reencrypt-tokens.ts
+ *
+ * # Non-interactive mode (for CI/automation, requires --force)
+ * npx tsx scripts/reencrypt-tokens.ts --force
  * ```
  *
  * ## Key Rotation Procedure
@@ -37,13 +41,14 @@
  * @module scripts/reencrypt-tokens
  */
 
+import * as readline from "node:readline";
 import { createClient } from "@supabase/supabase-js";
 import {
   decryptTokenWithVersion,
   encryptToken,
   isEncryptionConfigured,
-  TokenDecryptionError,
   KEY_VERSION_PRIMARY,
+  TokenDecryptionError,
 } from "../lib/crypto/encryption";
 
 interface UserWithToken {
@@ -56,6 +61,7 @@ interface ReencryptionStats {
   success: number;
   skipped: number;
   failed: number;
+  wouldReencrypt: number;
   errors: Array<{ userId: string; error: string }>;
 }
 
@@ -71,6 +77,7 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
     success: 0,
     skipped: 0,
     failed: 0,
+    wouldReencrypt: 0,
     errors: [],
   };
 
@@ -123,11 +130,6 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
 
   // Process each user
   for (const user of usersWithTokens) {
-    if (!user.google_refresh_token) {
-      stats.skipped++;
-      continue;
-    }
-
     try {
       // Decrypt with current key (or fallback to old key) and get key version
       const result = decryptTokenWithVersion(user.google_refresh_token);
@@ -146,7 +148,7 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
 
       if (dryRun) {
         console.log(`🔍 User ${user.id}: Would re-encrypt token (dry run)`);
-        stats.success++;
+        stats.wouldReencrypt++;
         continue;
       }
 
@@ -180,6 +182,28 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
 }
 
 /**
+ * Prompts the user for confirmation before proceeding with live mode.
+ *
+ * @returns Promise that resolves to true if confirmed, false if cancelled
+ */
+async function promptConfirmation(): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(
+      "⚠️  This will modify tokens in the database. Type YES to proceed: ",
+      (answer) => {
+        rl.close();
+        resolve(answer.trim() === "YES");
+      },
+    );
+  });
+}
+
+/**
  * Main entry point
  */
 async function main(): Promise<void> {
@@ -187,11 +211,22 @@ async function main(): Promise<void> {
   console.log("=".repeat(50));
 
   const dryRun = process.argv.includes("--dry-run");
+  const force = process.argv.includes("--force");
 
   if (dryRun) {
     console.log("🔍 DRY RUN MODE - No changes will be made\n");
   } else {
     console.log("⚠️  LIVE MODE - Tokens will be re-encrypted\n");
+
+    // Require explicit confirmation unless --force is provided
+    if (!force) {
+      const confirmed = await promptConfirmation();
+      if (!confirmed) {
+        console.log("\n❌ Confirmation cancelled. Exiting without changes.");
+        process.exit(1);
+      }
+      console.log("");
+    }
   }
 
   try {
@@ -200,7 +235,11 @@ async function main(): Promise<void> {
     console.log(`\n${"=".repeat(50)}`);
     console.log("📊 Re-encryption Summary:");
     console.log(`   Total users with tokens: ${stats.total}`);
-    console.log(`   Successfully re-encrypted: ${stats.success}`);
+    if (dryRun) {
+      console.log(`   Would re-encrypt (dry run): ${stats.wouldReencrypt}`);
+    } else {
+      console.log(`   Successfully re-encrypted: ${stats.success}`);
+    }
     console.log(`   Skipped (unchanged/null): ${stats.skipped}`);
     console.log(`   Failed: ${stats.failed}`);
 
