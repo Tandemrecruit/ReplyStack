@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -8,13 +9,33 @@ import {
   refreshAccessToken,
 } from "@/lib/google/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
-import type { ReviewInsert } from "@/lib/supabase/types";
+import type { Database, ReviewInsert } from "@/lib/supabase/types";
 
 /**
  * Maximum number of locations to process per cron invocation
  * to stay within rate limits and timeout constraints
  */
 const MAX_LOCATIONS_PER_RUN = 50;
+
+/**
+ * Location data from database query
+ */
+interface LocationQueryResult {
+  id: string;
+  google_account_id: string;
+  google_location_id: string;
+  name: string;
+  organization_id: string | null;
+}
+
+/**
+ * User data from database query
+ */
+interface UserQueryResult {
+  id: string;
+  organization_id: string | null;
+  google_refresh_token: string | null;
+}
 
 /**
  * Location with user data for polling
@@ -58,7 +79,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = createAdminSupabaseClient();
+    const supabase: SupabaseClient<Database> = createAdminSupabaseClient();
 
     // Get all active locations with their users' refresh tokens
     // Join through organizations to get user data
@@ -91,9 +112,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Type assertion: locations is an array of LocationQueryResult
+    const typedLocations = locations as LocationQueryResult[];
+
     // Get unique organization IDs
     const orgIds = [
-      ...new Set(locations.map((l) => l.organization_id).filter(Boolean)),
+      ...new Set(typedLocations.map((l) => l.organization_id).filter(Boolean)),
     ];
 
     // Get users with refresh tokens for these organizations
@@ -111,13 +135,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Type assertion: users is an array of UserQueryResult
+    const typedUsers = (users ?? []) as UserQueryResult[];
+
     // Create a map of organization_id to user with refresh token
     // Keep the first user found per organization (deterministic behavior)
     const orgToUser = new Map<
       string,
       { id: string; google_refresh_token: string }
     >();
-    for (const user of users ?? []) {
+    for (const user of typedUsers) {
       if (user.organization_id && user.google_refresh_token) {
         if (!orgToUser.has(user.organization_id)) {
           orgToUser.set(user.organization_id, {
@@ -130,7 +157,7 @@ export async function GET(request: NextRequest) {
 
     // Build list of locations with user data
     const locationsWithUsers: LocationWithUser[] = [];
-    for (const location of locations) {
+    for (const location of typedLocations) {
       if (!location.organization_id) continue;
       const user = orgToUser.get(location.organization_id);
       if (!user) continue;
@@ -174,10 +201,12 @@ export async function GET(request: NextRequest) {
 
         // If token is expired, clear it from database
         if (error instanceof GoogleAPIError && error.status === 401) {
-          await supabase
-            .from("users")
+          // Type assertion needed due to Supabase's complex generic inference limitations with admin client
+          // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
+          const updateQuery = (supabase.from("users") as any)
             .update({ google_refresh_token: null })
             .eq("id", userId);
+          await updateQuery;
         }
         continue;
       }
@@ -241,7 +270,10 @@ export async function GET(request: NextRequest) {
               review_date: review.review_date ?? null,
               has_response: review.has_response ?? false,
               status: review.status ?? "pending",
-              sentiment: determineSentiment(review.rating ?? 0),
+              sentiment:
+                review.rating != null
+                  ? determineSentiment(review.rating)
+                  : null,
             });
           }
 
@@ -258,13 +290,16 @@ export async function GET(request: NextRequest) {
           }
 
           // Upsert reviews (dedupe by external_review_id)
-          const { data: upsertedReviews, error: upsertError } = await supabase
-            .from("reviews")
+          // Type assertion needed due to Supabase's complex generic inference limitations with admin client
+          // biome-ignore lint/suspicious/noExplicitAny: Supabase admin client type inference limitation
+          const upsertQuery = (supabase.from("reviews") as any)
             .upsert(reviewsToInsert, {
               onConflict: "external_review_id",
               ignoreDuplicates: false,
             })
             .select("id");
+          const { data: upsertedReviews, error: upsertError } =
+            await upsertQuery;
 
           if (upsertError) {
             console.error(

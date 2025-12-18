@@ -262,6 +262,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Parse and validate request body before any organization creation
+    let body: SaveLocationsBody;
+    try {
+      body = (await request.json()) as SaveLocationsBody;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body: JSON parsing failed" },
+        { status: 400 },
+      );
+    }
+
+    if (!body || !body.locations || !Array.isArray(body.locations)) {
+      return NextResponse.json(
+        { error: "Invalid request body: locations array required" },
+        { status: 400 },
+      );
+    }
+
     // Get user's organization
     const { data: userData, error: userError } = await supabase
       .from("users")
@@ -276,7 +294,7 @@ export async function POST(request: NextRequest) {
     // Type assertion: userData is guaranteed to exist after the check above
     const typedUserData = userData as UserOrgData;
 
-    // Create organization if user doesn't have one
+    // Create organization if user doesn't have one (only after validation passes)
     let organizationId = typedUserData.organization_id;
 
     if (!organizationId) {
@@ -334,16 +352,6 @@ export async function POST(request: NextRequest) {
           { status: 500 },
         );
       }
-    }
-
-    // Parse request body
-    const body = (await request.json()) as SaveLocationsBody;
-
-    if (!body.locations || !Array.isArray(body.locations)) {
-      return NextResponse.json(
-        { error: "Invalid request body: locations array required" },
-        { status: 400 },
-      );
     }
 
     // Prepare locations for upsert

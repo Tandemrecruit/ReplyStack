@@ -11,7 +11,8 @@
     "format": "biome format . --write",
     "test": "vitest",
     "test:ci": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "supabase:types": "node scripts/generate-types.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

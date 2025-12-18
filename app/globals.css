@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 
+/*
  * ReplyStack Design System
  * A professional yet distinctive palette for a business review tool
  * Primary: Terracotta - warm, human, local-business feel
@@ -98,6 +98,19 @@
 
     --border: #304344;
     --border-hover: #3c5152;
+
+    /* Primary palette dark mode overrides - darker shades for contrast with light text */
+    --color-primary-50: #3c2a1f;
+    --color-primary-100: #4a3526;
+    --color-primary-200: #5d422f;
+    --color-primary-300: #75543a;
+    --color-primary-400: #926b47;
+    --color-primary-500: #b87d55;
+    --color-primary-600: #d94625;
+    --color-primary-700: #b2351b;
+    --color-primary-800: #8c2a17;
+    --color-primary-900: #6f2416;
+    --color-primary-950: #3c1009;
 
     --color-star-empty: #4a5a5b;
 
