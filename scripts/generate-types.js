@@ -55,6 +55,45 @@ function getProjectId() {
   return null;
 }
 
+// Try to get access token from environment variable or .env.local
+function getAccessToken() {
+  // Check environment variable first
+  if (process.env.SUPABASE_ACCESS_TOKEN) {
+    return process.env.SUPABASE_ACCESS_TOKEN;
+  }
+
+  // Try to read from .env.local
+  try {
+    const envFile = join(rootDir, ".env.local");
+    const envContent = readFileSync(envFile, "utf-8");
+    // Match SUPABASE_ACCESS_TOKEN=value, handling quoted and unquoted values
+    // Also handle cases where value might be on the same line or next line
+    const tokenMatch = envContent.match(
+      /^SUPABASE_ACCESS_TOKEN\s*=\s*(.+)$/m,
+    );
+
+    if (tokenMatch?.[1]) {
+      // Remove quotes (single or double) if present and trim whitespace
+      let token = tokenMatch[1].trim();
+      // Remove surrounding quotes
+      if (
+        (token.startsWith('"') && token.endsWith('"')) ||
+        (token.startsWith("'") && token.endsWith("'"))
+      ) {
+        token = token.slice(1, -1);
+      }
+      return token.trim();
+    }
+  } catch (err) {
+    // Only ignore file-not-found errors
+    if (err.code !== "ENOENT") {
+      console.warn(`Warning: Could not read .env.local: ${err.message}`);
+    }
+  }
+
+  return null;
+}
+
 const projectId = getProjectId();
 
 if (!projectId) {
@@ -75,7 +114,7 @@ if (!projectId) {
 }
 
 // Check for access token
-const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+const accessToken = getAccessToken();
 
 const outputPath = join(rootDir, "lib", "supabase", "types.ts");
 
@@ -93,8 +132,17 @@ if (!accessToken) {
   console.warn("  1. Go to https://supabase.com/dashboard/account/tokens");
   console.warn("  2. Click 'Generate new token'");
   console.warn("  3. Copy the token and run:");
+  console.warn("     macOS/Linux (POSIX):");
   console.warn(
-    `     $env:SUPABASE_ACCESS_TOKEN="your-token"; npm run supabase:types`,
+    `       SUPABASE_ACCESS_TOKEN="your-token" npm run supabase:types`,
+  );
+  console.warn("     Windows (PowerShell):");
+  console.warn(
+    `       $env:SUPABASE_ACCESS_TOKEN="your-token"; npm run supabase:types`,
+  );
+  console.warn("     Cross-platform (using cross-env):");
+  console.warn(
+    `       npx cross-env SUPABASE_ACCESS_TOKEN="your-token" npm run supabase:types`,
   );
   console.warn("\nOption 2: Login with Supabase CLI");
   console.warn("  1. Run: npx supabase login");
@@ -113,12 +161,14 @@ if (!accessToken) {
 
     // Use spawnSync with argument array to avoid shell injection
     // Pass projectId as a separate argument, not interpolated into shell command
+    // Use shell: true on Windows to ensure npm/npx can be found in PATH
     const result = spawnSync(
       "npx",
       ["supabase", "gen", "types", "typescript", "--project-id", projectId],
       {
         cwd: rootDir,
         env,
+        shell: process.platform === "win32",
         stdio: ["inherit", "pipe", "inherit"], // stdin: inherit, stdout: pipe, stderr: inherit
       },
     );

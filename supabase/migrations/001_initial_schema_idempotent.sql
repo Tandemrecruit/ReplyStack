@@ -1,8 +1,9 @@
--- ReplyStack Initial Database Schema
--- Run this migration in your Supabase SQL Editor to set up the database
+-- ReplyStack Initial Database Schema (Idempotent Version)
+-- This version can be safely rerun - it won't fail if objects already exist
+-- Use this if you want to ensure your schema matches the current migration
 
 -- Organizations (accounts/tenants)
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     stripe_customer_id TEXT,
@@ -13,7 +14,7 @@ CREATE TABLE organizations (
 );
 
 -- Users
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
@@ -24,7 +25,7 @@ CREATE TABLE users (
 );
 
 -- Voice Profiles (AI personality configuration)
-CREATE TABLE voice_profiles (
+CREATE TABLE IF NOT EXISTS voice_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT DEFAULT 'Default',
@@ -39,7 +40,7 @@ CREATE TABLE voice_profiles (
 );
 
 -- Locations (Google Business Profile locations)
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     google_account_id TEXT NOT NULL,
@@ -53,7 +54,7 @@ CREATE TABLE locations (
 );
 
 -- Reviews
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     location_id UUID REFERENCES locations(id) ON DELETE CASCADE,
     platform TEXT DEFAULT 'google',
@@ -70,7 +71,7 @@ CREATE TABLE reviews (
 );
 
 -- Responses (AI-generated and published responses)
-CREATE TABLE responses (
+CREATE TABLE IF NOT EXISTS responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
     generated_text TEXT NOT NULL,
@@ -82,25 +83,62 @@ CREATE TABLE responses (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Indexes for common queries
-CREATE INDEX idx_reviews_location_status ON reviews(location_id, status);
-CREATE INDEX idx_reviews_location_date ON reviews(location_id, review_date DESC);
-CREATE INDEX idx_responses_review ON responses(review_id);
-CREATE INDEX idx_locations_org ON locations(organization_id);
-CREATE INDEX idx_users_org ON users(organization_id);
+-- Indexes for common queries (using IF NOT EXISTS)
+CREATE INDEX IF NOT EXISTS idx_reviews_location_status ON reviews(location_id, status);
+CREATE INDEX IF NOT EXISTS idx_reviews_location_date ON reviews(location_id, review_date DESC);
+CREATE INDEX IF NOT EXISTS idx_responses_review ON responses(review_id);
+CREATE INDEX IF NOT EXISTS idx_locations_org ON locations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
 -- Note: idx_users_email is not needed - users.email has UNIQUE constraint which creates an index automatically
 DROP INDEX IF EXISTS idx_users_email;
 
 -- Row Level Security (RLS) Policies
--- Enable RLS on all tables
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE voice_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on all tables (idempotent - safe to run multiple times)
+DO $$
+BEGIN
+    ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE voice_profiles ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
 
 -- Organizations: Users can only access their own organization
+-- Drop and recreate policies to ensure they match current version
+DROP POLICY IF EXISTS "Users can view their own organization" ON organizations;
 CREATE POLICY "Users can view their own organization"
     ON organizations FOR SELECT
     USING (
@@ -109,6 +147,7 @@ CREATE POLICY "Users can view their own organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update their own organization" ON organizations;
 CREATE POLICY "Users can update their own organization"
     ON organizations FOR UPDATE
     USING (
@@ -117,10 +156,12 @@ CREATE POLICY "Users can update their own organization"
         )
     );
 
+DROP POLICY IF EXISTS "Authenticated users can create organizations" ON organizations;
 CREATE POLICY "Authenticated users can create organizations"
     ON organizations FOR INSERT
     WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Users can delete their own organization" ON organizations;
 CREATE POLICY "Users can delete their own organization"
     ON organizations FOR DELETE
     USING (
@@ -130,6 +171,7 @@ CREATE POLICY "Users can delete their own organization"
     );
 
 -- Users: Users can view/update users in their organization
+DROP POLICY IF EXISTS "Users can view users in their organization" ON users;
 CREATE POLICY "Users can view users in their organization"
     ON users FOR SELECT
     USING (
@@ -138,6 +180,7 @@ CREATE POLICY "Users can view users in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update users in their organization" ON users;
 CREATE POLICY "Users can update users in their organization"
     ON users FOR UPDATE
     USING (
@@ -146,11 +189,13 @@ CREATE POLICY "Users can update users in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert their own record" ON users;
 CREATE POLICY "Users can insert their own record"
     ON users FOR INSERT
     WITH CHECK (id = auth.uid());
 
 -- Voice Profiles: Users can manage voice profiles in their organization
+DROP POLICY IF EXISTS "Users can view voice profiles in their organization" ON voice_profiles;
 CREATE POLICY "Users can view voice profiles in their organization"
     ON voice_profiles FOR SELECT
     USING (
@@ -159,6 +204,7 @@ CREATE POLICY "Users can view voice profiles in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert voice profiles in their organization" ON voice_profiles;
 CREATE POLICY "Users can insert voice profiles in their organization"
     ON voice_profiles FOR INSERT
     WITH CHECK (
@@ -167,6 +213,7 @@ CREATE POLICY "Users can insert voice profiles in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update voice profiles in their organization" ON voice_profiles;
 CREATE POLICY "Users can update voice profiles in their organization"
     ON voice_profiles FOR UPDATE
     USING (
@@ -175,6 +222,7 @@ CREATE POLICY "Users can update voice profiles in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete voice profiles in their organization" ON voice_profiles;
 CREATE POLICY "Users can delete voice profiles in their organization"
     ON voice_profiles FOR DELETE
     USING (
@@ -184,6 +232,7 @@ CREATE POLICY "Users can delete voice profiles in their organization"
     );
 
 -- Locations: Users can manage locations in their organization
+DROP POLICY IF EXISTS "Users can view locations in their organization" ON locations;
 CREATE POLICY "Users can view locations in their organization"
     ON locations FOR SELECT
     USING (
@@ -192,6 +241,7 @@ CREATE POLICY "Users can view locations in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert locations in their organization" ON locations;
 CREATE POLICY "Users can insert locations in their organization"
     ON locations FOR INSERT
     WITH CHECK (
@@ -200,6 +250,7 @@ CREATE POLICY "Users can insert locations in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update locations in their organization" ON locations;
 CREATE POLICY "Users can update locations in their organization"
     ON locations FOR UPDATE
     USING (
@@ -208,6 +259,7 @@ CREATE POLICY "Users can update locations in their organization"
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete locations in their organization" ON locations;
 CREATE POLICY "Users can delete locations in their organization"
     ON locations FOR DELETE
     USING (
@@ -217,6 +269,7 @@ CREATE POLICY "Users can delete locations in their organization"
     );
 
 -- Reviews: Users can view/manage reviews for their organization's locations
+DROP POLICY IF EXISTS "Users can view reviews for their organization's locations" ON reviews;
 CREATE POLICY "Users can view reviews for their organization's locations"
     ON reviews FOR SELECT
     USING (
@@ -227,6 +280,7 @@ CREATE POLICY "Users can view reviews for their organization's locations"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert reviews for their organization's locations" ON reviews;
 CREATE POLICY "Users can insert reviews for their organization's locations"
     ON reviews FOR INSERT
     WITH CHECK (
@@ -237,6 +291,7 @@ CREATE POLICY "Users can insert reviews for their organization's locations"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update reviews for their organization's locations" ON reviews;
 CREATE POLICY "Users can update reviews for their organization's locations"
     ON reviews FOR UPDATE
     USING (
@@ -248,6 +303,7 @@ CREATE POLICY "Users can update reviews for their organization's locations"
     );
 
 -- Responses: Users can manage responses for their organization's reviews
+DROP POLICY IF EXISTS "Users can view responses for their organization's reviews" ON responses;
 CREATE POLICY "Users can view responses for their organization's reviews"
     ON responses FOR SELECT
     USING (
@@ -259,6 +315,7 @@ CREATE POLICY "Users can view responses for their organization's reviews"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert responses for their organization's reviews" ON responses;
 CREATE POLICY "Users can insert responses for their organization's reviews"
     ON responses FOR INSERT
     WITH CHECK (
@@ -270,6 +327,7 @@ CREATE POLICY "Users can insert responses for their organization's reviews"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update responses for their organization's reviews" ON responses;
 CREATE POLICY "Users can update responses for their organization's reviews"
     ON responses FOR UPDATE
     USING (

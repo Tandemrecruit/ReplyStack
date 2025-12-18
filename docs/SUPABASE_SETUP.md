@@ -250,7 +250,7 @@ brew install supabase/tap/supabase
 
 - Verify your project ID is correct
 - If using `npx`, ensure you have a stable internet connection
-- Try clearing the npx cache: `npx clear-npx-cache` or use `npx supabase@latest ...
+- Try clearing the npx cache: `npx clear-npx-cache` or use the complete command: `npx supabase@latest gen types typescript --project-id YOUR_PROJECT_ID --schema public > lib/supabase/types.ts` (replace `YOUR_PROJECT_ID` with your project reference ID, or use `--project-ref YOUR_PROJECT_REF` instead of `--project-id`)
 - Try using the project reference instead of project ID
 
 ### Google OAuth Not Working

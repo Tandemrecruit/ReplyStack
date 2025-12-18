@@ -104,9 +104,10 @@ describe("components/settings/LocationSelector", () => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
     });
 
-    const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes[0]).toBeChecked(); // loc-1 is synced
-    expect(checkboxes[1]).not.toBeChecked(); // loc-2 is not synced
+    const checkbox1 = screen.getByRole("checkbox", { name: /Location 1/i });
+    const checkbox2 = screen.getByRole("checkbox", { name: /Location 2/i });
+    expect(checkbox1).toBeChecked(); // loc-1 is synced
+    expect(checkbox2).not.toBeChecked(); // loc-2 is not synced
   });
 
   it("shows synced badge for synced locations", async () => {
@@ -208,13 +209,8 @@ describe("components/settings/LocationSelector", () => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
     });
 
-    const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes.length).toBeGreaterThanOrEqual(2);
-    const checkbox1 = checkboxes[0];
-    const checkbox2 = checkboxes[1];
-    if (!checkbox1 || !checkbox2) {
-      throw new Error("Expected at least 2 checkboxes to be present");
-    }
+    const checkbox1 = screen.getByRole("checkbox", { name: /Location 1/i });
+    const checkbox2 = screen.getByRole("checkbox", { name: /Location 2/i });
     await user.click(checkbox1); // Select loc-1
     await user.click(checkbox2); // Select loc-2
 

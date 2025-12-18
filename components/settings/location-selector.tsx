@@ -163,30 +163,28 @@ export function LocationSelector() {
       );
 
       // Deactivate unselected locations in parallel
-      const deletePromises = locationsToDeactivate
-        .filter((loc) => loc.id)
-        .map(async (loc) => {
-          const deleteResponse = await fetch("/api/locations", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ location_id: loc.id }),
-          });
-
-          if (!deleteResponse.ok) {
-            const deleteData = (await deleteResponse.json()) as {
-              error?: string;
-            };
-            return {
-              success: false,
-              location: loc,
-              error:
-                deleteData.error ??
-                `Failed to deactivate location: ${loc.name}`,
-            };
-          }
-
-          return { success: true, location: loc };
+      const deletePromises = locationsToDeactivate.map(async (loc) => {
+        const deleteResponse = await fetch("/api/locations", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ location_id: loc.id! }),
         });
+
+        if (!deleteResponse.ok) {
+          const deleteData = (await deleteResponse.json()) as {
+            error?: string;
+          };
+          return {
+            success: false,
+            location: loc,
+            error:
+              deleteData.error ??
+              `Failed to deactivate location: ${loc.name}`,
+          };
+        }
+
+        return { success: true, location: loc };
+      });
 
       const deleteResults = await Promise.allSettled(deletePromises);
       const errors: string[] = [];

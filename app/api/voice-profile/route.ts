@@ -84,20 +84,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Build update object with only provided fields
-    const updateData: VoiceProfileUpdate = {};
-    if (body.tone !== undefined) updateData.tone = body.tone;
-    if (body.personality_notes !== undefined)
-      updateData.personality_notes = body.personality_notes;
-    if (body.sign_off_style !== undefined)
-      updateData.sign_off_style = body.sign_off_style;
-    if (body.max_length !== undefined) updateData.max_length = body.max_length;
-    if (body.words_to_use !== undefined)
-      updateData.words_to_use = body.words_to_use;
-    if (body.words_to_avoid !== undefined)
-      updateData.words_to_avoid = body.words_to_avoid;
-    if (body.example_responses !== undefined)
-      updateData.example_responses = body.example_responses;
+    // Build update object with only provided fields (filter out undefined values)
+    const updateData = Object.fromEntries(
+      Object.entries(body).filter(([, value]) => value !== undefined),
+    ) as VoiceProfileUpdate;
 
     // Check if voice profile exists for this organization
     const { data: existingProfile } = await supabase

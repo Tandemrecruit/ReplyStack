@@ -80,7 +80,9 @@ describe("components/voice-profile/VoiceEditor", () => {
       screen.getByRole("button", { name: "Save Voice Profile" }),
     );
 
-    const payload = onSave.mock.calls[0][0];
+    expect(onSave).toHaveBeenCalled();
+    const payload = onSave.mock.calls[0]?.[0];
+    expect(payload).toBeDefined();
     expect(Number.isNaN(payload.max_length as number)).toBe(true);
   });
 
