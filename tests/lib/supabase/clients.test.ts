@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 vi.mock("next/headers", () => {
   return {
     cookies: async () => ({

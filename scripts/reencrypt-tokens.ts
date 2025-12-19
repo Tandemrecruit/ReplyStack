@@ -131,6 +131,12 @@ async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
   // Process each user
   for (const user of usersWithTokens) {
     try {
+      // Skip if token is null (shouldn't happen due to query filter, but TypeScript safety)
+      if (!user.google_refresh_token) {
+        stats.skipped++;
+        continue;
+      }
+
       // Decrypt with current key (or fallback to old key) and get key version
       const result = decryptTokenWithVersion(user.google_refresh_token);
 

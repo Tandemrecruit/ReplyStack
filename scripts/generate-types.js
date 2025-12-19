@@ -10,9 +10,9 @@
  *   SUPABASE_PROJECT_ID=your-project-id npm run supabase:types
  */
 
-const { spawnSync } = require("child_process");
-const { readFileSync, createWriteStream } = require("fs");
-const { join } = require("path");
+const { spawnSync } = require("node:child_process");
+const { readFileSync, createWriteStream } = require("node:fs");
+const { join } = require("node:path");
 
 const rootDir = join(__dirname, "..");
 
@@ -68,9 +68,7 @@ function getAccessToken() {
     const envContent = readFileSync(envFile, "utf-8");
     // Match SUPABASE_ACCESS_TOKEN=value, handling quoted and unquoted values
     // Also handle cases where value might be on the same line or next line
-    const tokenMatch = envContent.match(
-      /^SUPABASE_ACCESS_TOKEN\s*=\s*(.+)$/m,
-    );
+    const tokenMatch = envContent.match(/^SUPABASE_ACCESS_TOKEN\s*=\s*(.+)$/m);
 
     if (tokenMatch?.[1]) {
       // Remove quotes (single or double) if present and trim whitespace

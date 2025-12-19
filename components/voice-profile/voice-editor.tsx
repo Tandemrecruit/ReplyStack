@@ -52,7 +52,7 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {/* Tone Selection */}
       <div>
         <p className="block text-sm font-medium text-foreground mb-3">

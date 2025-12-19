@@ -2,13 +2,30 @@
 
 ## 2025-12-19
 
+### Features
+
+- Implemented AI response generation endpoint (`POST /api/responses`): generates customer-facing review responses using Claude API, supports voice profile configuration (location-specific, organization-wide, or default), returns existing responses instead of regenerating, tracks token usage, handles Claude API errors (timeout, rate limits, service unavailability), validates review ownership and text content before generation
+
+### Testing
+
+- Updated `/api/responses` route tests: replaced placeholder tests with comprehensive test coverage for actual implementation including successful generation, existing response detection, voice profile fallback logic, error handling (Claude API errors, database errors), and edge cases (missing review text, wrong organization, etc.)
+- Fixed 9 failing tests: voice editor form validation (disabled HTML5 validation to allow number input submission), middleware redirect logic (added email_confirmed_at to mock user), locations route mocks (added missing id field to synced locations and fixed DELETE handler mock chain), poll-reviews cron tests (set up required Supabase environment variables and mocked createAdminSupabaseClient)
+- Optimized test suite performance: removed redundant mock clearing options (mockReset, clearMocks), configured node environment for pure unit tests (format, crypto, validation, client libraries) to reduce jsdom overhead, replaced setTimeout delays with promise-based approach in auth form tests (threads pool reverted - forks pool performs better on Windows)
+
 ### Documentation
 
+- Updated API documentation (`docs/API.md`): documented actual POST /api/responses implementation with request/response formats, error codes, and voice profile resolution strategy; updated status to reflect completed features (Google Business Profile integration, review polling, AI response generation)
 - Updated DECISIONS.md with ADR maintenance guidance: added sections on when to create/update ADRs, ADR numbering rules, integration with code changes, and review checklist based on `.cursor/rules/adr-maintenance/RULE.mdc`
 - Updated ADR-001 status to "Superseded" by ADR-006 (Next.js 16 upgrade), added Supersedes section linking to ADR-006
 - Added ADR-021 documenting Vitest testing framework choice: rationale for Vitest over Jest/Mocha, ESM support, Jest-compatible API, and consequences
 - Added ADR-022 documenting Stripe payment provider choice: rationale for subscription billing, webhook reliability, customer portal, and alternatives considered (Paddle, PayPal, Braintree)
 - Added ADR-023 documenting Resend transactional email service choice: rationale for simple API, React Email support, free tier, and alternatives considered (SendGrid, Mailgun, SES, Postmark)
+
+### Code Quality
+
+- Fixed duplicate GoogleAPIError class definition in lib/google/client.ts: removed first definition with incorrect constructor signature (message, status), kept second definition with correct signature (status, message) matching all usage throughout codebase
+- Fixed Node.js builtin imports in scripts/generate-types.js: added node: protocol to child_process, fs, and path imports per Biome linting rules
+- Fixed null safety in scripts/reencrypt-tokens.ts: added explicit null check for google_refresh_token before calling decryptTokenWithVersion to satisfy TypeScript strict null checks
 
 ## 2025-12-18
 

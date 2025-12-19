@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { VoiceEditor } from "@/components/voice-profile/voice-editor";
@@ -52,8 +52,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
     ) as HTMLInputElement;
-    await user.clear(maxInput);
-    await user.type(maxInput, "275");
+    fireEvent.change(maxInput, { target: { value: "275" } });
 
     await user.click(
       screen.getByRole("button", { name: "Save Voice Profile" }),
@@ -94,8 +93,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
     ) as HTMLInputElement;
-    await user.clear(maxInput);
-    await user.type(maxInput, "50");
+    fireEvent.change(maxInput, { target: { value: "50" } });
 
     await user.click(
       screen.getByRole("button", { name: "Save Voice Profile" }),
@@ -116,8 +114,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
     ) as HTMLInputElement;
-    await user.clear(maxInput);
-    await user.type(maxInput, "500");
+    fireEvent.change(maxInput, { target: { value: "500" } });
 
     await user.click(
       screen.getByRole("button", { name: "Save Voice Profile" }),

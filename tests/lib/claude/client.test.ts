@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import { buildNegativeAddendum, generateResponse } from "@/lib/claude/client";
 import type { Review, VoiceProfile } from "@/lib/supabase/types";
 

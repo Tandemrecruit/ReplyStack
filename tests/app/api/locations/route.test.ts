@@ -153,8 +153,8 @@ describe("GET /api/locations", () => {
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockResolvedValue({
                   data: [
-                    { google_location_id: "loc-1" },
-                    { google_location_id: "loc-3" },
+                    { id: "db-loc-1", google_location_id: "loc-1" },
+                    { id: "db-loc-3", google_location_id: "loc-3" },
                   ],
                 }),
               }),
@@ -738,6 +738,16 @@ describe("DELETE /api/locations", () => {
         }
         if (table === "locations") {
           return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: "loc-1" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
             update: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockResolvedValue({ error: null }),

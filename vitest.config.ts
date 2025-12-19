@@ -13,7 +13,5 @@ export default defineConfig({
     pool: "forks",
     setupFiles: ["./tests/setup.ts"],
     restoreMocks: true,
-    mockReset: true,
-    clearMocks: true,
   },
 });

@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import {
   getPasswordRequirementsList,
   PASSWORD_REQUIREMENTS,

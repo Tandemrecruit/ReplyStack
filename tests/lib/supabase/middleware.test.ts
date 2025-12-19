@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import { createServerClient } from "@supabase/ssr";
 import { makeNextRequest } from "@/tests/helpers/next";
 
@@ -12,7 +16,7 @@ type MockCookieAdapter = {
   ) => void;
 };
 
-let mockUser: { id: string } | null = null;
+let mockUser: { id: string; email_confirmed_at?: string } | null = null;
 let lastCookiesGetAll: { name: string; value: string }[] = [];
 const setAllSpy = vi.fn();
 
@@ -61,6 +65,7 @@ describe("lib/supabase/middleware updateSession", () => {
   beforeEach(() => {
     setAllSpy.mockClear();
     lastCookiesGetAll = [];
+    vi.mocked(createServerClient).mockClear();
     originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -87,7 +92,7 @@ describe("lib/supabase/middleware updateSession", () => {
   });
 
   it("redirects authenticated users away from auth pages (uses ?redirect= when present)", async () => {
-    mockUser = { id: "u1" };
+    mockUser = { id: "u1", email_confirmed_at: "2024-01-01T00:00:00Z" };
     const request = makeNextRequest("http://localhost/login?redirect=/reviews");
     const response = await updateSession(request);
 
@@ -96,7 +101,7 @@ describe("lib/supabase/middleware updateSession", () => {
   });
 
   it("redirects authenticated users away from auth pages to /dashboard by default", async () => {
-    mockUser = { id: "u1" };
+    mockUser = { id: "u1", email_confirmed_at: "2024-01-01T00:00:00Z" };
     const request = makeNextRequest("http://localhost/login");
     const response = await updateSession(request);
 
