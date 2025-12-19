@@ -1,5 +1,15 @@
 # Changelog
 
+## 2025-12-19
+
+### Documentation
+
+- Updated DECISIONS.md with ADR maintenance guidance: added sections on when to create/update ADRs, ADR numbering rules, integration with code changes, and review checklist based on `.cursor/rules/adr-maintenance/RULE.mdc`
+- Updated ADR-001 status to "Superseded" by ADR-006 (Next.js 16 upgrade), added Supersedes section linking to ADR-006
+- Added ADR-021 documenting Vitest testing framework choice: rationale for Vitest over Jest/Mocha, ESM support, Jest-compatible API, and consequences
+- Added ADR-022 documenting Stripe payment provider choice: rationale for subscription billing, webhook reliability, customer portal, and alternatives considered (Paddle, PayPal, Braintree)
+- Added ADR-023 documenting Resend transactional email service choice: rationale for simple API, React Email support, free tier, and alternatives considered (SendGrid, Mailgun, SES, Postmark)
+
 ## 2025-12-18
 
 ### Code Quality
