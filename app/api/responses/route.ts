@@ -10,14 +10,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { VoiceProfile } from "@/lib/supabase/types";
 
 /**
- * Handle POST /api/responses to generate an AI response for a review.
+ * Generate and persist an AI-written response for a review identified by `reviewId`.
  *
- * Requires an authenticated user and a JSON body containing `reviewId`.
- * Generates a response using Claude API based on the review and voice profile.
+ * Requires an authenticated user who belongs to the organization that owns the review.
  *
- * @param request - NextRequest whose JSON body must include `reviewId` (string)
- * @returns On success: a JSON object with `id`, `reviewId`, `generatedText`, `status`, and `tokensUsed`.
- *          On error: a JSON object with `error` and an appropriate HTTP status.
+ * @param request - NextRequest whose JSON body must include `reviewId` (string) identifying the review to respond to
+ * @returns On success, an object containing `id`, `reviewId`, `generatedText`, `status`, and `tokensUsed`. On failure, an object with an `error` message and an appropriate HTTP status code.
  */
 export async function POST(request: NextRequest) {
   try {

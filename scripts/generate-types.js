@@ -55,7 +55,16 @@ function getProjectId() {
   return null;
 }
 
-// Try to get access token from environment variable or .env.local
+/**
+ * Retrieve the Supabase access token from the environment or a local .env.local file.
+ *
+ * Checks the SUPABASE_ACCESS_TOKEN environment variable first. If not present, attempts to read
+ * a SUPABASE_ACCESS_TOKEN entry from the project's .env.local file and returns its value,
+ * supporting quoted or unquoted values. If .env.local is missing the function returns null;
+ * if reading .env.local fails for another reason a warning is logged and null is returned.
+ *
+ * @returns {string|null} The access token if found, `null` otherwise.
+ */
 function getAccessToken() {
   // Check environment variable first
   if (process.env.SUPABASE_ACCESS_TOKEN) {

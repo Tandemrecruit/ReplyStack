@@ -67,10 +67,12 @@ interface ClaudeResponse {
 }
 
 /**
- * Execute a fetch request with a configurable timeout.
+ * Fetches the given URL and aborts the request if it does not complete within the specified timeout.
+ *
+ * Integrates with an optional existing AbortSignal: if provided and already aborted, the fetch is aborted immediately; if that signal aborts later, the fetch is aborted as well. On timeout the request is aborted and a ClaudeAPIError with status 408 is thrown.
  *
  * @param url - The URL to fetch
- * @param options - Fetch options
+ * @param options - Fetch options; an existing `signal` may be provided to cancel the request
  * @param timeoutMs - Timeout in milliseconds
  * @returns The fetch Response
  * @throws ClaudeAPIError with status 408 if the request times out
@@ -134,12 +136,12 @@ async function fetchWithTimeout(
 }
 
 /**
- * Call Claude API with the given prompts.
+ * Generate a response from the Claude API using the provided system and user prompts.
  *
- * @param systemPrompt - The system prompt
- * @param userPrompt - The user prompt
- * @returns The generated text and token count
- * @throws ClaudeAPIError on API errors
+ * @param systemPrompt - Instructions that define the assistant's role, style, and constraints
+ * @param userPrompt - The message describing the specific review and context for which a reply should be written
+ * @returns An object with `text`: the assistant's generated reply, and `tokensUsed`: the sum of input and output tokens consumed
+ * @throws ClaudeAPIError when the API key is missing or the Claude API returns an error status
  */
 async function callClaudeAPI(
   systemPrompt: string,
@@ -187,13 +189,13 @@ async function callClaudeAPI(
 }
 
 /**
- * Call Claude API with retry logic.
+ * Attempt to call the Claude API with retry and exponential backoff.
  *
- * @param systemPrompt - The system prompt
- * @param userPrompt - The user prompt
- * @param maxAttempts - Maximum retry attempts
- * @returns The generated text and token count
- * @throws ClaudeAPIError after all retries exhausted
+ * @param systemPrompt - System-level prompt that defines the assistant's role and style
+ * @param userPrompt - User-level prompt containing the review and business context
+ * @param maxAttempts - Maximum number of attempts before failing (defaults to MAX_RETRY_ATTEMPTS)
+ * @returns An object with `text` (the generated assistant response) and `tokensUsed` (total tokens consumed)
+ * @throws ClaudeAPIError for authentication (401/403), rate-limit (429) errors raised immediately, or when all retry attempts are exhausted
  */
 async function callClaudeWithRetry(
   systemPrompt: string,
@@ -239,17 +241,14 @@ async function callClaudeWithRetry(
 }
 
 /**
- * Create a customer-facing response to a review using Claude AI.
+ * Generate a customer-facing response to a review in the voice defined by the provided voice profile.
  *
- * Builds system and user prompts from the provided voice profile and review,
- * calls Claude API, and returns the generated response with token usage.
+ * If the review is one or two stars and `contactEmail` is provided, the response will include a short addendum
+ * inviting the reviewer to continue the conversation via that email.
  *
- * @param review - The review to respond to
- * @param voiceProfile - Voice and style configuration used to construct the system prompt
- * @param businessName - The business name to use in prompts and the response
- * @param contactEmail - Optional contact email for negative review addendum
+ * @param contactEmail - Optional email address included in a negative-review addendum to invite offline resolution
  * @returns An object with `text` containing the generated response and `tokensUsed` indicating total tokens consumed
- * @throws ClaudeAPIError on API failures
+ * @throws ClaudeAPIError when the Claude API call fails
  */
 export async function generateResponse(
   review: Review,

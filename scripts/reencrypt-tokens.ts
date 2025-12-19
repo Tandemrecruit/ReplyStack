@@ -66,10 +66,12 @@ interface ReencryptionStats {
 }
 
 /**
- * Re-encrypts all tokens in the database with the current encryption key.
+ * Re-encrypts all google_refresh_token values in the users table using the current primary encryption key.
  *
- * @param dryRun - If true, only simulates the operation without making changes
- * @returns Statistics about the re-encryption operation
+ * Tokens already encrypted with the primary key are skipped. When `dryRun` is true, the function simulates work and does not modify the database.
+ *
+ * @param dryRun - If true, simulate re-encryption without persisting changes
+ * @returns Statistics summarizing the operation: total processed, counts for success, skipped, failed, number that would be re-encrypted in a dry run, and an array of per-user errors
  */
 async function reencryptAllTokens(dryRun: boolean): Promise<ReencryptionStats> {
   const stats: ReencryptionStats = {
