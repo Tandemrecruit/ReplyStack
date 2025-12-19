@@ -13,8 +13,28 @@ describe("lib/claude/client", () => {
     expect(text).toContain("Please reach out to us");
   });
 
-  it("generateResponse returns a placeholder response (integration not implemented yet)", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("generateResponse calls Claude API and returns generated response", async () => {
+    // Mock environment variable
+    process.env.ANTHROPIC_API_KEY = "test-api-key";
+
+    // Mock fetch response
+    const mockResponse = {
+      ok: true,
+      json: async () => ({
+        id: "msg-123",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text: "Thank you for your review!" }],
+        model: "claude-haiku-4-5-20251001",
+        stop_reason: "end_turn",
+        usage: {
+          input_tokens: 100,
+          output_tokens: 20,
+        },
+      }),
+    };
+
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const review: Review = {
       id: "r1",
@@ -49,14 +69,13 @@ describe("lib/claude/client", () => {
     const result = await generateResponse(review, voiceProfile, "Example Biz");
 
     expect(result).toEqual({
-      text: "AI response generation coming soon...",
-      tokensUsed: 0,
+      text: "Thank you for your review!",
+      tokensUsed: 120,
     });
-    expect(warn).toHaveBeenCalledWith(
-      "Claude API not implemented",
-      expect.objectContaining({
-        reviewId: "r1",
-      }),
-    );
+    expect(global.fetch).toHaveBeenCalled();
+
+    // Cleanup
+    delete process.env.ANTHROPIC_API_KEY;
+    vi.restoreAllMocks();
   });
 });

@@ -10,7 +10,7 @@
 import type { Review, VoiceProfile } from "@/lib/supabase/types";
 
 // Claude model to use
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
+const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // API configuration
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
@@ -267,13 +267,14 @@ export async function generateResponse(
   const reviewWithTruncatedText = { ...review, review_text: reviewText };
 
   // Build prompts
-  let systemPrompt = buildSystemPrompt(voiceProfile, businessName);
-  const userPrompt = buildUserPrompt(reviewWithTruncatedText, businessName);
-
-  // Add negative review addendum for 1-2 star reviews
-  if (review.rating !== null && review.rating <= 2 && contactEmail) {
-    systemPrompt += `\n\n${buildNegativeAddendum(contactEmail)}`;
-  }
+  const systemPrompt = buildSystemPrompt(voiceProfile, businessName);
+  const isNegativeReview = review.rating !== null && review.rating <= 2;
+  const userPrompt = buildUserPrompt(
+    reviewWithTruncatedText,
+    businessName,
+    isNegativeReview,
+    contactEmail,
+  );
 
   // Call Claude API with retry
   return await callClaudeWithRetry(systemPrompt, userPrompt);
@@ -317,8 +318,19 @@ RULES:
 
 /**
  * Builds the user prompt for a specific review
+ *
+ * @param review - The review to respond to
+ * @param businessName - The business name to use in the prompt
+ * @param isNegativeReview - Whether this is a negative review (1-2 stars) requiring special handling
+ * @param contactEmail - Optional contact email for negative review addendum
+ * @returns The formatted user prompt string
  */
-function buildUserPrompt(review: Review, businessName: string): string {
+function buildUserPrompt(
+  review: Review,
+  businessName: string,
+  isNegativeReview?: boolean,
+  contactEmail?: string,
+): string {
   const reviewDate = review.review_date
     ? new Date(review.review_date).toLocaleDateString("en-US", {
         year: "numeric",
@@ -327,13 +339,20 @@ function buildUserPrompt(review: Review, businessName: string): string {
       })
     : "Unknown date";
 
-  return `Review to respond to:
+  let prompt = `Review to respond to:
 - Rating: ${review.rating ?? "Unknown"}/5 stars
 - Reviewer: ${review.reviewer_name ?? "Anonymous"}
 - Date: ${reviewDate}
 - Text: "${review.review_text ?? "No review text"}"
 
 Write a response as ${businessName}.`;
+
+  // Add negative review addendum if applicable
+  if (isNegativeReview && contactEmail) {
+    prompt += `\n\n${buildNegativeAddendum(contactEmail)}`;
+  }
+
+  return prompt;
 }
 
 /**
