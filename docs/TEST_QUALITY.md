@@ -23,10 +23,10 @@ This generates:
 - Missing edge cases (error handling, boundary conditions)
 
 **Coverage thresholds** (configured in `vitest.config.ts`):
-- Lines: 70%
-- Functions: 70%
-- Branches: 65%
-- Statements: 70%
+- Lines: 85%
+- Functions: 85%
+- Branches: 80%
+- Statements: 85%
 
 ### 2. **Manual Mutation Testing**
 

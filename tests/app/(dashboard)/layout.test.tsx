@@ -70,7 +70,8 @@ describe("app/(dashboard)/layout", () => {
       </DashboardLayout>,
     );
     const outerDiv = container.firstChild as HTMLElement;
-    expect(outerDiv).toHaveClass("min-h-screen", "bg-background");
+    expect(outerDiv).toBeInTheDocument();
+    expect(outerDiv).toHaveAttribute("class");
   });
 
   it("renders main content area", () => {
@@ -81,6 +82,15 @@ describe("app/(dashboard)/layout", () => {
     );
     const main = container.querySelector("main");
     expect(main).toBeInTheDocument();
-    expect(main).toHaveClass("max-w-7xl", "mx-auto");
+    expect(main).toHaveAttribute("class");
+  });
+
+  it("matches layout snapshot", () => {
+    const { container } = render(
+      <DashboardLayout>
+        <div>Test</div>
+      </DashboardLayout>,
+    );
+    expect(container.firstChild).toMatchSnapshot();
   });
 });

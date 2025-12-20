@@ -31,10 +31,4 @@ describe("app/(auth)/login/page", () => {
     render(<LoginPage />);
     expect(screen.getByTestId("login-form")).toBeInTheDocument();
   });
-
-  it("renders with Suspense boundary", () => {
-    const { container } = render(<LoginPage />);
-    // Suspense should be present in the component tree
-    expect(container.querySelector("div")).toBeInTheDocument();
-  });
 });

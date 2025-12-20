@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next/link", async () => {
@@ -287,45 +287,42 @@ describe("components/landing/LiveDemo", () => {
 
     it("normalizes whitespace in review text display", async () => {
       const user = userEvent.setup();
-      render(<LiveDemo />);
+      const { container } = render(<LiveDemo />);
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
       await user.type(textarea, "Great   service    with   multiple   spaces");
 
-      await waitFor(
-        () => {
-          // Review display should normalize multiple spaces
-          // Use getAllByText to handle multiple matches (textarea + preview)
-          const matches = screen.getAllByText(
-            /Great service with multiple spaces/i,
-          );
-          // Find the <p> element which is the preview (not the textarea)
-          const previewElement = matches.find((el) => el.tagName === "P");
-          expect(previewElement).toBeDefined();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        // Review display should normalize multiple spaces
+        // Find the review preview section (bg-background-secondary)
+        const reviewPreview = container.querySelector(
+          ".bg-background-secondary",
+        );
+        expect(reviewPreview).toBeDefined();
+        const previewText = within(reviewPreview as HTMLElement).getByText(
+          /Great service with multiple spaces/i,
+        );
+        expect(previewText).toBeInTheDocument();
+      });
     });
 
     it("handles empty review text", async () => {
       const user = userEvent.setup();
-      render(<LiveDemo />);
+      const { container } = render(<LiveDemo />);
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
 
-      await waitFor(
-        () => {
-          // Should show ellipsis for empty text - find paragraph containing ellipsis
-          const paragraphs = document.querySelectorAll("p.text-sm");
-          const previewParagraph = Array.from(paragraphs).find((p) =>
-            p.textContent?.includes("…"),
-          );
-          expect(previewParagraph).toBeDefined();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        // Should show ellipsis for empty text - find review preview section
+        const reviewPreview = container.querySelector(
+          ".bg-background-secondary",
+        );
+        expect(reviewPreview).toBeDefined();
+        const previewText = within(reviewPreview as HTMLElement).getByText(/…/);
+        expect(previewText).toBeInTheDocument();
+      });
     });
   });
 
@@ -351,13 +348,10 @@ describe("components/landing/LiveDemo", () => {
       await user.clear(textarea);
       await user.type(textarea, "I had to wait a long time.");
 
-      await waitFor(
-        () => {
-          // Use simpler regex to avoid em-dash encoding issues
-          expect(screen.getByText(/sorry about the wait/i)).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        // Use simpler regex to avoid em-dash encoding issues
+        expect(screen.getByText(/sorry about the wait/i)).toBeInTheDocument();
+      });
     });
 
     it("detects wait topic and includes concise wait response for Concise tone", async () => {
@@ -472,14 +466,11 @@ describe("components/landing/LiveDemo", () => {
       await user.clear(textarea);
       await user.type(textarea, "Great service overall!");
 
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/really glad you had a good experience/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        expect(
+          screen.getByText(/really glad you had a good experience/i),
+        ).toBeInTheDocument();
+      });
     });
 
     it("shows generic gratitude for Direct tone when no topics", async () => {
@@ -492,14 +483,11 @@ describe("components/landing/LiveDemo", () => {
       await user.clear(textarea);
       await user.type(textarea, "Excellent experience!");
 
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/glad the visit went well overall/i),
-          ).toBeInTheDocument();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        expect(
+          screen.getByText(/glad the visit went well overall/i),
+        ).toBeInTheDocument();
+      });
     });
 
     it("shows generic gratitude for Concise tone when no topics", async () => {
@@ -521,14 +509,16 @@ describe("components/landing/LiveDemo", () => {
 
     it("includes closing line for all tones", async () => {
       const user = userEvent.setup();
-      render(<LiveDemo />);
+      const { container } = render(<LiveDemo />);
 
       // Helper to check draft contains text (handles curly quotes/apostrophes)
       const draftContains = (text: string) => {
-        const draftParagraphs = document.querySelectorAll("p.text-sm");
-        return Array.from(draftParagraphs).some((p) =>
-          p.textContent?.toLowerCase().includes(text.toLowerCase()),
+        const draftSection = container.querySelector(".bg-surface-elevated");
+        if (!draftSection) return false;
+        const draftText = within(draftSection as HTMLElement).queryByText(
+          new RegExp(text, "i"),
         );
+        return draftText !== null;
       };
 
       // Warm tone
@@ -637,37 +627,37 @@ describe("components/landing/LiveDemo", () => {
   describe("Review display", () => {
     it("displays normalized review text in preview", async () => {
       const user = userEvent.setup();
-      render(<LiveDemo />);
+      const { container } = render(<LiveDemo />);
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
       await user.type(textarea, "  Great   service   with   extra   spaces  ");
 
-      await waitFor(
-        () => {
-          // Should normalize and trim
-          // Use getAllByText to handle multiple matches (textarea + preview)
-          const matches = screen.getAllByText(
-            /Great service with extra spaces/i,
-          );
-          // Find the <p> element which is the preview (not the textarea)
-          const previewElement = matches.find((el) => el.tagName === "P");
-          expect(previewElement).toBeDefined();
-        },
-        { timeout: 3000 },
-      );
+      await waitFor(() => {
+        // Should normalize and trim
+        // Find the review preview section (bg-background-secondary)
+        const reviewPreview = container.querySelector(
+          ".bg-background-secondary",
+        );
+        expect(reviewPreview).toBeDefined();
+        const previewText = within(reviewPreview as HTMLElement).getByText(
+          /Great service with extra spaces/i,
+        );
+        expect(previewText).toBeInTheDocument();
+      });
     });
 
     it("displays review with quotes", () => {
-      render(<LiveDemo />);
+      const { container } = render(<LiveDemo />);
       // The review text is wrapped in quotes in the preview section
-      // Find the preview paragraph in the review card (background-secondary class)
-      const previewCard = document.querySelector(".bg-background-secondary");
+      // Find the preview section in the review card (background-secondary class)
+      const previewCard = container.querySelector(".bg-background-secondary");
       expect(previewCard).toBeDefined();
-      const previewParagraph = previewCard?.querySelector("p.text-sm");
-      expect(previewParagraph).toBeDefined();
       // The text should contain the review content
-      expect(previewParagraph?.textContent).toContain("The stylist was kind");
+      const previewText = within(previewCard as HTMLElement).getByText(
+        /The stylist was kind/i,
+      );
+      expect(previewText).toBeInTheDocument();
     });
   });
 });

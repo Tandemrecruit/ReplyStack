@@ -12,7 +12,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:coverage:ui": "vitest run --coverage && open coverage/index.html",
+    "test:coverage:ui": "vitest run --coverage && start coverage/index.html",
     "typecheck": "tsc --noEmit",
     "supabase:types": "node scripts/generate-types.js"
   },

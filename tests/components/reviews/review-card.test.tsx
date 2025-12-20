@@ -341,8 +341,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    const filledStars = container.querySelectorAll(".text-star");
-    const emptyStars = container.querySelectorAll(".text-star-empty");
+    const filledStars = container.querySelectorAll(
+      '[data-testid="star-filled"]',
+    );
+    const emptyStars = container.querySelectorAll('[data-testid="star-empty"]');
     expect(filledStars.length).toBe(5);
     expect(emptyStars.length).toBe(0);
   });
@@ -369,8 +371,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    const filledStars = container.querySelectorAll(".text-star");
-    const emptyStars = container.querySelectorAll(".text-star-empty");
+    const filledStars = container.querySelectorAll(
+      '[data-testid="star-filled"]',
+    );
+    const emptyStars = container.querySelectorAll('[data-testid="star-empty"]');
     expect(filledStars.length).toBe(3);
     expect(emptyStars.length).toBe(2);
   });
@@ -397,8 +401,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    const filledStars = container.querySelectorAll(".text-star");
-    const emptyStars = container.querySelectorAll(".text-star-empty");
+    const filledStars = container.querySelectorAll(
+      '[data-testid="star-filled"]',
+    );
+    const emptyStars = container.querySelectorAll('[data-testid="star-empty"]');
     expect(filledStars.length).toBe(0);
     expect(emptyStars.length).toBe(5);
   });
@@ -425,8 +431,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    const filledStars = container.querySelectorAll(".text-star");
-    const emptyStars = container.querySelectorAll(".text-star-empty");
+    const filledStars = container.querySelectorAll(
+      '[data-testid="star-filled"]',
+    );
+    const emptyStars = container.querySelectorAll('[data-testid="star-empty"]');
     expect(filledStars.length).toBe(0);
     expect(emptyStars.length).toBe(5);
     expect(screen.getByText("0 out of 5 stars")).toBeInTheDocument();
@@ -454,8 +462,10 @@ describe("components/reviews/ReviewCard", () => {
       />,
     );
 
-    const filledStars = container.querySelectorAll(".text-star");
-    const emptyStars = container.querySelectorAll(".text-star-empty");
+    const filledStars = container.querySelectorAll(
+      '[data-testid="star-filled"]',
+    );
+    const emptyStars = container.querySelectorAll('[data-testid="star-empty"]');
     expect(filledStars.length).toBe(1);
     expect(emptyStars.length).toBe(4);
     expect(screen.getByText("1 out of 5 stars")).toBeInTheDocument();

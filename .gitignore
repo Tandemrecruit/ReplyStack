@@ -51,7 +51,6 @@ next-env.d.ts
 .cursor/
 .vscode/
 .claude/
-.claude/settings.local.json
 
 # supabase
 .supabase/

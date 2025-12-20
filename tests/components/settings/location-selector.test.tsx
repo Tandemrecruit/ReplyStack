@@ -618,10 +618,6 @@ describe("components/settings/LocationSelector", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ saved: 1 }),
       });
 
     render(<LocationSelector />);
@@ -747,10 +743,6 @@ describe("components/settings/LocationSelector", () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ saved: 0 }),
       });
 
     render(<LocationSelector />);
@@ -845,11 +837,7 @@ describe("components/settings/LocationSelector", () => {
           ],
         }),
       })
-      .mockRejectedValueOnce(new Error("Network error"))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ saved: 0 }),
-      });
+      .mockRejectedValueOnce(new Error("Network error"));
 
     render(<LocationSelector />);
 

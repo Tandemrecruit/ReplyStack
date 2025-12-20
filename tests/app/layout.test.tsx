@@ -23,6 +23,49 @@ describe("app/layout (Root Layout)", () => {
     );
   });
 
+  it("exports metadata with keywords", () => {
+    expect(metadata.keywords).toEqual([
+      "review management",
+      "Google Business Profile",
+      "AI responses",
+      "local business",
+      "reputation management",
+    ]);
+  });
+
+  it("exports metadata with authors", () => {
+    expect(metadata.authors).toEqual([{ name: "ReplyStack" }]);
+    expect(metadata.creator).toBe("ReplyStack");
+  });
+
+  it("exports metadata with openGraph properties", () => {
+    expect(metadata.openGraph).toEqual({
+      type: "website",
+      locale: "en_US",
+      url: "https://replystack.com",
+      siteName: "ReplyStack",
+      title: "ReplyStack | AI-Powered Review Responses",
+      description:
+        "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
+    });
+  });
+
+  it("exports metadata with twitter properties", () => {
+    expect(metadata.twitter).toEqual({
+      card: "summary_large_image",
+      title: "ReplyStack | AI-Powered Review Responses",
+      description:
+        "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
+    });
+  });
+
+  it("exports metadata with robots properties", () => {
+    expect(metadata.robots).toEqual({
+      index: true,
+      follow: true,
+    });
+  });
+
   it("renders children content", () => {
     render(
       <RootLayout>

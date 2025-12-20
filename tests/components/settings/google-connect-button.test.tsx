@@ -83,7 +83,7 @@ describe("components/settings/GoogleConnectButton", () => {
   });
 
   it("handles OAuth errors gracefully", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockSignInWithOAuth.mockResolvedValue({
       error: { message: "OAuth failed" },
     });
@@ -101,10 +101,12 @@ describe("components/settings/GoogleConnectButton", () => {
         "OAuth failed",
       );
     });
+
+    consoleSpy.mockRestore();
   });
 
   it("handles unexpected errors gracefully", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockSignInWithOAuth.mockRejectedValue(new Error("Network error"));
 
     const user = userEvent.setup();
@@ -120,6 +122,8 @@ describe("components/settings/GoogleConnectButton", () => {
         expect.any(Error),
       );
     });
+
+    consoleSpy.mockRestore();
   });
 
   it("renders Google icon SVG", () => {

@@ -562,6 +562,55 @@ describe("lib/claude/client", () => {
         }
         expect(global.fetch).toHaveBeenCalledTimes(2);
       });
+
+      it("handles error response without error message", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        const mockResponse = {
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+        };
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        // Capture result/error immediately to prevent unhandled rejection
+        const resultPromise = generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+        ).then(
+          (result) => ({ success: true as const, result }),
+          (error) => ({ success: false as const, error }),
+        );
+
+        // Advance timers to complete all retry attempts
+        await vi.advanceTimersByTimeAsync(2000);
+
+        const outcome = await resultPromise;
+
+        expect(outcome.success).toBe(false);
+        if (!outcome.success) {
+          expect(outcome.error).toBeInstanceOf(ClaudeAPIError);
+          expect(outcome.error.status).toBe(500);
+          expect(outcome.error.message).toBe("Claude API request failed");
+        }
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+      });
+
+      it("handles non-AbortError in fetchWithTimeout", async () => {
+        const fetchError = new Error("Network failure");
+        global.fetch = vi.fn().mockRejectedValue(fetchError);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        await expect(
+          generateResponse(review, voiceProfile, "Example Biz"),
+        ).rejects.toThrow("Network failure");
+      });
     });
 
     describe("API request format", () => {
@@ -595,6 +644,215 @@ describe("lib/claude/client", () => {
         expect(body.messages[0].role).toBe("user");
         expect(typeof body.messages[0].content).toBe("string");
         expect(body.messages[0].content.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe("response parsing", () => {
+      it("handles empty content array in API response", async () => {
+        const mockResponse = {
+          ok: true,
+          json: async () => ({
+            id: "msg-123",
+            type: "message",
+            role: "assistant",
+            content: [],
+            model: "claude-haiku-4-5-20251001",
+            stop_reason: "end_turn",
+            usage: {
+              input_tokens: 100,
+              output_tokens: 20,
+            },
+          }),
+        };
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        const result = await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+        );
+
+        expect(result.text).toBe("");
+        expect(result.tokensUsed).toBe(120);
+      });
+
+      it("handles missing text in content array", async () => {
+        const mockResponse = {
+          ok: true,
+          json: async () => ({
+            id: "msg-123",
+            type: "message",
+            role: "assistant",
+            content: [{ type: "text" }],
+            model: "claude-haiku-4-5-20251001",
+            stop_reason: "end_turn",
+            usage: {
+              input_tokens: 100,
+              output_tokens: 20,
+            },
+          }),
+        };
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        const result = await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+        );
+
+        expect(result.text).toBe("");
+        expect(result.tokensUsed).toBe(120);
+      });
+    });
+
+    describe("review handling", () => {
+      it("handles review with null rating", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ rating: null });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).toContain("Unknown");
+      });
+
+      it("handles review with rating 2 (negative)", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ rating: 2 });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+          "support@example.com",
+        );
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).toContain("negative review");
+      });
+
+      it("handles review with rating 3 (not negative)", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ rating: 3 });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+          "support@example.com",
+        );
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).not.toContain("negative review");
+      });
+
+      it("handles review with null review_date", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ review_date: null });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).toContain("Unknown date");
+      });
+
+      it("handles review with null reviewer_name", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ reviewer_name: null });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).toContain("Anonymous");
+      });
+
+      it("formats review date correctly", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({
+          review_date: "2025-03-15T10:30:00.000Z",
+        });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).toContain("March");
+        expect(body.messages[0].content).toContain("2025");
+      });
+    });
+
+    describe("voice profile handling", () => {
+      it("handles voice profile with empty arrays", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile({
+          example_responses: [],
+          words_to_use: [],
+          words_to_avoid: [],
+        });
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        const systemPrompt = body.system;
+        expect(systemPrompt).toContain("EXAMPLES OF RESPONSES THEY LIKE:");
+        expect(systemPrompt).toContain("Never use:");
+        expect(systemPrompt).toContain("Prefer using:");
       });
     });
   });

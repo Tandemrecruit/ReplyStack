@@ -24,9 +24,9 @@ describe("app/(auth)/verify-email/page", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the email icon", () => {
+  it("renders the email icon with accessible label", () => {
     render(<VerifyEmailPage />);
-    const icon = screen.getByRole("img", { hidden: true });
+    const icon = screen.getByRole("img", { name: "Email icon" });
     expect(icon).toBeInTheDocument();
   });
 

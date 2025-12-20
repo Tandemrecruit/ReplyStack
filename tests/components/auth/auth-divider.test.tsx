@@ -16,16 +16,19 @@ describe("components/auth/AuthDivider", () => {
   });
 
   it("renders divider line", () => {
-    const { container } = render(<AuthDivider />);
+    render(<AuthDivider />);
 
-    const divider = container.querySelector(".border-t");
-    expect(divider).toBeInTheDocument();
+    // Test that the divider structure exists using semantic role
+    expect(screen.getByRole("separator")).toBeInTheDocument();
   });
 
-  it("applies correct styling classes", () => {
+  it("renders all structural elements", () => {
     const { container } = render(<AuthDivider />);
 
-    const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass("relative", "my-6");
+    // Verify the component renders without errors
+    expect(container.firstChild).toBeTruthy();
+
+    // Verify the text is visible to users
+    expect(screen.getByText("Or continue with")).toBeVisible();
   });
 });

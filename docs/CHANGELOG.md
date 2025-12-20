@@ -4,17 +4,42 @@
 
 ### Code Quality
 
-- Fixed TypeScript errors: resolved type issues in poll-reviews route (undefined rating check), test mocks (removed undefined properties to comply with exactOptionalPropertyTypes), and test assertions (added non-null assertions for mock calls and cookie adapters)
-- Fixed linting errors: replaced all non-null assertions (`!`) with optional chaining (`?.`) in test files to comply with Biome's `noNonNullAssertion` rule, improving type safety in 20 locations across settings-client, poll-reviews, claude client, and supabase clients tests
-- Fixed 5 TypeScript typecheck errors: resolved variable assignment issues in settings-client tests (changed resolveUpdate/resolveSave to allow undefined), and fixed cookieAdapter type issues in supabase clients tests (added type assertions through `unknown` to satisfy both TypeScript and Biome linting rules)
+- Excluded Stryker HTML reports from Biome linting: updated `biome.json` to exclude `reports/**` directory using `files.includes` with negation pattern `!!**/reports`, preventing linting errors in generated mutation test reports
+- Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error
 
 ### Testing
 
+- Fixed timeout in claude client test: updated "handles error response without error message" test to properly handle retry logic by advancing fake timers and capturing promise outcome, preventing test timeout on 500 error responses
+- Fixed landing page tests: updated "renders proof point cards" and "renders no credit card message" tests to use `getAllByText` instead of `getByText` for text that appears multiple times on the page, preventing "Found multiple elements" errors
+
+### Code Quality
+
+- Fixed TypeScript errors: resolved type issues in poll-reviews route (undefined rating check), test mocks (removed undefined properties to comply with exactOptionalPropertyTypes), and test assertions (added non-null assertions for mock calls and cookie adapters)
+- Fixed linting errors: replaced all non-null assertions (`!`) with optional chaining (`?.`) in test files to comply with Biome's `noNonNullAssertion` rule, improving type safety in 20 locations across settings-client, poll-reviews, claude client, and supabase clients tests
+- Fixed 5 TypeScript typecheck errors: resolved variable assignment issues in settings-client tests (changed resolveUpdate/resolveSave to allow undefined), and fixed cookieAdapter type issues in supabase clients tests (added type assertions through `unknown` to satisfy both TypeScript and Biome linting rules)
+- Reorganized locations API route tests: moved 6 misplaced tests from DELETE describe block to their correct describe blocks (4 GET tests, 2 POST tests), improving test organization and maintainability
+- Reorganized voice-profile API route tests: moved "returns 404 when organization not found in GET" test from PUT describe block to GET describe block, improving test organization and maintainability
+- Consolidated duplicate voice-profile API route test: moved "handles user lookup error in GET" test from PUT describe block to GET describe block and renamed to "returns 404 when database error occurs during user lookup in GET" to clearly differentiate it from the existing organization not found test, eliminating duplication and ensuring tests are in correct describe scope
+
+### Testing
+
+- Decoupled review-card star rating tests from CSS classes: added `data-testid="star-filled"` and `data-testid="star-empty"` attributes to star SVG elements in ReviewCard component and updated 5 test cases to use `querySelectorAll('[data-testid="star-filled"]')` and `querySelectorAll('[data-testid="star-empty"]')` instead of CSS class selectors, making tests resilient to styling changes
+- Optimized LiveDemo component tests: replaced DOM queries (`querySelector`, `querySelectorAll`) with Testing Library queries using container-scoped `within()` helper, removed all 3000ms extended timeouts (now using default 1000ms), and improved test reliability by targeting specific preview sections instead of filtering multiple matches
+
+- Improved dashboard layout test resilience: removed brittle Tailwind class assertions (toHaveClass checks for exact class names) and replaced with structural checks (element presence, class attribute existence) and snapshot test for visual/signature stability, reducing test coupling to implementation details
+
+- Improved test coverage for claude client: added tests for error response without error message, non-AbortError handling, empty content array in API response, missing text in content, null rating reviews, rating 2 and 3 reviews, null review_date and reviewer_name, date formatting, and voice profile with empty arrays
+- Improved test coverage for voice-editor component: added tests for undefined onSave handler, initial validation errors, null/undefined max_length validation, ARIA live region, error state clearing, string-to-number conversion, all tone descriptions, complete form submission, input change handlers, and edge cases for max_length validation
+- Improved test coverage for app/layout.tsx: added tests for metadata properties (keywords, authors, openGraph, twitter, robots) to increase coverage
+- Improved test coverage for app/page.tsx: added tests for hero section elements (badge, gradient text, social proof, visual card, review content, draft reply, action buttons), social proof business names, feature descriptions, benefits list items, proof point cards, pricing details, CTA section, and footer elements to increase coverage
+- Added test coverage for root middleware.ts: created tests/middleware.test.ts to verify middleware function calls updateSession correctly and config object has proper structure, achieving 100% mutation score (all 4 mutations killed)
 - Strengthened location-selector component tests: added tests for deactivating locations, handling partial deactivation failures, locations without database IDs, multiple deactivations with errors, clearing success messages on toggle, and updating local state after save
 - Strengthened locations API route tests: added tests for token decryption errors, multiple accounts with partial failures, locations with missing/null fields, organization rollback scenarios, invalid JSON in DELETE, location not found in DELETE, and user lookup error handling
 - Strengthened reviews API route tests: added tests for invalid status/sentiment/rating filter values, location_id filter with invalid locations, pagination edge cases (page 0, negative values), limit edge cases (0, negative, >100), reviews with null location names, and user lookup error handling
 - Strengthened responses API route tests: added tests for error when checking existing response fails, review text with only whitespace, location voice profile fetch errors, and organization voice profile fetch errors with graceful fallback
 - Strengthened voice-profile API route tests: added tests for validation edge cases (empty arrays, null values), user not found error handling, organization not found in GET, filtering undefined values from update data, invalid max_length values (0, negative, non-integer), and user lookup error handling
+- Decoupled auth-divider test from CSS classes: added `role="separator"` to AuthDivider component and updated test to use `getByRole('separator')` instead of querying for CSS classes, making the test resilient to styling changes
+- Created TDD approach rule: added `.cursor/rules/tdd-approach/RULE.mdc` documenting hybrid TDD strategy - use TDD for API routes, business logic, security-sensitive code, webhooks, and cron jobs; use test-after for UI components, Server Components, and rapid prototyping
 
 ## 2025-12-19
 

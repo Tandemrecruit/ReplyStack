@@ -196,6 +196,60 @@ describe("GET /api/voice-profile", () => {
       error: "Failed to fetch voice profile",
     });
   });
+
+  it("returns 404 when organization not found in GET", async () => {
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { id: "user-1", organization_id: null },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const response = await GET();
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "Organization not found",
+    });
+  });
+
+  it("returns 404 when database error occurs during user lookup in GET", async () => {
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: { message: "Database error" },
+            }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const response = await GET();
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "Organization not found",
+    });
+  });
 });
 
 describe("PUT /api/voice-profile", () => {
@@ -593,33 +647,6 @@ describe("PUT /api/voice-profile", () => {
     });
   });
 
-  it("returns 404 when organization not found in GET", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user-1" } },
-        }),
-      },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { id: "user-1", organization_id: null },
-              error: null,
-            }),
-          }),
-        }),
-      }),
-    } as never);
-
-    const response = await GET();
-
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      error: "Organization not found",
-    });
-  });
-
   it("filters out undefined values from update data", async () => {
     const updatedProfile = {
       id: "profile-1",
@@ -871,32 +898,5 @@ describe("PUT /api/voice-profile", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual(newProfile);
-  });
-
-  it("handles user lookup error in GET", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user-1" } },
-        }),
-      },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: "Database error" },
-            }),
-          }),
-        }),
-      }),
-    } as never);
-
-    const response = await GET();
-
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      error: "Organization not found",
-    });
   });
 });

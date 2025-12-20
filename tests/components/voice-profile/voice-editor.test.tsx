@@ -527,4 +527,272 @@ describe("components/voice-profile/VoiceEditor", () => {
       expect(maxInput).not.toHaveAttribute("aria-describedby");
     });
   });
+
+  it("handles submission when onSave is undefined", async () => {
+    const user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} />);
+
+    await user.type(screen.getByLabelText("Personality Notes"), "Test notes");
+    await user.type(screen.getByLabelText("Sign-off Style"), "— Test");
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    // Should not throw error when onSave is undefined
+    expect(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    ).toBeInTheDocument();
+  });
+
+  it("handles initial max_length with validation error", () => {
+    render(
+      <VoiceEditor
+        profile={{ tone: "friendly", max_length: 30 }}
+        onSave={vi.fn()}
+      />,
+    );
+
+    const errorMessages = screen.getAllByRole("alert");
+    const visibleError = errorMessages.find(
+      (el) => el.id === "maxlength-error",
+    );
+    expect(visibleError).toBeDefined();
+    expect(visibleError).toHaveTextContent(
+      "Maximum response length must be between 50 and 500 words",
+    );
+  });
+
+  it("handles initial max_length above maximum with validation error", () => {
+    render(
+      <VoiceEditor
+        profile={{ tone: "friendly", max_length: 600 }}
+        onSave={vi.fn()}
+      />,
+    );
+
+    const errorMessages = screen.getAllByRole("alert");
+    const visibleError = errorMessages.find(
+      (el) => el.id === "maxlength-error",
+    );
+    expect(visibleError).toBeDefined();
+    expect(visibleError).toHaveTextContent(
+      "Maximum response length must be between 50 and 500 words",
+    );
+  });
+
+  it("validates max_length with null value", async () => {
+    const _user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+
+    // Simulate null value
+    fireEvent.change(maxInput, { target: { value: null } });
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByRole("alert");
+      const visibleError = errorMessages.find(
+        (el) => el.id === "maxlength-error",
+      );
+      expect(visibleError).toBeDefined();
+    });
+  });
+
+  it("validates max_length with undefined value", async () => {
+    const user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+
+    // Simulate undefined value by clearing
+    await user.clear(maxInput);
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByRole("alert");
+      const visibleError = errorMessages.find(
+        (el) => el.id === "maxlength-error",
+      );
+      expect(visibleError).toBeDefined();
+    });
+  });
+
+  it("renders ARIA live region with maxLengthError", async () => {
+    const _user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+
+    fireEvent.change(maxInput, { target: { value: "30" } });
+
+    await waitFor(() => {
+      // ARIA live region is in sr-only div, so we need to query by text content
+      const liveRegion = document.querySelector('[aria-live="polite"]');
+      expect(liveRegion).toBeInTheDocument();
+      expect(liveRegion).toHaveAttribute("aria-atomic", "true");
+      expect(liveRegion).toHaveTextContent(
+        "Maximum response length must be between 50 and 500 words",
+      );
+    });
+  });
+
+  it("clears errors state on form submission", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+
+    // First submit with invalid max_length
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+    fireEvent.change(maxInput, { target: { value: "30" } });
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    expect(onSave).not.toHaveBeenCalled();
+
+    // Fix the error and submit again
+    fireEvent.change(maxInput, { target: { value: "150" } });
+
+    await waitFor(() => {
+      const errorMessages = screen.queryAllByRole("alert");
+      const visibleError = errorMessages.find(
+        (el) => el.id === "maxlength-error",
+      );
+      expect(visibleError).toBeUndefined();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    expect(onSave).toHaveBeenCalled();
+  });
+
+  it("handles form submission with string max_length value", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+
+    // Set max_length as string through input
+    fireEvent.change(maxInput, { target: { value: "200" } });
+
+    await user.type(screen.getByLabelText("Personality Notes"), "Test");
+    await user.type(screen.getByLabelText("Sign-off Style"), "— Test");
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        max_length: 200, // Should be converted to number
+      }),
+    );
+  });
+
+  it("handles all tone option descriptions", () => {
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    expect(screen.getByText("Warm and approachable")).toBeInTheDocument();
+    expect(screen.getByText("Polished and business-like")).toBeInTheDocument();
+    expect(screen.getByText("Relaxed and conversational")).toBeInTheDocument();
+    expect(screen.getByText("Traditional and reserved")).toBeInTheDocument();
+  });
+
+  it("handles form submission with all fields filled", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+
+    await user.click(screen.getByRole("button", { name: /Formal/i }));
+    await user.type(
+      screen.getByLabelText("Personality Notes"),
+      "Family business since 1985",
+    );
+    await user.type(screen.getByLabelText("Sign-off Style"), "— John, Owner");
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+    fireEvent.change(maxInput, { target: { value: "250" } });
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    expect(onSave).toHaveBeenCalledWith({
+      tone: "formal",
+      personality_notes: "Family business since 1985",
+      sign_off_style: "— John, Owner",
+      max_length: 250,
+    });
+  });
+
+  it("handles input change for personality notes", async () => {
+    const user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    const personalityInput = screen.getByLabelText(
+      "Personality Notes",
+    ) as HTMLTextAreaElement;
+
+    await user.type(personalityInput, "Test personality");
+
+    expect(personalityInput.value).toBe("Test personality");
+  });
+
+  it("handles input change for sign-off style", async () => {
+    const user = userEvent.setup();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+
+    const signOffInput = screen.getByLabelText(
+      "Sign-off Style",
+    ) as HTMLInputElement;
+
+    await user.type(signOffInput, "— Test Owner");
+
+    expect(signOffInput.value).toBe("— Test Owner");
+  });
+
+  it("handles max_length input with empty string then valid value", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+
+    const maxInput = screen.getByLabelText(
+      "Maximum Response Length",
+    ) as HTMLInputElement;
+
+    // Clear to empty
+    await user.clear(maxInput);
+
+    await waitFor(() => {
+      expect(maxInput.value).toBe("");
+    });
+
+    // Set to valid value
+    fireEvent.change(maxInput, { target: { value: "175" } });
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Voice Profile" }),
+    );
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        max_length: 175,
+      }),
+    );
+  });
 });

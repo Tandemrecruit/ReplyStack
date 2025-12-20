@@ -67,7 +67,11 @@ describe("app/(dashboard)/reviews/page", () => {
 
   it("renders empty state icon", () => {
     render(<ReviewsPage />);
-    const icon = screen.getByRole("img", { hidden: true });
+    // Use a more specific query if the icon has a aria-label
+    const icon = screen.getByRole("img", {
+      name: /reviews|empty/i,
+      hidden: true,
+    });
     expect(icon).toBeInTheDocument();
   });
 });
