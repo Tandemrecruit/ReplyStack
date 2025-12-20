@@ -667,7 +667,7 @@ describe("components/landing/LiveDemo", () => {
       const previewParagraph = previewCard?.querySelector("p.text-sm");
       expect(previewParagraph).toBeDefined();
       // The text should contain the review content
-      expect(previewParagraph!.textContent).toContain("The stylist was kind");
+      expect(previewParagraph?.textContent).toContain("The stylist was kind");
     });
   });
 });
