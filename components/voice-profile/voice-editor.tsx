@@ -47,7 +47,12 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     return null;
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    tone: string;
+    personality_notes: string;
+    sign_off_style: string;
+    max_length: number | string;
+  }>({
     tone: profile?.tone ?? "friendly",
     personality_notes: profile?.personality_notes ?? "",
     sign_off_style: profile?.sign_off_style ?? "",
@@ -58,8 +63,15 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     getInitialMaxLengthError(initialMaxLength),
   );
 
-  const validateMaxLength = (value: number): boolean => {
-    if (value < 50 || value > 500) {
+  const validateMaxLength = (value: number | string): boolean => {
+    if (value === "" || value === null || value === undefined) {
+      setMaxLengthError(
+        "Maximum response length must be between 50 and 500 words",
+      );
+      return false;
+    }
+    const numValue = typeof value === "string" ? parseInt(value, 10) : value;
+    if (Number.isNaN(numValue) || numValue < 50 || numValue > 500) {
       setMaxLengthError(
         "Maximum response length must be between 50 and 500 words",
       );
@@ -78,7 +90,16 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
       return;
     }
 
-    onSave?.(formData);
+    // Ensure max_length is a number before saving
+    const maxLengthNum =
+      typeof formData.max_length === "string"
+        ? parseInt(formData.max_length, 10)
+        : formData.max_length;
+
+    onSave?.({
+      ...formData,
+      max_length: maxLengthNum,
+    });
   };
 
   return (
@@ -190,14 +211,28 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
               type="number"
               min={50}
               max={500}
-              value={formData.max_length}
+              value={
+                typeof formData.max_length === "number" &&
+                Number.isNaN(formData.max_length)
+                  ? ""
+                  : formData.max_length
+              }
               onChange={(e) => {
-                const value = parseInt(e.target.value, 10) || 150;
-                setFormData({
-                  ...formData,
-                  max_length: value,
-                });
-                validateMaxLength(value);
+                const raw = e.target.value;
+                if (raw === "") {
+                  setFormData({
+                    ...formData,
+                    max_length: "",
+                  });
+                  validateMaxLength("");
+                } else {
+                  const parsed = parseInt(raw, 10);
+                  setFormData({
+                    ...formData,
+                    max_length: parsed,
+                  });
+                  validateMaxLength(parsed);
+                }
               }}
               aria-invalid={maxLengthError ? "true" : "false"}
               aria-describedby={maxLengthError ? "maxlength-error" : undefined}

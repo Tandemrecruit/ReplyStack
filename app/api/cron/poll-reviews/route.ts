@@ -295,7 +295,7 @@ export async function GET(request: NextRequest) {
               has_response: review.has_response ?? false,
               status: review.status ?? "pending",
               sentiment:
-                review.rating != null
+                review.rating !== null && review.rating !== undefined
                   ? determineSentiment(review.rating)
                   : null,
             });

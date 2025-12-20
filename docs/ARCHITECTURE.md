@@ -284,7 +284,6 @@ ReplyStack/
 ├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
 ├── tests/ (Vitest, mirrors app/lib/components)
-├── python/ (example utilities/tests)
 ├── public/
 └── middleware.ts
 ```

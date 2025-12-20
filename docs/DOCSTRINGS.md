@@ -1,11 +1,11 @@
-# Docstring Standards & Coverage (TS/JS + Python)
+# Docstring Standards & Coverage (TS/JS)
 
-Purpose: keep exported/public code self-documenting and maintain at least 85% docstring coverage across TypeScript/JavaScript and Python. Enforcement is documentation-only (no CI failure), but teams should run the coverage checks below before merging.
+Purpose: keep exported/public code self-documenting and maintain at least 85% docstring coverage across TypeScript/JavaScript. Enforcement is documentation-only (no CI failure), but teams should run the coverage checks below before merging.
 
 ## Scope & Coverage Rules
-- Counted items: exported functions, classes, class methods, hooks, React components (server/client), API route handlers, utilities, and Python modules/classes/functions/methods.
+- Counted items: exported functions, classes, class methods, hooks, React components (server/client), API route handlers, and utilities.
 - Target: 85% of counted items carry a docstring that follows the language style below.
-- Exclusions: trivial re-exports, test helpers inside `__tests__`/`tests`, generated code, and private helpers marked with a leading underscore in Python.
+- Exclusions: trivial re-exports, test helpers inside `__tests__`/`tests`, and generated code.
 
 ## TypeScript/JavaScript Standard (TSDoc)
 - Use `/** ... */` blocks immediately above the declaration.
@@ -68,58 +68,8 @@ export function ReviewCard({ review, onSelect }: ReviewCardProps) {
 }
 ```
 
-## Python Standard (Google Style)
-- Triple double quotes `"""` on functions, methods, classes, and modules.
-- Structure:
-  - Summary line (imperative).
-  - Optional blank line + context/behavior notes.
-  - Sections in order: Args, Returns, Raises, Examples (as needed).
-- Keep descriptions behavioral; avoid restating types already present via hints.
-
-### Python Examples
-
-Utility (`python/src/example_module.py` pattern):
-
-```python
-def normalize(values: list[float]) -> list[float]:
-    """Scale numeric values into 0..1; constant inputs map to zeros.
-
-    Args:
-        values: Sequence of numbers to scale.
-
-    Returns:
-        List of scaled values between 0.0 and 1.0 (empty list if input is empty).
-    """
-    ...
-```
-
-Class with methods:
-
-```python
-class ReviewFormatter:
-    """Formats review data for downstream rendering."""
-
-    def format(self, review: dict[str, str]) -> str:
-        """Build a single-line summary of a review.
-
-        Args:
-            review: Mapping with keys 'rating' and 'text'.
-
-        Returns:
-            Summary string like "5★ — Great service".
-        """
-```
-
 ## Coverage Measurement (docs-only)
-- Target: ≥85% docstring coverage across TS/JS and Python. Run locally; not enforced in CI.
-
-### Python quick check (interrogate)
-
-```bash
-pip install --upgrade interrogate
-interrogate python/src python/automation -c 85 --fail-under 0
-```
-`-c 85` highlights gaps; `--fail-under 0` keeps it informational.
+- Target: ≥85% docstring coverage across TS/JS. Run locally; not enforced in CI.
 
 ### TypeScript/JavaScript quick check (heuristic script)
 Run a lightweight scan for exported symbols missing TSDoc (no deps required):
@@ -166,7 +116,6 @@ Treat this as guidance—inspect files called out as missing docs and update the
 
 ## Quick Checklist before merging
 - TS/JS exported items have TSDoc blocks with summary, params, returns, and remarks for edge cases.
-- Python modules/classes/functions use Google-style docstrings with Args/Returns/Raises as needed.
 - API handlers describe auth, inputs, side effects, and response shape.
 - Added/changed code keeps overall coverage ≥85% (run checks above).
 

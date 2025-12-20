@@ -1,6 +1,37 @@
 # Changelog
 
+## 2025-12-20
+
+### Code Quality
+
+- Fixed TypeScript errors: resolved type issues in poll-reviews route (undefined rating check), test mocks (removed undefined properties to comply with exactOptionalPropertyTypes), and test assertions (added non-null assertions for mock calls and cookie adapters)
+- Fixed linting errors: replaced all non-null assertions (`!`) with optional chaining (`?.`) in test files to comply with Biome's `noNonNullAssertion` rule, improving type safety in 20 locations across settings-client, poll-reviews, claude client, and supabase clients tests
+- Fixed 5 TypeScript typecheck errors: resolved variable assignment issues in settings-client tests (changed resolveUpdate/resolveSave to allow undefined), and fixed cookieAdapter type issues in supabase clients tests (added type assertions through `unknown` to satisfy both TypeScript and Biome linting rules)
+
+### Testing
+
+- Strengthened location-selector component tests: added tests for deactivating locations, handling partial deactivation failures, locations without database IDs, multiple deactivations with errors, clearing success messages on toggle, and updating local state after save
+- Strengthened locations API route tests: added tests for token decryption errors, multiple accounts with partial failures, locations with missing/null fields, organization rollback scenarios, invalid JSON in DELETE, location not found in DELETE, and user lookup error handling
+- Strengthened reviews API route tests: added tests for invalid status/sentiment/rating filter values, location_id filter with invalid locations, pagination edge cases (page 0, negative values), limit edge cases (0, negative, >100), reviews with null location names, and user lookup error handling
+- Strengthened responses API route tests: added tests for error when checking existing response fails, review text with only whitespace, location voice profile fetch errors, and organization voice profile fetch errors with graceful fallback
+- Strengthened voice-profile API route tests: added tests for validation edge cases (empty arrays, null values), user not found error handling, organization not found in GET, filtering undefined values from update data, invalid max_length values (0, negative, non-integer), and user lookup error handling
+
 ## 2025-12-19
+
+### Bug Fixes
+
+- Fixed max_length input in voice editor: changed onChange handler to allow empty string temporarily instead of forcing default value of 150, enabling validation errors to display for empty input rather than immediately resetting to default
+- Fixed Stryker mutation in poll-reviews route: changed loose inequality operator (`!=`) to strict inequality (`!==`) for null check on review.rating
+
+### Testing
+
+- Added comprehensive test coverage for missing components and API routes: created tests for `/api/voice-profile` (GET/PUT), `/api/notifications` (GET/PUT), `reset-password-form`, `update-password-form`, `google-oauth-button`, `button`, `google-connect-button`, `auth-divider`, and `supabase/typed-helpers`, all 81 new tests passing
+- Added test coverage reporting: configured Vitest with v8 coverage provider, added coverage scripts (test:coverage, test:coverage:ui), set coverage thresholds (70% lines/functions/statements, 65% branches), generates HTML and JSON reports for analysis
+- Created test quality verification guide: added docs/TEST_QUALITY.md with techniques for verifying tests catch real bugs (coverage reports, manual mutation testing, assertion review, missing test case detection), includes practical workflow and examples
+- Enhanced Stryker setup documentation: added detailed interactive setup steps for Next.js projects (select "None/other" framework, choose vitest runner) in TEST_QUALITY.md
+- Fixed Stryker configuration: updated mutate array to use negation patterns (!tests/**, !**/*.test.ts, etc.) instead of invalid exclude option, configured to only mutate source files in lib/, app/, components/, and middleware.ts
+- Fixed test bug in clients.test.ts: added missing async keyword to test function that uses await import() for dynamic module loading
+- Fixed React act() warning in google-connect-button test: wrapped user click action and promise resolution in act() to properly handle state updates during async OAuth initiation test
 
 ### UI/UX
 
@@ -8,6 +39,7 @@
 
 ### Code Quality
 
+- Removed all Python-related code and configuration: deleted `python/` directory (example automation scripts and ML utilities), `pyproject.toml`, and `pyrightconfig.json`, removed Python references from documentation (ARCHITECTURE.md, DOCSTRINGS.md), cleaned up Python ignore patterns from `.gitignore` and `.cursorignore` - Python was never integrated with the Next.js application and had no use case
 - Renamed MAX_RETRY_ATTEMPTS to MAX_ATTEMPTS in Claude client: constant value (2) represents total attempts (initial + retries) not retry count, updated constant name and comments to accurately reflect that it's used as total attempts in loop logic (attempt <= maxAttempts)
 - Added type aliases to Supabase types file: exported commonly used types (UserInsert, ReviewInsert, Review, VoiceProfile, Location) as top-level aliases from nested Database structure, fixing TypeScript errors after type regeneration
 - Fixed Node.js deprecation warning in generate-types.js: on Windows use `shell: true` with single command string instead of argument array to avoid DEP0190 warning, on Unix-like systems use array format without shell for better security, projectId is validated alphanumeric so safe to interpolate

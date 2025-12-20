@@ -28,7 +28,8 @@ export default function VerifyEmailPage() {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            aria-hidden="true"
+            role="img"
+            aria-label="Email icon"
           >
             <path
               strokeLinecap="round"

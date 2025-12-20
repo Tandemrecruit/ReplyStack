@@ -28,7 +28,10 @@ export default function ReviewsPage() {
 
         {/* Filters Placeholder */}
         <div className="flex items-center gap-2">
-          <select className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground">
+          <select
+            aria-label="Filter by rating"
+            className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground"
+          >
             <option>All Ratings</option>
             <option>5 Stars</option>
             <option>4 Stars</option>
@@ -36,7 +39,10 @@ export default function ReviewsPage() {
             <option>2 Stars</option>
             <option>1 Star</option>
           </select>
-          <select className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground">
+          <select
+            aria-label="Filter by status"
+            className="px-3 py-2 bg-surface border border-border rounded-md text-sm text-foreground"
+          >
             <option>All Status</option>
             <option>Pending</option>
             <option>Responded</option>
@@ -53,7 +59,8 @@ export default function ReviewsPage() {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
-            aria-hidden="true"
+            role="img"
+            aria-label="No reviews icon"
           >
             <path
               strokeLinecap="round"
