@@ -60,6 +60,7 @@ venv/
 .cursor/
 .vscode/
 .claude/
+.claude/settings.local.json
 
 # supabase
 .supabase/

@@ -260,6 +260,11 @@ export async function generateResponse(
   // Truncate very long reviews to avoid token limits
   let reviewText = review.review_text;
   if (reviewText && reviewText.length > MAX_REVIEW_TEXT_LENGTH) {
+    console.warn("Review text truncated:", {
+      reviewId: review.id,
+      originalLength: reviewText.length,
+      truncatedLength: MAX_REVIEW_TEXT_LENGTH,
+    });
     reviewText =
       reviewText.slice(0, MAX_REVIEW_TEXT_LENGTH) +
       "... [Review truncated due to length]";

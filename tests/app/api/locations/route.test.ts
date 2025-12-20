@@ -793,6 +793,16 @@ describe("DELETE /api/locations", () => {
         }
         if (table === "locations") {
           return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: "loc-1" },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
             update: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockResolvedValue({

@@ -107,11 +107,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing response
-    const { data: existingResponse } = await supabase
-      .from("responses")
-      .select("id, generated_text, status, tokens_used")
-      .eq("review_id", reviewId)
-      .maybeSingle();
+    const { data: existingResponse, error: existingResponseError } =
+      await supabase
+        .from("responses")
+        .select("id, generated_text, status, tokens_used")
+        .eq("review_id", reviewId)
+        .maybeSingle();
+
+    if (existingResponseError) {
+      console.error(
+        "Failed to check for existing response:",
+        existingResponseError,
+      );
+      return NextResponse.json(
+        { error: "Failed to check for existing response" },
+        { status: 500 },
+      );
+    }
 
     if (existingResponse) {
       // Return existing response instead of regenerating
@@ -136,21 +148,34 @@ export async function POST(request: NextRequest) {
     let voiceProfile: VoiceProfile | null = null;
 
     if (location.voice_profile_id) {
-      const { data: locationProfile } = await supabase
-        .from("voice_profiles")
-        .select("*")
-        .eq("id", location.voice_profile_id)
-        .single();
+      const { data: locationProfile, error: locationProfileError } =
+        await supabase
+          .from("voice_profiles")
+          .select("*")
+          .eq("id", location.voice_profile_id)
+          .single();
+      if (locationProfileError) {
+        console.warn(
+          "Failed to fetch location voice profile, using fallback:",
+          locationProfileError,
+        );
+      }
       voiceProfile = locationProfile;
     }
 
     if (!voiceProfile) {
-      const { data: orgProfile } = await supabase
+      const { data: orgProfile, error: orgProfileError } = await supabase
         .from("voice_profiles")
         .select("*")
         .eq("organization_id", userData.organization_id)
         .limit(1)
         .maybeSingle();
+      if (orgProfileError) {
+        console.warn(
+          "Failed to fetch organization voice profile, using fallback:",
+          orgProfileError,
+        );
+      }
       voiceProfile = orgProfile;
     }
 

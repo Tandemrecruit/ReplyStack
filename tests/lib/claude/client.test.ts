@@ -6,8 +6,21 @@ import { buildNegativeAddendum, generateResponse } from "@/lib/claude/client";
 import type { Review, VoiceProfile } from "@/lib/supabase/types";
 
 describe("lib/claude/client", () => {
+  const originalFetch = global.fetch;
+  const originalApiKey = process.env.ANTHROPIC_API_KEY;
+
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = "test-api-key";
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    if (originalApiKey === undefined) {
+      delete process.env.ANTHROPIC_API_KEY;
+    } else {
+      process.env.ANTHROPIC_API_KEY = originalApiKey;
+    }
+    global.fetch = originalFetch;
   });
 
   it("buildNegativeAddendum includes the contact email and guidance", () => {
@@ -18,9 +31,6 @@ describe("lib/claude/client", () => {
   });
 
   it("generateResponse calls Claude API and returns generated response", async () => {
-    // Mock environment variable
-    process.env.ANTHROPIC_API_KEY = "test-api-key";
-
     // Mock fetch response
     const mockResponse = {
       ok: true,
@@ -77,9 +87,5 @@ describe("lib/claude/client", () => {
       tokensUsed: 120,
     });
     expect(global.fetch).toHaveBeenCalled();
-
-    // Cleanup
-    delete process.env.ANTHROPIC_API_KEY;
-    vi.restoreAllMocks();
   });
 });

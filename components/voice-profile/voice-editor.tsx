@@ -48,6 +48,13 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate max_length is within range
+    if (formData.max_length < 50 || formData.max_length > 500) {
+      // Show error message or use form validation UI
+      return;
+    }
+
     onSave?.(formData);
   };
 

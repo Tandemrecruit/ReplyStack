@@ -52,6 +52,8 @@ describe("components/voice-profile/VoiceEditor", () => {
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
     ) as HTMLInputElement;
+    // Use fireEvent instead of userEvent to bypass HTML5 number input validation,
+    // which aligns with the form's noValidate attribute
     fireEvent.change(maxInput, { target: { value: "275" } });
 
     await user.click(

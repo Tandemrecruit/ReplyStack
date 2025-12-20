@@ -2,18 +2,29 @@
 
 ## 2025-12-19
 
+### Code Quality
+
+- Added type aliases to Supabase types file: exported commonly used types (UserInsert, ReviewInsert, Review, VoiceProfile, Location) as top-level aliases from nested Database structure, fixing TypeScript errors after type regeneration
+- Fixed Node.js deprecation warning in generate-types.js: on Windows use `shell: true` with single command string instead of argument array to avoid DEP0190 warning, on Unix-like systems use array format without shell for better security, projectId is validated alphanumeric so safe to interpolate
+- Removed `.claude` folder from git tracking: uncommitted previously tracked `.claude/settings.local.json` file to prevent local Claude IDE settings from being committed, folder already listed in `.gitignore`
+
 ### Features
 
 - Implemented AI response generation endpoint (`POST /api/responses`): generates customer-facing review responses using Claude API, supports voice profile configuration (location-specific, organization-wide, or default), returns existing responses instead of regenerating, tracks token usage, handles Claude API errors (timeout, rate limits, service unavailability), validates review ownership and text content before generation
 
 ### Testing
 
+- Refactored Claude client test setup/teardown: moved `process.env.ANTHROPIC_API_KEY` setup to `beforeEach`, enhanced `afterEach` to restore both `process.env` and `global.fetch`, removed redundant manual cleanup from test body to prevent test pollution on failures
+- Added tests for Claude API auth/config errors (401/403→500) and generic errors (→502) in `/api/responses` route: covers AI service configuration error (401/403) and AI service unavailable (other ClaudeAPIError) error paths
 - Updated `/api/responses` route tests: replaced placeholder tests with comprehensive test coverage for actual implementation including successful generation, existing response detection, voice profile fallback logic, error handling (Claude API errors, database errors), and edge cases (missing review text, wrong organization, etc.)
 - Fixed 9 failing tests: voice editor form validation (disabled HTML5 validation to allow number input submission), middleware redirect logic (added email_confirmed_at to mock user), locations route mocks (added missing id field to synced locations and fixed DELETE handler mock chain), poll-reviews cron tests (set up required Supabase environment variables and mocked createAdminSupabaseClient)
+- Fixed locations DELETE failure test: added missing select chain mock (select().eq().eq().single()) to verify location existence before update, matching success test pattern, ensuring test reaches update call before simulating deactivation failure
+- Refactored responses route test mock: replaced duplicate inline ClaudeAPIError class definition with real class import using vi.importActual, ensuring test uses actual error class from module instead of duplicate implementation
 - Optimized test suite performance: removed redundant mock clearing options (mockReset, clearMocks), configured node environment for pure unit tests (format, crypto, validation, client libraries) to reduce jsdom overhead, replaced setTimeout delays with promise-based approach in auth form tests (threads pool reverted - forks pool performs better on Windows)
 
 ### Documentation
 
+- Updated README.md to reflect current project state: corrected development status (core features implemented), updated AI model name (Claude Haiku 4.5), added missing npm scripts (test:ci, supabase:types), improved setup instructions
 - Updated API documentation (`docs/API.md`): documented actual POST /api/responses implementation with request/response formats, error codes, and voice profile resolution strategy; updated status to reflect completed features (Google Business Profile integration, review polling, AI response generation)
 - Updated DECISIONS.md with ADR maintenance guidance: added sections on when to create/update ADRs, ADR numbering rules, integration with code changes, and review checklist based on `.cursor/rules/adr-maintenance/RULE.mdc`
 - Updated ADR-001 status to "Superseded" by ADR-006 (Next.js 16 upgrade), added Supersedes section linking to ADR-006

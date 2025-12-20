@@ -11,12 +11,14 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 ## Routes
 
 ### GET /api/reviews
+
 - Auth: Required (Supabase session).
 - Query: `status?`, `rating?`, `page?`, `limit?`.
 - Returns: `{ reviews: Review[], total: number, page: number, limit: number }`.
 - Filters reviews by user's organization and supports pagination.
 
 ### POST /api/responses
+
 - Auth: Required.
 - Body: `{ reviewId: string }`.
 - Generates an AI response for a review using Claude API.
@@ -32,6 +34,7 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `504`: AI response generation timed out
 
 ### GET /api/cron/poll-reviews
+
 - Auth: `Authorization: Bearer $CRON_SECRET`.
 - Polls Google Business Profile API for new reviews across all active locations.
 - Stores new reviews in database with deduplication.
@@ -39,6 +42,7 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Returns: `{ success: boolean, reviewsProcessed: number, newReviews: number, errors: string[] }`.
 
 ### POST /api/webhooks/stripe
+
 - Auth: Stripe signature header `stripe-signature` (verification not implemented).
 - Current behavior: Returns `{ received: true }` after logging stub warning.
 - Planned: verify signature, handle checkout/session + subscription lifecycle events.

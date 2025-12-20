@@ -366,7 +366,8 @@ describe("components/auth/SignupForm", () => {
   });
 
   it("disables inputs during submission", async () => {
-    let resolvePromise: (value: { error: null }) => void;
+    // Promise constructor runs synchronously, so resolvePromise is guaranteed to be assigned
+    let resolvePromise!: (value: { error: null }) => void;
     const submissionPromise = new Promise<{ error: null }>((resolve) => {
       resolvePromise = resolve;
     });
@@ -387,7 +388,7 @@ describe("components/auth/SignupForm", () => {
     expect(screen.getByLabelText("Confirm password")).toBeDisabled();
 
     // Resolve the promise to complete submission
-    resolvePromise!({ error: null });
+    resolvePromise({ error: null });
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalled();

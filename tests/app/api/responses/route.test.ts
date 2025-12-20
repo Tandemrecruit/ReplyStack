@@ -6,31 +6,13 @@ vi.mock("@/lib/supabase/server", () => {
   };
 });
 
-vi.mock("@/lib/claude/client", () => {
+vi.mock("@/lib/claude/client", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/claude/client")>(
+    "@/lib/claude/client",
+  );
   return {
+    ...actual,
     generateResponse: vi.fn(),
-    DEFAULT_VOICE_PROFILE: {
-      id: "",
-      organization_id: null,
-      name: "Default",
-      tone: "friendly",
-      personality_notes: "Professional and friendly",
-      sign_off_style: "The Team",
-      example_responses: null,
-      words_to_use: null,
-      words_to_avoid: ["sorry for any inconvenience", "valued customer"],
-      max_length: 150,
-      created_at: null,
-    },
-    ClaudeAPIError: class ClaudeAPIError extends Error {
-      constructor(
-        public status: number,
-        message: string,
-      ) {
-        super(message);
-        this.name = "ClaudeAPIError";
-      }
-    },
   };
 });
 
@@ -1098,6 +1080,336 @@ describe("POST /api/responses", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Rate limit exceeded. Please try again later.",
     });
+  });
+
+  it("handles Claude API authentication error (401)", async () => {
+    vi.mocked(generateResponse).mockRejectedValue(
+      new ClaudeAPIError(401, "Invalid API key"),
+    );
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 5,
+                    reviewer_name: "John",
+                    review_text: "Great!",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-1",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: null,
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "AI service configuration error",
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Claude API error:",
+      expect.objectContaining({
+        status: 401,
+        message: "Invalid API key",
+      }),
+    );
+  });
+
+  it("handles Claude API authorization error (403)", async () => {
+    vi.mocked(generateResponse).mockRejectedValue(
+      new ClaudeAPIError(403, "Forbidden"),
+    );
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 5,
+                    reviewer_name: "John",
+                    review_text: "Great!",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-1",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: null,
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "AI service configuration error",
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Claude API error:",
+      expect.objectContaining({
+        status: 403,
+        message: "Forbidden",
+      }),
+    );
+  });
+
+  it("handles Claude API generic error (502)", async () => {
+    vi.mocked(generateResponse).mockRejectedValue(
+      new ClaudeAPIError(503, "Service unavailable"),
+    );
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 5,
+                    reviewer_name: "John",
+                    review_text: "Great!",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-1",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: null,
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: "AI service unavailable",
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "Claude API error:",
+      expect.objectContaining({
+        status: 503,
+        message: "Service unavailable",
+      }),
+    );
   });
 
   it("handles database error when saving response", async () => {

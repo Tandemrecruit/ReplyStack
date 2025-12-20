@@ -157,19 +157,39 @@ if (!accessToken) {
   try {
     const env = { ...process.env, SUPABASE_ACCESS_TOKEN: accessToken };
 
-    // Use spawnSync with argument array to avoid shell injection
-    // Pass projectId as a separate argument, not interpolated into shell command
-    // Use shell: true on Windows to ensure npm/npx can be found in PATH
-    const result = spawnSync(
-      "npx",
-      ["supabase", "gen", "types", "typescript", "--project-id", projectId],
-      {
-        cwd: rootDir,
-        env,
-        shell: process.platform === "win32",
-        stdio: ["inherit", "pipe", "inherit"], // stdin: inherit, stdout: pipe, stderr: inherit
-      },
-    );
+    // Use spawnSync with proper escaping to avoid shell injection
+    // On Windows, shell: true is needed to find npx, but we pass a single command string
+    // with properly escaped arguments to avoid the deprecation warning
+    // projectId is already validated (20-char alphanumeric), so it's safe to use directly
+    const isWindows = process.platform === "win32";
+    let command, args, shellOption;
+
+    if (isWindows) {
+      // On Windows, use shell: true with single command string to avoid deprecation warning
+      // projectId is validated alphanumeric, so safe to interpolate
+      command = `npx supabase gen types typescript --project-id ${projectId}`;
+      args = [];
+      shellOption = true;
+    } else {
+      // On Unix-like systems, use array format without shell for better security
+      command = "npx";
+      args = [
+        "supabase",
+        "gen",
+        "types",
+        "typescript",
+        "--project-id",
+        projectId,
+      ];
+      shellOption = false;
+    }
+
+    const result = spawnSync(command, args, {
+      cwd: rootDir,
+      env,
+      shell: shellOption,
+      stdio: ["inherit", "pipe", "inherit"], // stdin: inherit, stdout: pipe, stderr: inherit
+    });
 
     if (result.error) {
       throw result.error;

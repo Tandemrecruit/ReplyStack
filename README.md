@@ -4,7 +4,7 @@ AI-powered Google Business review response tool for local businesses. Respond to
 
 ## Development Status
 
-Early-stage scaffolding. UI shells are present, but auth, API routes, Google/Claude/Stripe integrations, and cron/webhooks are not implemented yet.
+Core features implemented. Authentication, Google Business Profile integration, review polling, and AI response generation are complete. Dashboard UI data integration, response editing UI, and Stripe webhooks are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ Early-stage scaffolding. UI shells are present, but auth, API routes, Google/Cla
 - **Language:** TypeScript (strict mode)
 - **Database:** PostgreSQL via Supabase
 - **Auth:** Supabase Auth + Google OAuth
-- **AI:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **AI:** Claude Haiku 4.5 (claude-haiku-4-5-20251001)
 - **Payments:** Stripe (subscriptions)
 - **Email:** Resend
 - **Styling:** Tailwind CSS v4
@@ -56,7 +56,7 @@ Early-stage scaffolding. UI shells are present, but auth, API routes, Google/Cla
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-For detailed environment setup, troubleshooting, and local cron/webhook notes, see `docs/SETUP.md` (added in this doc refresh).
+For detailed environment setup, troubleshooting, and local cron/webhook notes, see [Setup Guide](./docs/SETUP.md).
 
 ## Project Structure
 
@@ -97,7 +97,9 @@ ReplyStack/
 - `npm run lint:fix` - Run Biome checks and apply fixes
 - `npm run format` - Format code with Biome
 - `npm run test` - Run Vitest unit tests
+- `npm run test:ci` - Run tests in CI mode (no watch)
 - `npm run typecheck` - Run TypeScript type checking
+- `npm run supabase:types` - Generate TypeScript types from Supabase schema
 
 ## Documentation
 
