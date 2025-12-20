@@ -191,8 +191,10 @@ describe("components/auth/LoginForm", () => {
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     // Check inputs are disabled during submission
-    expect(screen.getByLabelText("Email address")).toBeDisabled();
-    expect(screen.getByLabelText("Password")).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Email address")).toBeDisabled();
+      expect(screen.getByLabelText("Password")).toBeDisabled();
+    });
 
     // Resolve the promise to complete submission
     resolvePromise({ error: null });

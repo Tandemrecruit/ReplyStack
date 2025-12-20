@@ -14,10 +14,10 @@ const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // API configuration
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_VERSION = "2025-09-29";
+const ANTHROPIC_VERSION = "2023-06-01";
 const MAX_TOKENS = 500;
 const TIMEOUT_MS = 30000;
-const MAX_RETRY_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 2; // Total attempts (1 initial attempt + 1 retry)
 const MAX_REVIEW_TEXT_LENGTH = 10000;
 
 /**
@@ -191,14 +191,14 @@ async function callClaudeAPI(
  *
  * @param systemPrompt - The system prompt
  * @param userPrompt - The user prompt
- * @param maxAttempts - Maximum retry attempts
+ * @param maxAttempts - Maximum total attempts (includes initial attempt + retries)
  * @returns The generated text and token count
  * @throws ClaudeAPIError after all retries exhausted
  */
 async function callClaudeWithRetry(
   systemPrompt: string,
   userPrompt: string,
-  maxAttempts: number = MAX_RETRY_ATTEMPTS,
+  maxAttempts: number = MAX_ATTEMPTS,
 ): Promise<{ text: string; tokensUsed: number }> {
   let lastError: ClaudeAPIError | null = null;
 

@@ -383,9 +383,11 @@ describe("components/auth/SignupForm", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     // Check inputs are disabled during submission
-    expect(screen.getByLabelText("Email address")).toBeDisabled();
-    expect(screen.getByLabelText("Password")).toBeDisabled();
-    expect(screen.getByLabelText("Confirm password")).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Email address")).toBeDisabled();
+      expect(screen.getByLabelText("Password")).toBeDisabled();
+      expect(screen.getByLabelText("Confirm password")).toBeDisabled();
+    });
 
     // Resolve the promise to complete submission
     resolvePromise({ error: null });

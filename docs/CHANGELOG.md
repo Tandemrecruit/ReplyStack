@@ -2,8 +2,13 @@
 
 ## 2025-12-19
 
+### UI/UX
+
+- Enhanced max_length validation in voice editor: added real-time validation error state that displays inline error messages, prevents form submission when value is out of range (50-500), clears errors on input correction, and includes aria-live region for accessible error announcements to assistive technologies
+
 ### Code Quality
 
+- Renamed MAX_RETRY_ATTEMPTS to MAX_ATTEMPTS in Claude client: constant value (2) represents total attempts (initial + retries) not retry count, updated constant name and comments to accurately reflect that it's used as total attempts in loop logic (attempt <= maxAttempts)
 - Added type aliases to Supabase types file: exported commonly used types (UserInsert, ReviewInsert, Review, VoiceProfile, Location) as top-level aliases from nested Database structure, fixing TypeScript errors after type regeneration
 - Fixed Node.js deprecation warning in generate-types.js: on Windows use `shell: true` with single command string instead of argument array to avoid DEP0190 warning, on Unix-like systems use array format without shell for better security, projectId is validated alphanumeric so safe to interpolate
 - Removed `.claude` folder from git tracking: uncommitted previously tracked `.claude/settings.local.json` file to prevent local Claude IDE settings from being committed, folder already listed in `.gitignore`
