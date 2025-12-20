@@ -224,7 +224,8 @@ describe("components/voice-profile/VoiceEditor", () => {
     fireEvent.change(maxInput, { target: { value: "150" } });
 
     await waitFor(() => {
-      const errorMessages = screen.getAllByRole("alert");
+      // Use queryAllByRole which returns empty array instead of throwing
+      const errorMessages = screen.queryAllByRole("alert");
       const visibleError = errorMessages.find(
         (el) => el.id === "maxlength-error",
       );

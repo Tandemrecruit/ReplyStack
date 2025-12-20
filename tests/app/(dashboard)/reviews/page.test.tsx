@@ -26,7 +26,9 @@ describe("app/(dashboard)/reviews/page", () => {
 
   it("renders rating filter dropdown", () => {
     render(<ReviewsPage />);
-    const ratingSelect = screen.getByRole("combobox", { name: /all ratings/i });
+    const ratingSelect = screen.getByRole("combobox", {
+      name: /filter by rating/i,
+    });
     expect(ratingSelect).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "All Ratings" }),
@@ -37,7 +39,9 @@ describe("app/(dashboard)/reviews/page", () => {
 
   it("renders status filter dropdown", () => {
     render(<ReviewsPage />);
-    const statusSelect = screen.getByRole("combobox", { name: /all status/i });
+    const statusSelect = screen.getByRole("combobox", {
+      name: /filter by status/i,
+    });
     expect(statusSelect).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "All Status" }),

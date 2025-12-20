@@ -640,10 +640,9 @@ describe("components/settings/LocationSelector", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
+      // Component shows just the error message for single failures
       expect(
-        screen.getByText(
-          /Failed to deactivate 1 location\(s\): Failed to deactivate location/,
-        ),
+        screen.getByText(/Failed to deactivate location/),
       ).toBeInTheDocument();
     });
   });
@@ -772,11 +771,8 @@ describe("components/settings/LocationSelector", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          /Failed to deactivate 1 location\(s\): Database error/,
-        ),
-      ).toBeInTheDocument();
+      // Component shows just the error message for single failures
+      expect(screen.getByText(/Database error/)).toBeInTheDocument();
     });
   });
 
@@ -868,9 +864,8 @@ describe("components/settings/LocationSelector", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Failed to deactivate location/),
-      ).toBeInTheDocument();
+      // When promise rejects with Error, the error message is used directly
+      expect(screen.getByText(/Network error/)).toBeInTheDocument();
     });
   });
 

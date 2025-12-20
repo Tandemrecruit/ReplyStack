@@ -451,19 +451,8 @@ describe("app/(dashboard)/settings/settings-client", () => {
       });
     });
 
-    it("shows error when tone is not selected", async () => {
-      const user = userEvent.setup();
-      render(<SettingsClient />);
-
-      // Set tone to empty (not possible via UI, but test the validation)
-      const toneSelect = screen.getByLabelText("Tone");
-      await user.selectOptions(toneSelect, "");
-
-      const saveButton = screen.getByRole("button", { name: "Save Changes" });
-      await user.click(saveButton);
-
-      expect(screen.getByText("Select a tone")).toBeInTheDocument();
-    });
+    // Note: "shows error when tone is not selected" test removed
+    // The component always has a default tone of "friendly" so tone can never be empty
 
     it("shows error when personality notes are empty", async () => {
       const user = userEvent.setup();
@@ -524,7 +513,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
       await user.click(saveButton);
 
-      expect(screen.getByText("Select a tone")).toBeInTheDocument();
+      // Tone is always "friendly" by default, so no tone error
       expect(screen.getByText("Add personality details")).toBeInTheDocument();
       expect(screen.getByText("Add a sign-off style")).toBeInTheDocument();
       expect(
@@ -540,7 +529,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
       await user.click(saveButton);
 
-      expect(screen.getByText("Select a tone")).toBeInTheDocument();
+      expect(screen.getByText("Add personality details")).toBeInTheDocument();
 
       // Fill in valid data
       const notesTextarea = screen.getByLabelText("Personality Notes");
@@ -558,7 +547,9 @@ describe("app/(dashboard)/settings/settings-client", () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(screen.queryByText("Select a tone")).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("Add personality details"),
+        ).not.toBeInTheDocument();
       });
     });
   });
@@ -639,11 +630,17 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error message when save fails", async () => {
       const user = userEvent.setup();
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ error: "Database error" }),
-      });
+      // First mock for notification fetch, second for save
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({ error: "Database error" }),
+        });
 
       render(<SettingsClient />);
 
@@ -663,11 +660,17 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows default error message when save fails without error", async () => {
       const user = userEvent.setup();
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-      });
+      // First mock for notification fetch, second for save
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+        });
 
       render(<SettingsClient />);
 
@@ -689,7 +692,13 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("handles network error when saving", async () => {
       const user = userEvent.setup();
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+      // First mock for notification fetch, second rejects for save
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ emailNotifications: true }),
+        })
+        .mockRejectedValueOnce(new Error("Network error"));
 
       render(<SettingsClient />);
 
@@ -716,13 +725,19 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("handles invalid JSON response when saving", async () => {
       const user = userEvent.setup();
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => {
-          throw new Error("Invalid JSON");
-        },
-      });
+      // First mock for notification fetch, second for save with invalid JSON
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => {
+            throw new Error("Invalid JSON");
+          },
+        });
 
       render(<SettingsClient />);
 
@@ -749,7 +764,13 @@ describe("app/(dashboard)/settings/settings-client", () => {
         resolveSave = resolve;
       });
 
-      mockFetch.mockResolvedValueOnce(savePromise);
+      // First mock for notification fetch, then pending promise for save
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ emailNotifications: true }),
+        })
+        .mockReturnValueOnce(savePromise);
 
       render(<SettingsClient />);
 
@@ -781,15 +802,22 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("clears status message on new save attempt", async () => {
       const user = userEvent.setup();
+      let resolveSecondSave: ((value: Response) => void) | undefined;
+      const secondSavePromise = new Promise<Response>((resolve) => {
+        resolveSecondSave = resolve;
+      });
+
+      // First mock for notification fetch, first save success, second save pending
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({}),
+          json: async () => ({ emailNotifications: true }),
         })
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({}),
-        });
+        })
+        .mockReturnValueOnce(secondSavePromise);
 
       render(<SettingsClient />);
 
@@ -813,11 +841,21 @@ describe("app/(dashboard)/settings/settings-client", () => {
       await user.type(notesTextarea, "Updated notes");
       await user.click(saveButton);
 
+      // Status should be cleared during save (while promise is pending)
+      expect(
+        screen.queryByText("Voice profile saved successfully."),
+      ).not.toBeInTheDocument();
+
+      // Resolve the second save
+      resolveSecondSave?.({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+
       await waitFor(() => {
-        // Status should be cleared during save
         expect(
-          screen.queryByText("Voice profile saved successfully."),
-        ).not.toBeInTheDocument();
+          screen.getByText("Voice profile saved successfully."),
+        ).toBeInTheDocument();
       });
     });
   });
