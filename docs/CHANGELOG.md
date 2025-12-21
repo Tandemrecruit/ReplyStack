@@ -4,7 +4,10 @@
 
 ### Features
 
-- Standardized tone options across all components: updated tone options from inconsistent values (friendly/professional/casual/formal, Warm/Direct/Concise, Warm/Direct/Concierge) to 5 consistent options (Warm, Direct, Professional, Friendly, Casual) in settings-client.tsx, voice-editor.tsx, live-demo.tsx, and landing page; updated default tone from "friendly" to "warm" in database schema, DEFAULT_VOICE_PROFILE, and component defaults; created migration (003_standardize_tone_options.sql) to map existing "formal" values to "professional" and update default tone for new voice profiles
+- Standardized tone options across all components:
+  - Updated tone options from inconsistent values (friendly/professional/casual/formal, Warm/Direct/Concise, Warm/Direct/Concierge) to 5 consistent options (Warm, Direct, Professional, Friendly, Casual) in settings-client.tsx, voice-editor.tsx, live-demo.tsx, and landing page
+  - Changed default tone from "friendly" to "warm" in database schema, DEFAULT_VOICE_PROFILE, and component defaults
+  - Created migration (003_standardize_tone_options.sql) to map existing "formal" values to "professional" and update default tone for new voice profiles
 
 ### Bug Fixes
 
@@ -43,7 +46,7 @@
 - Fixed token re-encryption script to detect primary key usage via key version identifier: added 1-byte key version header (0x01 for primary key, 0x00 for old/legacy) to ciphertext format in `encryptToken()`, created `decryptTokenWithVersion()` function that returns both plaintext and key version used, updated `reencrypt-tokens.ts` to check key version instead of comparing ciphertexts (which never matched due to random IVs), maintaining backward compatibility with legacy tokens without version byte
 - Implemented AES-256-GCM application-layer encryption for Google refresh tokens: created `lib/crypto/encryption.ts` module with `encryptToken()` and `decryptToken()` functions, 12-byte random IV per encryption, 128-bit auth tag for integrity verification, and base64 storage format; updated OAuth callback to encrypt tokens before storage; updated all API routes (`locations`, `poll-reviews` cron, `publish`) to decrypt tokens with error handling; added `TOKEN_ENCRYPTION_KEY` env var (32-byte hex) and `TOKEN_ENCRYPTION_KEY_OLD` for key rotation support; documented key rotation procedure in ARCHITECTURE.md
 - Created `scripts/reencrypt-tokens.ts` for key rotation: script re-encrypts all google_refresh_tokens with new key during key rotation, supports `--dry-run` mode for verification, includes detailed logging and error handling
-- Fixed command injection vulnerability in `scripts/generate-types.js`: replaced `execSync` with shell interpolation with `spawnSync` using argument array, removed `shell: true`, pass `projectId` as separate argument, and use `createWriteStream` to pipe stdout to file instead of shell redirection
+- Fixed command injection vulnerability in `scripts/generate-types.js`: replaced unsafe shell interpolation with `spawnSync` using argument array and stdout piping via `createWriteStream`; retained `shell: true` on Windows only for npx compatibility with validated input (projectId limited to 20-character alphanumeric pattern) to prevent injection; aligns with ARCHITECTURE.md security guidance on using input validation when `shell: true` is necessary
 
 ### Bug Fixes
 
