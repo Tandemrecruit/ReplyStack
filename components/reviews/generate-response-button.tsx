@@ -121,6 +121,7 @@ export function GenerateResponseButton({
       onClick={handleGenerate}
       type="button"
       disabled={isLoading}
+      aria-busy={isLoading}
       className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isLoading ? "Generating..." : "Generate Response"}

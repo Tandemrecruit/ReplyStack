@@ -250,6 +250,7 @@ export async function GET(request: NextRequest) {
         sentiment,
         created_at,
         location_id,
+        platform,
         locations!inner (
           id,
           name,
@@ -322,6 +323,7 @@ export async function GET(request: NextRequest) {
         sentiment: review.sentiment,
         created_at: review.created_at,
         location_id: review.location_id,
+        platform: review.platform ?? "google",
         location_name: review.locations?.name ?? "Unknown Location",
       };
     });
