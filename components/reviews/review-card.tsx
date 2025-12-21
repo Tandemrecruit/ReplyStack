@@ -90,7 +90,7 @@ export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
       <div className="mt-4 flex items-center justify-between">
         <StatusBadge status={review.status ?? "pending"} />
 
-        {review.status === "pending" && onGenerateResponse && (
+        {(review.status ?? "pending") === "pending" && onGenerateResponse && (
           <button
             onClick={() => onGenerateResponse(review.id)}
             type="button"

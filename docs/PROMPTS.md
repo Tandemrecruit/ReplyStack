@@ -122,7 +122,7 @@ CRITICAL: This is a negative review. Follow this structure:
 | **Total input** | **~450-530** |
 | Generated response | ~80-120 |
 
-**Cost per response:** ~$0.002-0.004 (Claude Sonnet pricing)
+**Cost per response:** ~$0.001 (Claude Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens)
 
 ---
 

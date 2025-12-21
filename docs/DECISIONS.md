@@ -105,35 +105,37 @@ Supabase (managed Postgres + Auth + Row Level Security).
 
 ---
 
-## ADR-003: Claude Sonnet over GPT-5.2 for Response Generation
+## ADR-003: Claude Haiku over Sonnet/GPT-5.2 for Response Generation
 
 **Status:** Accepted
 
 ### Context
 
-Need high-quality, natural-sounding responses for business review replies.
+Need high-quality, natural-sounding responses for business review replies at scale.
 
 ### Decision
 
-Claude Sonnet 4 via Anthropic API.
+Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) via Anthropic API.
 
 ### Rationale
 
-- More natural, human-sounding tone for business communication (multiple sources cite this as Claude's strength)
-- More consistent and predictable response quality
-- We're already building with Claude tools (familiarity)
-- GPT-5.2 is cheaper ($1.75/$14 vs $3/$15 per MTok) but the cost difference is negligible at our scale (~$0.003/response)
-- GPT-5.2 excels at math/reasoning which isn't our primary use case
+- **Cost-effectiveness:** Haiku is significantly cheaper than Sonnet (~$0.002 vs ~$0.003 per response) while maintaining excellent quality for short-form responses
+- **Natural tone:** Claude models (including Haiku) produce more natural, human-sounding business communication than GPT models
+- **Consistent quality:** More predictable response quality for our use case (short review responses)
+- **Familiarity:** We're already building with Claude tools (dev-ai system)
+- **Sufficient capability:** Review responses are straightforward text generation - Haiku's capabilities are sufficient without needing Sonnet's advanced reasoning
+- GPT-5.2 is cheaper but Claude's tone quality is more important for customer-facing responses
 
 ### Tradeoffs
 
-- Paying ~40% more on input tokens
-- Could revisit if costs become material at scale
+- Haiku may be less capable than Sonnet for complex reasoning tasks (not needed for review responses)
+- Could upgrade to Sonnet if quality issues emerge, but initial testing shows Haiku is sufficient
 
 ### Consequences
 
-- Single AI vendor dependency
-- Could add GPT-5.2 fallback if quality issues emerge or costs become significant
+- Single AI vendor dependency (Anthropic)
+- Lower operational costs at scale
+- Could add Sonnet fallback or upgrade path if quality requirements increase
 
 ---
 

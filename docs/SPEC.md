@@ -98,49 +98,49 @@ Settings Page
 
 ## MVP Feature Requirements
 
-Status note (Dec 2025): These are target requirements; none of the feature work is implemented yet.
+Status note (Dec 2025): Core features are implemented. Authentication, Google Business Profile integration, review polling, AI response generation, and voice profile management are complete. Dashboard UI data integration, response editing UI, and Stripe integration are in progress.
 
 ### Authentication
-- [ ] Email/password registration and login
-- [ ] Google OAuth sign-in
-- [ ] Password reset flow
-- [ ] Session management
+- [x] Email/password registration and login
+- [x] Google OAuth sign-in
+- [x] Password reset flow
+- [x] Session management
 
 ### Google Integration
-- [ ] Google Business Profile OAuth connection
-- [ ] Location selection (single location for MVP)
-- [ ] Automatic review fetching (polling every 15 min)
-- [ ] Publish responses to Google
+- [x] Google Business Profile OAuth connection
+- [x] Location selection (supports multiple locations)
+- [x] Automatic review fetching (polling every 15 min)
+- [x] Publish responses to Google
 
 ### Review Management
-- [ ] Review list view with newest first
-- [ ] Filter by rating (1-5 stars)
-- [ ] Filter by status (pending/responded/ignored)
-- [ ] Filter by date range
-- [ ] Search reviews by text content
-- [ ] Mark review as "ignored"
+- [~] Review list view with newest first (API complete, UI needs data integration)
+- [~] Filter by rating (1-5 stars) (API supports, UI static)
+- [~] Filter by status (pending/responded/ignored) (API supports, UI static)
+- [ ] Filter by date range (API does not support)
+- [ ] Search reviews by text content (not implemented)
+- [ ] Mark review as "ignored" (status field exists, no API/UI)
 
 ### Voice Profile
-- [ ] Tone selection (friendly, professional, casual, formal)
-- [ ] Personality notes (free text)
-- [ ] Example responses (3-5 samples)
-- [ ] Sign-off style (name, title, business name)
-- [ ] Words to use (brand terms, values)
-- [ ] Words to avoid (competitor names, sensitive terms)
-- [ ] Maximum response length (word count)
+- [x] Tone selection (friendly, professional, casual, formal)
+- [x] Personality notes (free text)
+- [~] Example responses (3-5 samples) (API supports, UI missing)
+- [x] Sign-off style (name, title, business name)
+- [~] Words to use (brand terms, values) (API supports, UI missing)
+- [~] Words to avoid (competitor names, sensitive terms) (API supports, UI missing)
+- [x] Maximum response length (word count)
 
 ### AI Response Generation
-- [ ] One-click response generation
-- [ ] Uses voice profile for personalization
-- [ ] Different handling for positive vs negative reviews
-- [ ] Regenerate button for alternatives
+- [x] One-click response generation
+- [x] Uses voice profile for personalization
+- [x] Different handling for positive vs negative reviews
+- [ ] Regenerate button for alternatives (API returns existing response)
 
 ### Response Workflow
 - [ ] Edit response in modal before publishing
 - [ ] Character count display
 - [ ] Preview how response will look
-- [ ] Publish to Google with confirmation
-- [ ] Response history per review
+- [x] Publish to Google with confirmation
+- [ ] Response history per review (responses table exists, no UI)
 
 ### Payments
 - [ ] Stripe Checkout for subscription

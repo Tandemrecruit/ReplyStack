@@ -342,7 +342,9 @@ describe("components/reviews/ReviewCard", () => {
     expect(screen.getByText("pending")).toBeInTheDocument();
   });
 
-  it("does not show Generate Response button when status is null", () => {
+  it("shows Generate Response button when status is null (treated as pending)", async () => {
+    const user = userEvent.setup();
+    const onGenerateResponse = vi.fn();
     render(
       <ReviewCard
         review={createMockReview({
@@ -350,12 +352,15 @@ describe("components/reviews/ReviewCard", () => {
           external_review_id: "ext_19",
           status: null as never,
         })}
-        onGenerateResponse={vi.fn()}
+        onGenerateResponse={onGenerateResponse}
       />,
     );
 
-    expect(
-      screen.queryByRole("button", { name: "Generate Response" }),
-    ).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Generate Response" });
+    expect(button).toBeInTheDocument();
+
+    // Verify button works
+    await user.click(button);
+    expect(onGenerateResponse).toHaveBeenCalledWith("rev_19");
   });
 });

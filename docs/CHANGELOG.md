@@ -2,22 +2,26 @@
 
 ## 2025-12-20
 
+### Documentation
+
+- Updated documentation to reflect current implementation status: corrected Claude model references from Sonnet to Haiku across ARCHITECTURE.md, DECISIONS.md (ADR-003), PROMPTS.md, and README.md; updated implementation status sections in ARCHITECTURE.md, SPEC.md, and SETUP.md to accurately reflect completed features (authentication, Google Business Profile integration, review polling, AI response generation) and in-progress features (dashboard UI data integration, response editing UI, Stripe webhooks); updated SPEC.md feature checklist with accurate completion status using [x], [~], and [ ] markers
+- Corrected Claude Haiku 4.5 pricing estimates: updated cost per response from ~$0.002 to ~$0.001 based on current pricing ($1.00/M input tokens, $5.00/M output tokens) in ARCHITECTURE.md and PROMPTS.md; updated monthly estimate for 1000 responses from ~$2 to ~$1
+
 ### Features
 
 - Implemented provider-agnostic AI tool system for development tasks: created complete tool library (`lib/dev-ai/`) that works with any AI provider (Anthropic Claude, OpenAI GPT, Google Gemini) through format adapters, enabling AI agents to use development tools regardless of which model Cursor selects in "Auto" mode
 - Added 7 base development tools: `generate_test` (Vitest test generation), `scaffold_component` (React component scaffolding), `scaffold_api_route` (Next.js API route generation), `generate_mock` (TypeScript mock helpers), `generate_migration` (Supabase migration SQL), `analyze_code` (code quality analysis), and `generate_docs` (JSDoc documentation generation)
 - Created provider-agnostic AI client abstraction: unified interface supporting Anthropic, OpenAI, and Gemini with automatic provider detection from model names, tool use/function calling support, and tool execution loops
 - Added comprehensive test suite: tests for format adapters, AI client abstraction, and all 7 tool implementations with mocked dependencies
-- Added documentation: created `docs/DEV_AI_TOOLS.md` with architecture overview, tool usage examples, provider support details, and troubleshooting guide
-
-## 2025-12-20
 
 ### UI/UX
 
 - Updated landing page response time messaging: changed hero headline from "30 seconds" to "within minutes", updated metadata description to reflect tiered polling intervals (5-15 minutes based on plan tier), and updated stats section to show "Avg. detection time: 5-15 min" instead of misleading "27 sec" response time
+- Fixed UX inconsistency in review-card component: changed Generate Response button condition to match badge behavior, now shows button when status is null (treated as pending) using `(review.status ?? "pending") === "pending"` instead of strict `review.status === "pending"`, ensuring consistent behavior when badge displays "pending" for null status
 
 ### Code Quality
 
+- Removed duplicate test script: deleted `test-regex.mjs` standalone script that duplicated regex tests already present in `tests/middleware.test.ts`, eliminating test duplication and potential maintenance drift
 - Fixed TypeScript type errors in dev-ai module: resolved 23 typecheck errors including optional property handling with `exactOptionalPropertyTypes: true` (using spread operator to conditionally include optional properties instead of assigning undefined), added null checks for API response choices/candidates, added missing description properties to ToolParameter definitions, and fixed test mock type signatures for readFileSync
 - Fixed failing dev-ai tool tests: updated component-scaffold test to check messages array content instead of system prompt for "Props" string, and updated migration-generator test to match actual timestamp format (YYYYMMDDTHHMMSS) instead of date-only format (YYYYMMDD)
 - Excluded Stryker HTML reports from Biome linting: updated `biome.json` to exclude `reports/**` directory using `files.includes` with negation pattern `!!**/reports`, preventing linting errors in generated mutation test reports
@@ -28,7 +32,7 @@
 - Replaced redundant middleware matcher test with functional regex test: replaced substring-based test with functional test that constructs RegExp from matcher pattern and verifies it correctly matches allowed routes (e.g., "/dashboard", "/api/responses") and excludes excluded routes (e.g., "/_next/static/chunk.js", "/favicon.ico", "/image.png", "/api/webhooks/stripe")
 - Fixed non-deterministic ID generation in review-card test factory: replaced `Math.random()`-based ID generation in `createMockReview` factory with deterministic default values ("rev_default", "ext_default"), ensuring stable test fixtures and making tests safe for snapshots while allowing tests to override IDs when needed
 - Added error propagation test for middleware: added test case to verify that middleware correctly propagates errors when `updateSession` throws, ensuring error handling is properly tested
-- Strengthened Google connect button OAuth test: replaced permissive `expect.any(String)` matchers with exact OAuth parameter values (scope: "https://www.googleapis.com/auth/business.manage", access_type: "offline", prompt: "consent") to verify precise OAuth configuration
+- Strengthened Google connect button OAuth test: replaced permissive `expect.any(String)` matchers with exact OAuth parameter values (scope: <https://www.googleapis.com/auth/business.manage>, access_type: "offline", prompt: "consent") to verify precise OAuth configuration
 - Improved Google connect button loading state test: added assertions to verify UI cleanup after OAuth promise resolves (button text returns to "Connect Google Account", button is enabled, aria-busy is no longer "true") to ensure proper state reset
 - Fixed landing page metadata test: updated test expectation to match actual metadata description text ("Get AI-generated review responses" instead of outdated "Respond to every Google Business review")
 - Refactored review-card test suite: introduced `createMockReview` factory function to eliminate duplication of near-identical Review objects across 19 tests, reducing code duplication and improving maintainability
