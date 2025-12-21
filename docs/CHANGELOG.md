@@ -2,18 +2,31 @@
 
 ## 2025-12-20
 
+### Features
+
+- Implemented provider-agnostic AI tool system for development tasks: created complete tool library (`lib/dev-ai/`) that works with any AI provider (Anthropic Claude, OpenAI GPT, Google Gemini) through format adapters, enabling AI agents to use development tools regardless of which model Cursor selects in "Auto" mode
+- Added 7 base development tools: `generate_test` (Vitest test generation), `scaffold_component` (React component scaffolding), `scaffold_api_route` (Next.js API route generation), `generate_mock` (TypeScript mock helpers), `generate_migration` (Supabase migration SQL), `analyze_code` (code quality analysis), and `generate_docs` (JSDoc documentation generation)
+- Created provider-agnostic AI client abstraction: unified interface supporting Anthropic, OpenAI, and Gemini with automatic provider detection from model names, tool use/function calling support, and tool execution loops
+- Added comprehensive test suite: tests for format adapters, AI client abstraction, and all 7 tool implementations with mocked dependencies
+- Added documentation: created `docs/DEV_AI_TOOLS.md` with architecture overview, tool usage examples, provider support details, and troubleshooting guide
+
+## 2025-12-20
+
 ### UI/UX
 
 - Updated landing page response time messaging: changed hero headline from "30 seconds" to "within minutes", updated metadata description to reflect tiered polling intervals (5-15 minutes based on plan tier), and updated stats section to show "Avg. detection time: 5-15 min" instead of misleading "27 sec" response time
 
 ### Code Quality
 
+- Fixed TypeScript type errors in dev-ai module: resolved 23 typecheck errors including optional property handling with `exactOptionalPropertyTypes: true` (using spread operator to conditionally include optional properties instead of assigning undefined), added null checks for API response choices/candidates, added missing description properties to ToolParameter definitions, and fixed test mock type signatures for readFileSync
+- Fixed failing dev-ai tool tests: updated component-scaffold test to check messages array content instead of system prompt for "Props" string, and updated migration-generator test to match actual timestamp format (YYYYMMDDTHHMMSS) instead of date-only format (YYYYMMDD)
 - Excluded Stryker HTML reports from Biome linting: updated `biome.json` to exclude `reports/**` directory using `files.includes` with negation pattern `!!**/reports`, preventing linting errors in generated mutation test reports
 - Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error
 
 ### Testing
 
-- Replaced redundant middleware matcher test with functional regex test: replaced substring-based test with functional test that constructs RegExp from matcher pattern and verifies it correctly matches allowed routes (e.g., "/dashboard", "/api/responses") and excludes excluded routes that work with standard RegExp (e.g., "/favicon.ico", "/image.png", "/_next/image/test.jpg"), with verification that excluded routes contain the expected exclusion patterns from the matcher
+- Replaced redundant middleware matcher test with functional regex test: replaced substring-based test with functional test that constructs RegExp from matcher pattern and verifies it correctly matches allowed routes (e.g., "/dashboard", "/api/responses") and excludes excluded routes (e.g., "/_next/static/chunk.js", "/favicon.ico", "/image.png", "/api/webhooks/stripe")
+- Fixed non-deterministic ID generation in review-card test factory: replaced `Math.random()`-based ID generation in `createMockReview` factory with deterministic default values ("rev_default", "ext_default"), ensuring stable test fixtures and making tests safe for snapshots while allowing tests to override IDs when needed
 - Added error propagation test for middleware: added test case to verify that middleware correctly propagates errors when `updateSession` throws, ensuring error handling is properly tested
 - Strengthened Google connect button OAuth test: replaced permissive `expect.any(String)` matchers with exact OAuth parameter values (scope: "https://www.googleapis.com/auth/business.manage", access_type: "offline", prompt: "consent") to verify precise OAuth configuration
 - Improved Google connect button loading state test: added assertions to verify UI cleanup after OAuth promise resolves (button text returns to "Connect Google Account", button is enabled, aria-busy is no longer "true") to ensure proper state reset

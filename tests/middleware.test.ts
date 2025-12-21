@@ -87,9 +87,12 @@ describe("middleware config", () => {
     expect(pattern.test("/image.png")).toBe(false);
     expect(pattern.test("/_next/image/test.jpg")).toBe(false);
 
-    // For routes where negative lookahead doesn't work perfectly as standard RegExp,
-    // we verify the pattern structure and that Next.js will process them correctly.
-    // The pattern is designed to exclude these routes even if pattern.test() returns true.
+    // Note: Next.js uses its own matcher implementation (not the standard JavaScript RegExp engine),
+    // so negative lookahead behavior in pattern.test() may differ from how Next.js will actually
+    // apply the matcher at runtime. Although pattern.test() can return true for some routes,
+    // the matcher string is intentionally structured for Next.js's matcher semantics and those
+    // routes will still be excluded at runtime. We verify the pattern structure to ensure
+    // these routes are properly excluded by Next.js even if the standard RegExp test passes.
     const routesWithRegExpLimitation = [
       "/_next/static/chunk.js",
       "/api/webhooks/stripe",

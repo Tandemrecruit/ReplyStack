@@ -6,10 +6,10 @@ import type { Review } from "@/lib/supabase/types";
 
 describe("components/reviews/ReviewCard", () => {
   const createMockReview = (overrides: Partial<Review> = {}): Review => ({
-    id: `rev_${Math.random().toString(36).substring(7)}`,
+    id: "rev_default",
     location_id: null,
     platform: "google",
-    external_review_id: `ext_${Math.random().toString(36).substring(7)}`,
+    external_review_id: "ext_default",
     reviewer_name: "John",
     reviewer_photo_url: null,
     rating: 5,

@@ -57,3 +57,11 @@ next-env.d.ts
 
 # stryker temp files
 .stryker-tmp
+
+# dev-ai tools
+lib/dev-ai/*
+docs/DEV_AI_TOOLS.md
+
+# dev-ai tests
+tests/lib/dev-ai/*
+
