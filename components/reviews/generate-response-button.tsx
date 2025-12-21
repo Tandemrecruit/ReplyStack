@@ -3,9 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+/**
+ * Response data returned from the /api/responses endpoint
+ */
+interface ResponseData {
+  id: string;
+  reviewId: string;
+  generatedText: string;
+  status: string;
+  tokensUsed: number;
+}
+
 interface GenerateResponseButtonProps {
   reviewId: string;
-  onSuccess?: () => void;
+  onSuccess?: (data: ResponseData) => void;
   onError?: (error: string) => void;
 }
 
@@ -16,7 +27,7 @@ interface GenerateResponseButtonProps {
  * and handles success/error states. On success, triggers optional callback or refreshes the page.
  *
  * @param reviewId - The ID of the review to generate a response for
- * @param onSuccess - Optional callback invoked on successful response generation
+ * @param onSuccess - Optional callback invoked on successful response generation with the response data
  * @param onError - Optional callback invoked with error message on failure
  */
 export function GenerateResponseButton({
@@ -59,7 +70,11 @@ export function GenerateResponseButton({
           try {
             const errorText = await response.text();
             // Only use text if it's short and seems meaningful
-            if (errorText.length > 0 && errorText.length < 200 && !errorText.startsWith("<")) {
+            if (
+              errorText.length > 0 &&
+              errorText.length < 200 &&
+              !errorText.startsWith("<")
+            ) {
               errorMessage = errorText;
             } else {
               errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
@@ -77,12 +92,12 @@ export function GenerateResponseButton({
         return;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as ResponseData;
 
       // Success - refresh the page to show updated review status
       // Future: navigate to response preview/edit modal
       if (onSuccess) {
-        onSuccess();
+        onSuccess(data);
       } else {
         router.refresh();
       }

@@ -708,9 +708,13 @@ describe("components/voice-profile/VoiceEditor", () => {
     render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
 
     expect(screen.getByText("Warm and approachable")).toBeInTheDocument();
-    expect(screen.getByText("Straightforward and to the point")).toBeInTheDocument();
+    expect(
+      screen.getByText("Straightforward and to the point"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Polished and business-like")).toBeInTheDocument();
-    expect(screen.getByText("Conversational and personable")).toBeInTheDocument();
+    expect(
+      screen.getByText("Conversational and personable"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Relaxed and informal")).toBeInTheDocument();
   });
 

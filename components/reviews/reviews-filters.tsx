@@ -33,7 +33,7 @@ export function ReviewsFilters({
   const derivedBasePath = useMemo(() => {
     const rawPath = basePath ?? pathname ?? "/reviews";
     // Remove query string if present
-    const pathWithoutQuery = rawPath.split("?")[0];
+    const pathWithoutQuery = rawPath.split("?")[0] ?? rawPath;
     // Trim trailing slashes (but keep root /)
     const trimmedPath = pathWithoutQuery.replace(/\/+$/, "") || "/";
     return trimmedPath;
@@ -53,7 +53,11 @@ export function ReviewsFilters({
       // Reset to page 1 when filters change
       params.delete("page");
 
-      router.push(`${derivedBasePath}?${params.toString()}`);
+      const queryString = params.toString();
+      const url = queryString
+        ? `${derivedBasePath}?${queryString}`
+        : derivedBasePath;
+      router.push(url);
     },
     [router, searchParams, derivedBasePath],
   );

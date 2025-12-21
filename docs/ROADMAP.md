@@ -2,7 +2,23 @@
 
 ## Phase 1: MVP (Week 1-2)
 
-**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, AI response generation, dashboard data integration (reviews page with functional filters and generate response), and landing page are complete. Remaining: response editing UI (edit modal, character count, optimistic updates), voice profile UI fields (example responses, words to use/avoid), Stripe integration, and email notifications.
+### Current Status (Dec 2025)
+
+**Completed:**
+- Project scaffolding and infrastructure setup
+- Authentication (email/password, Google OAuth, password reset)
+- Google Business Profile integration (OAuth, location selection, token encryption)
+- Review polling and storage (cron job, deduplication)
+- Voice profile API (tone, personality notes, sign-off, max length)
+- AI response generation (Claude integration, token tracking)
+- Dashboard data integration (reviews page with functional filters and generate response button)
+- Landing page (hero, features, pricing, FAQ)
+
+**Remaining:**
+- Response editing UI (edit modal, character count, optimistic updates)
+- Voice profile UI fields (example responses input, words to use/avoid)
+- Stripe integration (checkout, webhooks, subscription management)
+- Email notifications (new review alerts, welcome emails)
 
 **Goal:** One location, core response loop, payments working
 

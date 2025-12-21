@@ -74,6 +74,12 @@ function createMockSupabaseClient() {
 }
 
 describe("app/(dashboard)/reviews/page", () => {
+  beforeEach(() => {
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      createMockSupabaseClient(),
+    );
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -86,10 +92,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders the page heading", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     expect(
@@ -98,10 +100,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders the page description", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     expect(
@@ -110,10 +108,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders rating filter dropdown", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     const ratingSelect = screen.getByRole("combobox", {
@@ -128,10 +122,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders status filter dropdown", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     const statusSelect = screen.getByRole("combobox", {
@@ -149,10 +139,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders empty state", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     expect(
@@ -166,10 +152,6 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders empty state icon", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      createMockSupabaseClient(),
-    );
-
     const Component = await ReviewsPage({ searchParams: {} });
     render(Component);
     const icon = screen.getByRole("img", {

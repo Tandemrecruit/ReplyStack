@@ -40,6 +40,100 @@ const VALID_STATUSES = ["pending", "responded", "ignored"] as const;
 const VALID_SENTIMENTS = ["positive", "neutral", "negative"] as const;
 
 /**
+ * Type guard to validate that a value is a valid ReviewLocation
+ */
+function isValidReviewLocation(value: unknown): value is ReviewLocation {
+  if (!value || typeof value !== "object") return false;
+  const loc = value as Record<string, unknown>;
+  return (
+    typeof loc.id === "string" &&
+    typeof loc.name === "string" &&
+    typeof loc.google_location_id === "string"
+  );
+}
+
+/**
+ * Type guard to validate that a value is a valid ReviewWithLocation
+ */
+function isValidReviewWithLocation(
+  value: unknown,
+): value is ReviewWithLocation {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Record<string, unknown>;
+  return (
+    typeof review.id === "string" &&
+    typeof review.external_review_id === "string" &&
+    (review.reviewer_name === null ||
+      review.reviewer_name === undefined ||
+      typeof review.reviewer_name === "string") &&
+    (review.reviewer_photo_url === null ||
+      review.reviewer_photo_url === undefined ||
+      typeof review.reviewer_photo_url === "string") &&
+    (review.rating === null ||
+      review.rating === undefined ||
+      typeof review.rating === "number") &&
+    (review.review_text === null ||
+      review.review_text === undefined ||
+      typeof review.review_text === "string") &&
+    (review.review_date === null ||
+      review.review_date === undefined ||
+      typeof review.review_date === "string") &&
+    (review.has_response === null ||
+      review.has_response === undefined ||
+      typeof review.has_response === "boolean") &&
+    (review.status === null ||
+      review.status === undefined ||
+      typeof review.status === "string") &&
+    (review.sentiment === null ||
+      review.sentiment === undefined ||
+      typeof review.sentiment === "string") &&
+    (review.created_at === null ||
+      review.created_at === undefined ||
+      typeof review.created_at === "string") &&
+    (review.location_id === null ||
+      review.location_id === undefined ||
+      typeof review.location_id === "string") &&
+    (review.platform === null ||
+      review.platform === undefined ||
+      typeof review.platform === "string") &&
+    (review.locations === null ||
+      review.locations === undefined ||
+      isValidReviewLocation(review.locations))
+  );
+}
+
+/**
+ * Maps raw Supabase query result to ReviewWithLocation with validation
+ */
+function mapToReviewWithLocation(raw: unknown): ReviewWithLocation | null {
+  if (!isValidReviewWithLocation(raw)) {
+    return null;
+  }
+  return {
+    id: raw.id,
+    external_review_id: raw.external_review_id,
+    reviewer_name: raw.reviewer_name ?? null,
+    reviewer_photo_url: raw.reviewer_photo_url ?? null,
+    rating: raw.rating ?? null,
+    review_text: raw.review_text ?? null,
+    review_date: raw.review_date ?? null,
+    has_response: raw.has_response ?? null,
+    status: raw.status ?? null,
+    sentiment: raw.sentiment ?? null,
+    created_at: raw.created_at ?? null,
+    location_id: raw.location_id ?? null,
+    platform: raw.platform ?? null,
+    locations: raw.locations
+      ? {
+          id: raw.locations.id,
+          name: raw.locations.name,
+          google_location_id: raw.locations.google_location_id,
+        }
+      : null,
+  };
+}
+
+/**
  * Handle GET /api/reviews for the authenticated user's organization.
  *
  * Reads optional URL search parameters to filter and paginate reviews:
@@ -156,7 +250,6 @@ export async function GET(request: NextRequest) {
         sentiment,
         created_at,
         location_id,
-        platform,
         locations!inner (
           id,
           name,
@@ -201,9 +294,6 @@ export async function GET(request: NextRequest) {
     // Execute query
     const { data: reviews, count, error: reviewsError } = await query;
 
-    // Type the reviews result
-    const typedReviews: ReviewWithLocation[] | null = reviews;
-
     if (reviewsError) {
       console.error("Failed to fetch reviews:", reviewsError.message);
       return NextResponse.json(
@@ -212,8 +302,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Map and validate reviews from Supabase query result
+    const typedReviews: ReviewWithLocation[] = (reviews ?? [])
+      .map(mapToReviewWithLocation)
+      .filter((review): review is ReviewWithLocation => review !== null);
+
     // Transform reviews to include location name
-    const transformedReviews = (typedReviews ?? []).map((review) => {
+    const transformedReviews = typedReviews.map((review) => {
       return {
         id: review.id,
         external_review_id: review.external_review_id,

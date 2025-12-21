@@ -505,9 +505,7 @@ describe("components/landing/LiveDemo", () => {
       await user.type(textarea, "Perfect!");
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/Glad it went well!/i),
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Glad it went well!/i)).toBeInTheDocument();
       });
     });
 

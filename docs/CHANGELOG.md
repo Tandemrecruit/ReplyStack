@@ -5,9 +5,14 @@
 ### Code Quality
 
 - Made ReviewsFilters component route-agnostic: replaced hardcoded "/reviews" path with dynamic base path using optional `basePath` prop or `usePathname()` hook with fallback, automatically removes query strings and trims trailing slashes, enabling component reuse across different routes while maintaining backward compatibility
-- Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks (lines 187-203 and 330-346) with single component usage, improving maintainability and reducing code duplication
+- Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks with single component usage, improving maintainability and reducing code duplication
 - Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe `const typedReviews: ReviewWithLocation[] | null = reviews` assignment and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`) and explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
 - Fixed reviews page tests to handle async Server Component: added mocks for `createServerSupabaseClient`, `redirect`, and Next.js navigation hooks (`useRouter`, `useSearchParams`, `usePathname`), updated tests to await async component rendering, and extracted mock setup into reusable helper function to reduce duplication
+- Refactored reviews page tests to extract repeated mock setup: moved duplicate `createServerSupabaseClient` mock configuration from individual tests into `beforeEach` block, reducing code duplication and improving test maintainability
+- Replaced unsafe type assertion in reviews API route with runtime validation: applied same validation pattern as reviews page, added type guard functions and mapping function to validate Supabase query results, updated validation to handle undefined values for optional fields (normalizing to null), ensuring consistent type safety across both API route and page component
+- Removed unused `platform` field from reviews API route select query: removed `platform` from database select since it's not included in the API response, reducing unnecessary data fetching and improving query performance
+- Fixed unused response data in GenerateResponseButton component: updated `onSuccess` callback to accept and pass the API response data (id, reviewId, generatedText, status, tokensUsed) instead of parsing JSON without using it, enabling callers to access response metadata when needed
+- Fixed trailing `?` in ReviewsFilters component URLs: updated router.push logic to conditionally append query string only when params are non-empty, preventing URLs like `/reviews?` when all filters are cleared
 
 ### Features
 

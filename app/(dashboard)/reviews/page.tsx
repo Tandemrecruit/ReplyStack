@@ -54,22 +54,9 @@ interface ReviewLocation {
 /**
  * Review with joined location data from Supabase query
  */
-interface ReviewWithLocation {
-  id: string;
-  external_review_id: string;
-  reviewer_name: string | null;
-  reviewer_photo_url: string | null;
-  rating: number | null;
-  review_text: string | null;
-  review_date: string | null;
-  has_response: boolean | null;
-  status: string | null;
-  sentiment: string | null;
-  created_at: string | null;
-  location_id: string | null;
-  platform: string | null;
+type ReviewWithLocation = Review & {
   locations: ReviewLocation | null;
-}
+};
 
 /**
  * Type guard to validate that a value is a valid ReviewLocation
@@ -96,20 +83,41 @@ function isValidReviewWithLocation(
     typeof review.id === "string" &&
     typeof review.external_review_id === "string" &&
     (review.reviewer_name === null ||
+      review.reviewer_name === undefined ||
       typeof review.reviewer_name === "string") &&
     (review.reviewer_photo_url === null ||
+      review.reviewer_photo_url === undefined ||
       typeof review.reviewer_photo_url === "string") &&
-    (review.rating === null || typeof review.rating === "number") &&
-    (review.review_text === null || typeof review.review_text === "string") &&
-    (review.review_date === null || typeof review.review_date === "string") &&
+    (review.rating === null ||
+      review.rating === undefined ||
+      typeof review.rating === "number") &&
+    (review.review_text === null ||
+      review.review_text === undefined ||
+      typeof review.review_text === "string") &&
+    (review.review_date === null ||
+      review.review_date === undefined ||
+      typeof review.review_date === "string") &&
     (review.has_response === null ||
+      review.has_response === undefined ||
       typeof review.has_response === "boolean") &&
-    (review.status === null || typeof review.status === "string") &&
-    (review.sentiment === null || typeof review.sentiment === "string") &&
-    (review.created_at === null || typeof review.created_at === "string") &&
-    (review.location_id === null || typeof review.location_id === "string") &&
-    (review.platform === null || typeof review.platform === "string") &&
-    (review.locations === null || isValidReviewLocation(review.locations))
+    (review.status === null ||
+      review.status === undefined ||
+      typeof review.status === "string") &&
+    (review.sentiment === null ||
+      review.sentiment === undefined ||
+      typeof review.sentiment === "string") &&
+    (review.created_at === null ||
+      review.created_at === undefined ||
+      typeof review.created_at === "string") &&
+    (review.location_id === null ||
+      review.location_id === undefined ||
+      typeof review.location_id === "string") &&
+    (review.platform === null ||
+      review.platform === undefined ||
+      typeof review.platform === "string") &&
+    (review.locations === null ||
+      review.locations === undefined ||
+      isValidReviewLocation(review.locations))
   );
 }
 
@@ -123,17 +131,17 @@ function mapToReviewWithLocation(raw: unknown): ReviewWithLocation | null {
   return {
     id: raw.id,
     external_review_id: raw.external_review_id,
-    reviewer_name: raw.reviewer_name,
-    reviewer_photo_url: raw.reviewer_photo_url,
-    rating: raw.rating,
-    review_text: raw.review_text,
-    review_date: raw.review_date,
-    has_response: raw.has_response,
-    status: raw.status,
-    sentiment: raw.sentiment,
-    created_at: raw.created_at,
-    location_id: raw.location_id,
-    platform: raw.platform,
+    reviewer_name: raw.reviewer_name ?? null,
+    reviewer_photo_url: raw.reviewer_photo_url ?? null,
+    rating: raw.rating ?? null,
+    review_text: raw.review_text ?? null,
+    review_date: raw.review_date ?? null,
+    has_response: raw.has_response ?? null,
+    status: raw.status ?? null,
+    sentiment: raw.sentiment ?? null,
+    created_at: raw.created_at ?? null,
+    location_id: raw.location_id ?? null,
+    platform: raw.platform ?? null,
     locations: raw.locations
       ? {
           id: raw.locations.id,
@@ -337,6 +345,7 @@ export default async function ReviewsPage({
     sentiment: review.sentiment,
     created_at: review.created_at,
     location_id: review.location_id,
+    // Default to "google" since the app targets Google Business profiles; missing platform values should be treated as Google
     platform: review.platform ?? "google",
   }));
 
