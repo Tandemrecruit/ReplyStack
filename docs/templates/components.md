@@ -79,9 +79,11 @@ export function ResourceForm() {
           return;
         }
 
-        // Success - redirect or update UI
+        // Success - redirect to destination page
+        // Note: Do not call router.refresh() here - navigation may unmount this component
+        // The destination page should handle its own data refresh (e.g., via revalidatePath,
+        // cache-control headers, or useEffect to fetch fresh data on mount)
         router.push("/success-path");
-        router.refresh();
       } catch {
         setGeneralError("An unexpected error occurred. Please try again.");
       } finally {
@@ -151,6 +153,8 @@ export function ResourceForm() {
 - Add custom validation logic as needed
 - Replace `/api/resource` with your actual API endpoint
 - Replace `/success-path` with your redirect destination
+- **Do not call `router.refresh()` after `router.push()`** - the component may unmount before refresh runs
+- **Destination page should handle data refresh**: Use `revalidatePath()` or `revalidateTag()` in the API route, or fetch fresh data in the destination page's `useEffect` or Server Component
 - Add additional fields following the same pattern
 
 **See also:** `pattern-error-client`
@@ -173,7 +177,8 @@ interface ResourceCardProps {
     status: string;
     // ... other fields
   };
-  onAction?: (id: string) => void;
+  onAction?: (id: string) => Promise<void> | void;
+  onError?: (error: Error) => void;
 }
 
 /**
@@ -183,20 +188,35 @@ interface ResourceCardProps {
  *
  * @param resource - The resource data to display
  * @param onAction - Optional callback invoked when action button is clicked
+ * @param onError - Optional callback invoked when action fails (if not provided, error is displayed in component)
  */
-export function ResourceCard({ resource, onAction }: ResourceCardProps) {
+export function ResourceCard({ resource, onAction, onError }: ResourceCardProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAction = useCallback(async () => {
     if (!onAction) return;
 
     setIsLoading(true);
+    setError(null);
     try {
       await onAction(resource.id);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Action failed");
+
+      // Call external error handler if provided
+      if (onError) {
+        onError(error);
+        // Rethrow so callers can handle it if needed
+        throw error;
+      } else {
+        // Store error in component state for UI display
+        setError(error.message);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [resource.id, onAction]);
+  }, [resource.id, onAction, onError]);
 
   return (
     <div className="p-4 bg-surface rounded-lg border border-border">
@@ -206,6 +226,11 @@ export function ResourceCard({ resource, onAction }: ResourceCardProps) {
           <p className="text-sm text-foreground-secondary mt-1">
             Status: {resource.status}
           </p>
+          {error && (
+            <p className="text-sm text-error mt-2" role="alert">
+              {error}
+            </p>
+          )}
         </div>
         {onAction && (
           <button

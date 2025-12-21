@@ -56,10 +56,10 @@ export default async function ResourcePage() {
     );
   }
 
-  // Fetch data
+  // Fetch data - explicitly select only needed columns (exclude sensitive fields)
   const { data: resources, error } = await supabase
     .from("table_name")
-    .select("*")
+    .select("id, name, status, created_at")
     .eq("organization_id", userData.organization_id)
     .order("created_at", { ascending: false });
 
@@ -82,7 +82,7 @@ export default async function ResourcePage() {
         {resources && resources.length > 0 ? (
           resources.map((resource) => (
             <div key={resource.id} className="p-4 bg-surface rounded-lg border">
-              {/* Render resource */}
+              {/* Render resource - only selected fields are available: id, name, status, created_at */}
             </div>
           ))
         ) : (
@@ -98,6 +98,9 @@ export default async function ResourcePage() {
 - Replace `ResourcePage` with your page component name
 - Update metadata title and description
 - Replace `table_name` with your actual table name
+- **Always use explicit column selection** - update `.select("id, name, status, created_at")` to include only the fields you need
+- **Exclude sensitive fields** (e.g., tokens, API keys, internal IDs) from the selection
+- Update the comment in the render section to reflect which fields are available
 - Add additional data fetching queries as needed
 - Customize the UI structure for your use case
 - Add loading states if needed (use `loading.tsx` file)

@@ -342,7 +342,40 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createServerSupabaseClient();
 
-    // ... same auth and ownership verification as PATCH ...
+    // Verify authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user's organization
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+
+    if (userError || !userData || !userData.organization_id) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Verify resource exists and belongs to organization
+    const { data: resource, error: fetchError } = await supabase
+      .from("table_name")
+      .select("id, organization_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !resource) {
+      return NextResponse.json({ error: "Resource not found" }, { status: 404 });
+    }
+
+    if (resource.organization_id !== userData.organization_id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // Delete resource
     const { error: deleteError } = await supabase

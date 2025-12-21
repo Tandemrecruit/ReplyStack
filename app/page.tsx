@@ -636,7 +636,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold">
             Ready to transform your review management?
           </h2>
-          <p className="text-xl" style={{ color: "var(--color-accent-900)" }}>
+          <p className="text-xl text-accent-900">
             Join hundreds of local businesses responding faster with ReplyStack.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">

@@ -29,7 +29,7 @@
   - [x] Fetch and store refresh token (encrypted)
   - [x] Location listing and selection
   - [x] Store selected location
-  - [ ] Initial bulk import of 200 reviews when location is first connected
+  - [ ] Initial bulk import of 200 reviews when location is first connected **(blocked: depends on location connection trigger/hook to detect first-time connections and initiate bulk import)**
 
 - [X] **Review polling and storage**
   - [x] Review fetch from Google API

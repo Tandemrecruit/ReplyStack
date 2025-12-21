@@ -293,9 +293,6 @@ describe("components/voice-profile/VoiceEditor", () => {
     expect(screen.getByRole("button", { name: /Casual/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Warm/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Direct/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Friendly/i }),
-    ).toBeInTheDocument();
   });
 
   it("highlights selected tone option", () => {

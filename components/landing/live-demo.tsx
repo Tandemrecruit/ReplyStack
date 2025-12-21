@@ -61,7 +61,7 @@ function detectTopics(review: string) {
  * tone-appropriate sentences that address any detected topics, then appends a closing line.
  *
  * @param review - The review text to analyze and respond to.
- * @param tone - The reply voice to use (`"Warm" | "Direct" | "Concise"`).
+ * @param tone - The reply voice to use (`"Warm" | "Direct" | "Professional" | "Friendly" | "Casual"`).
  * @returns The composed reply text that addresses detected topics and matches the selected tone.
  */
 function buildDraftReply(review: string, tone: Tone): string {
@@ -165,7 +165,7 @@ function buildDraftReply(review: string, tone: Tone): string {
  * Interactive demo that generates an owner reply draft from a review and a chosen tone.
  *
  * Renders a self-contained "Try a sample reply" UI where users can paste or pick a sample
- * review, choose a tone (Warm, Direct, Concise), and see a live preview of the incoming
+ * review, choose a tone (Warm, Direct, Professional, Friendly, Casual), and see a live preview of the incoming
  * review and the generated draft reply. Controls include tone buttons, a review textarea,
  * a sample selector, and action links for starting a trial or viewing the app.
  *

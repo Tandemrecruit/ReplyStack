@@ -36,6 +36,7 @@ Read only the specific template file you need - do not load all templates.
 ## Quick Reference by Use Case
 
 ### Building an API Route
+
 - **GET with pagination**: `api-get-paginated`
 - **POST with validation**: `api-post-validated`
 - **PATCH/DELETE**: `api-patch-delete`
@@ -44,15 +45,18 @@ Read only the specific template file you need - do not load all templates.
 - **Auth check**: `pattern-auth-api`
 
 ### Building a Form Component
+
 - **Form with validation**: `component-form`
 - **Error handling**: `pattern-error-client`
 
 ### Building a Dashboard Page
+
 - **Server component**: `server-dashboard`
 - **Auth redirect**: `pattern-auth-server`
 - **Data fetching**: `db-org-scoped`
 
 ### Database Queries
+
 - **Organization filtering**: `db-org-scoped`
 - **Joins with types**: `db-joined`
 - **Create or update**: `db-upsert`

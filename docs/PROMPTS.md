@@ -68,7 +68,7 @@ CRITICAL: This is a negative review. Follow this structure:
 | `{business_name}` | `locations.name` | "Joe's Pizza" |
 | `{industry}` | `voice_profiles.personality_notes` or inferred | "Italian restaurant" |
 | `{city}` | Extracted from `locations.address` | "Austin" |
-| `{tone}` | `voice_profiles.tone` | "friendly" |
+| `{tone}` | `voice_profiles.tone` | "warm" |
 | `{personality_notes}` | `voice_profiles.personality_notes` | "Family-owned for 30 years, known for thin crust" |
 | `{sign_off_style}` | `voice_profiles.sign_off_style` | "- Joe, Owner" |
 | `{example_responses}` | `voice_profiles.example_responses` | Array joined with newlines |

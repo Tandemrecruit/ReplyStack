@@ -149,7 +149,7 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 ### Claude API
 
-**Model:** `claude-haiku-4-5-20251001` (alias: `claude-haiku-4-5')
+**Model:** `claude-haiku-4-5-20251001` (alias: `claude-haiku-4-5`)
 
 **Cost Estimation:**
 - Average response: ~100 tokens output
