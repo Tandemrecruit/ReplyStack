@@ -2,6 +2,10 @@
 
 ## 2025-12-20
 
+### UI/UX
+
+- Updated landing page response time messaging: changed hero headline from "30 seconds" to "within minutes", updated metadata description to reflect tiered polling intervals (5-15 minutes based on plan tier), and updated stats section to show "Avg. detection time: 5-15 min" instead of misleading "27 sec" response time
+
 ### Code Quality
 
 - Excluded Stryker HTML reports from Biome linting: updated `biome.json` to exclude `reports/**` directory using `files.includes` with negation pattern `!!**/reports`, preventing linting errors in generated mutation test reports
@@ -9,6 +13,13 @@
 
 ### Testing
 
+- Replaced redundant middleware matcher test with functional regex test: replaced substring-based test with functional test that constructs RegExp from matcher pattern and verifies it correctly matches allowed routes (e.g., "/dashboard", "/api/responses") and excludes excluded routes that work with standard RegExp (e.g., "/favicon.ico", "/image.png", "/_next/image/test.jpg"), with verification that excluded routes contain the expected exclusion patterns from the matcher
+- Added error propagation test for middleware: added test case to verify that middleware correctly propagates errors when `updateSession` throws, ensuring error handling is properly tested
+- Strengthened Google connect button OAuth test: replaced permissive `expect.any(String)` matchers with exact OAuth parameter values (scope: "https://www.googleapis.com/auth/business.manage", access_type: "offline", prompt: "consent") to verify precise OAuth configuration
+- Improved Google connect button loading state test: added assertions to verify UI cleanup after OAuth promise resolves (button text returns to "Connect Google Account", button is enabled, aria-busy is no longer "true") to ensure proper state reset
+- Fixed landing page metadata test: updated test expectation to match actual metadata description text ("Get AI-generated review responses" instead of outdated "Respond to every Google Business review")
+- Refactored review-card test suite: introduced `createMockReview` factory function to eliminate duplication of near-identical Review objects across 19 tests, reducing code duplication and improving maintainability
+- Refactored landing page test suite: consolidated 30+ granular tests into 10 broader tests that focus on structural elements and key conversion points rather than exact marketing copy, using flexible regex matching and `getAllByText` where appropriate, reducing maintenance burden when marketing copy changes
 - Fixed timeout in claude client test: updated "handles error response without error message" test to properly handle retry logic by advancing fake timers and capturing promise outcome, preventing test timeout on 500 error responses
 - Fixed landing page tests: updated "renders proof point cards" and "renders no credit card message" tests to use `getAllByText` instead of `getByText` for text that appears multiple times on the page, preventing "Found multiple elements" errors
 

@@ -41,11 +41,11 @@ describe("components/settings/GoogleConnectButton", () => {
       expect(mockSignInWithOAuth).toHaveBeenCalledWith({
         provider: "google",
         options: expect.objectContaining({
-          scopes: expect.any(String),
+          scopes: "https://www.googleapis.com/auth/business.manage",
           redirectTo: expect.stringContaining("/settings"),
           queryParams: expect.objectContaining({
-            access_type: expect.any(String),
-            prompt: expect.any(String),
+            access_type: "offline",
+            prompt: "consent",
           }),
         }),
       });
@@ -79,6 +79,17 @@ describe("components/settings/GoogleConnectButton", () => {
 
     await act(async () => {
       resolvePromise({ error: null });
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /connect google account/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button")).toBeEnabled();
+      expect(screen.getByRole("button")).not.toHaveAttribute(
+        "aria-busy",
+        "true",
+      );
     });
   });
 

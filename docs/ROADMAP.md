@@ -74,19 +74,19 @@
   - [x] Max length setting (exists in VoiceEditor component)
   - [x] Save and update profile (API fully implemented, UI partially implemented)
 
-- [ ] **Stripe integration**
+- [~] **Stripe integration**
   - [ ] Products and prices in Stripe Dashboard
   - [ ] Checkout session creation
-  - [ ] Webhook handler
+  - [~] Webhook handler (stub exists, needs implementation)
   - [ ] Customer portal link
   - [ ] Trial logic (14 days)
   - [ ] Subscription status checks
 
-- [ ] **Email notifications**
-  - [ ] Resend integration
+- [~] **Email notifications**
+  - [~] Resend integration (preferences API/UI done, no email sending yet)
   - [ ] New review notification
   - [ ] Welcome email
-  - [ ] Notification preferences
+  - [x] Notification preferences (API and UI implemented)
 
 - [~] **Account management**
   - [x] Update password (update-password-form exists)
