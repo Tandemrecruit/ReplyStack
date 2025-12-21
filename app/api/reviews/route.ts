@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 
 /**
  * Default pagination values
@@ -22,21 +23,11 @@ interface ReviewLocation {
 /**
  * Review with joined location data from Supabase query
  */
-interface ReviewWithLocation {
-  id: string;
-  external_review_id: string;
-  reviewer_name: string | null;
-  reviewer_photo_url: string | null;
-  rating: number | null;
-  review_text: string | null;
-  review_date: string | null;
-  has_response: boolean | null;
-  status: string | null;
-  sentiment: string | null;
-  created_at: string | null;
-  location_id: string | null;
+type Review = Database["public"]["Tables"]["reviews"]["Row"];
+
+type ReviewWithLocation = Review & {
   locations: ReviewLocation | null;
-}
+};
 
 /**
  * Valid status filter values
@@ -165,6 +156,7 @@ export async function GET(request: NextRequest) {
         sentiment,
         created_at,
         location_id,
+        platform,
         locations!inner (
           id,
           name,

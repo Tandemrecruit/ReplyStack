@@ -13,6 +13,31 @@ export const metadata: Metadata = {
 };
 
 /**
+ * Empty state icon for reviews page
+ */
+function EmptyStateIcon() {
+  return (
+    <div className="w-12 h-12 mx-auto rounded-full bg-background-secondary flex items-center justify-center">
+      <svg
+        className="w-6 h-6 text-foreground-muted"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label="No reviews icon"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
  * Valid status filter values
  */
 const VALID_STATUSES = ["pending", "responded", "ignored"] as const;
@@ -44,6 +69,79 @@ interface ReviewWithLocation {
   location_id: string | null;
   platform: string | null;
   locations: ReviewLocation | null;
+}
+
+/**
+ * Type guard to validate that a value is a valid ReviewLocation
+ */
+function isValidReviewLocation(value: unknown): value is ReviewLocation {
+  if (!value || typeof value !== "object") return false;
+  const loc = value as Record<string, unknown>;
+  return (
+    typeof loc.id === "string" &&
+    typeof loc.name === "string" &&
+    typeof loc.google_location_id === "string"
+  );
+}
+
+/**
+ * Type guard to validate that a value is a valid ReviewWithLocation
+ */
+function isValidReviewWithLocation(
+  value: unknown,
+): value is ReviewWithLocation {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Record<string, unknown>;
+  return (
+    typeof review.id === "string" &&
+    typeof review.external_review_id === "string" &&
+    (review.reviewer_name === null ||
+      typeof review.reviewer_name === "string") &&
+    (review.reviewer_photo_url === null ||
+      typeof review.reviewer_photo_url === "string") &&
+    (review.rating === null || typeof review.rating === "number") &&
+    (review.review_text === null || typeof review.review_text === "string") &&
+    (review.review_date === null || typeof review.review_date === "string") &&
+    (review.has_response === null ||
+      typeof review.has_response === "boolean") &&
+    (review.status === null || typeof review.status === "string") &&
+    (review.sentiment === null || typeof review.sentiment === "string") &&
+    (review.created_at === null || typeof review.created_at === "string") &&
+    (review.location_id === null || typeof review.location_id === "string") &&
+    (review.platform === null || typeof review.platform === "string") &&
+    (review.locations === null || isValidReviewLocation(review.locations))
+  );
+}
+
+/**
+ * Maps raw Supabase query result to ReviewWithLocation with validation
+ */
+function mapToReviewWithLocation(raw: unknown): ReviewWithLocation | null {
+  if (!isValidReviewWithLocation(raw)) {
+    return null;
+  }
+  return {
+    id: raw.id,
+    external_review_id: raw.external_review_id,
+    reviewer_name: raw.reviewer_name,
+    reviewer_photo_url: raw.reviewer_photo_url,
+    rating: raw.rating,
+    review_text: raw.review_text,
+    review_date: raw.review_date,
+    has_response: raw.has_response,
+    status: raw.status,
+    sentiment: raw.sentiment,
+    created_at: raw.created_at,
+    location_id: raw.location_id,
+    platform: raw.platform,
+    locations: raw.locations
+      ? {
+          id: raw.locations.id,
+          name: raw.locations.name,
+          google_location_id: raw.locations.google_location_id,
+        }
+      : null,
+  };
 }
 
 /**
@@ -149,23 +247,7 @@ export default async function ReviewsPage({
           />
         </div>
         <div className="p-12 bg-surface rounded-lg border border-border text-center">
-          <div className="w-12 h-12 mx-auto rounded-full bg-background-secondary flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-foreground-muted"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              role="img"
-              aria-label="No reviews icon"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              />
-            </svg>
-          </div>
+          <EmptyStateIcon />
           <h3 className="mt-4 text-lg font-medium text-foreground">
             No reviews yet
           </h3>
@@ -224,9 +306,6 @@ export default async function ReviewsPage({
   // Execute query
   const { data: reviews, error: reviewsError } = await query;
 
-  // Type the reviews result
-  const typedReviews: ReviewWithLocation[] | null = reviews;
-
   if (reviewsError) {
     console.error("Failed to fetch reviews:", reviewsError.message);
     return (
@@ -239,8 +318,13 @@ export default async function ReviewsPage({
     );
   }
 
+  // Map and validate reviews from Supabase query result
+  const typedReviews: ReviewWithLocation[] = (reviews ?? [])
+    .map(mapToReviewWithLocation)
+    .filter((review): review is ReviewWithLocation => review !== null);
+
   // Transform reviews to match Review type (remove location_name if present)
-  const transformedReviews: Review[] = (typedReviews ?? []).map((review) => ({
+  const transformedReviews: Review[] = typedReviews.map((review) => ({
     id: review.id,
     external_review_id: review.external_review_id,
     reviewer_name: review.reviewer_name,
@@ -291,23 +375,7 @@ export default async function ReviewsPage({
         </div>
       ) : (
         <div className="p-12 bg-surface rounded-lg border border-border text-center">
-          <div className="w-12 h-12 mx-auto rounded-full bg-background-secondary flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-foreground-muted"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              role="img"
-              aria-label="No reviews icon"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              />
-            </svg>
-          </div>
+          <EmptyStateIcon />
           <h3 className="mt-4 text-lg font-medium text-foreground">
             {hasActiveFilters
               ? "No reviews match your filters"

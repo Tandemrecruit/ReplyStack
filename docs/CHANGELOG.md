@@ -2,6 +2,12 @@
 
 ## 2025-12-21
 
+### Code Quality
+
+- Made ReviewsFilters component route-agnostic: replaced hardcoded "/reviews" path with dynamic base path using optional `basePath` prop or `usePathname()` hook with fallback, automatically removes query strings and trims trailing slashes, enabling component reuse across different routes while maintaining backward compatibility
+- Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks (lines 187-203 and 330-346) with single component usage, improving maintainability and reducing code duplication
+- Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe `const typedReviews: ReviewWithLocation[] | null = reviews` assignment and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`) and explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
+
 ### Features
 
 - Standardized tone options across all components:
@@ -11,6 +17,7 @@
 
 ### Bug Fixes
 
+- Fixed response parsing error in generate-response-button component: changed error handling to check `response.ok` before calling `response.json()`, preventing errors when server returns non-JSON (e.g., HTML error pages); now safely attempts JSON parsing for error responses, falls back to text parsing when Content-Type indicates non-JSON, and provides meaningful error messages to users
 - Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error
 
 ### UI/UX

@@ -39,11 +39,36 @@ export function GenerateResponseButton({
         body: JSON.stringify({ reviewId }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        const errorMessage =
-          data.error ?? "Failed to generate response. Please try again.";
+        // Try to extract error message from response
+        // Note: response body can only be read once, so we try JSON first
+        let errorMessage = "Failed to generate response. Please try again.";
+        const contentType = response.headers.get("content-type");
+        const isJson = contentType?.includes("application/json");
+
+        if (isJson) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error ?? errorMessage;
+          } catch {
+            // JSON parsing failed, use generic message with status
+            errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
+          }
+        } else {
+          // Not JSON (e.g., HTML error page), try to read as text
+          try {
+            const errorText = await response.text();
+            // Only use text if it's short and seems meaningful
+            if (errorText.length > 0 && errorText.length < 200 && !errorText.startsWith("<")) {
+              errorMessage = errorText;
+            } else {
+              errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
+            }
+          } catch {
+            // Text parsing also failed, use generic message
+            errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
+          }
+        }
         if (onError) {
           onError(errorMessage);
         } else {
@@ -51,6 +76,8 @@ export function GenerateResponseButton({
         }
         return;
       }
+
+      const data = await response.json();
 
       // Success - refresh the page to show updated review status
       // Future: navigate to response preview/edit modal

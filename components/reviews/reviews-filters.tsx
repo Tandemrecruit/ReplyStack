@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
 
 interface ReviewsFiltersProps {
   currentStatus?: string | null | undefined;
   currentRating?: string | null | undefined;
+  basePath?: string;
 }
 
 /**
@@ -16,13 +17,27 @@ interface ReviewsFiltersProps {
  *
  * @param currentStatus - Current status filter value from URL (pending, responded, ignored)
  * @param currentRating - Current rating filter value from URL (1-5)
+ * @param basePath - Optional base path for navigation. If not provided, uses current pathname from usePathname() or falls back to '/reviews'
  */
 export function ReviewsFilters({
   currentStatus,
   currentRating,
+  basePath,
 }: ReviewsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Derive base path: prop > pathname > fallback
+  // Remove query string, trim trailing slashes, ensure it starts with /
+  const derivedBasePath = useMemo(() => {
+    const rawPath = basePath ?? pathname ?? "/reviews";
+    // Remove query string if present
+    const pathWithoutQuery = rawPath.split("?")[0];
+    // Trim trailing slashes (but keep root /)
+    const trimmedPath = pathWithoutQuery.replace(/\/+$/, "") || "/";
+    return trimmedPath;
+  }, [basePath, pathname]);
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
@@ -38,9 +53,9 @@ export function ReviewsFilters({
       // Reset to page 1 when filters change
       params.delete("page");
 
-      router.push(`/reviews?${params.toString()}`);
+      router.push(`${derivedBasePath}?${params.toString()}`);
     },
-    [router, searchParams],
+    [router, searchParams, derivedBasePath],
   );
 
   const handleStatusChange = useCallback(
