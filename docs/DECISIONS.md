@@ -955,7 +955,7 @@ Implement a three-tier fallback hierarchy for voice profile resolution in `app/a
 
 1. **Location-specific voice profile** (highest priority): If `location.voice_profile_id` exists, fetch and use that profile. If fetch fails, log warning and fall back to next tier.
 2. **Organization voice profile** (fallback): If no location profile exists or fetch failed, fetch the organization's voice profile (first profile where `organization_id` matches). If fetch fails, log warning and fall back to next tier.
-3. **Default voice profile** (final fallback): If no organization profile exists or fetch failed, use `DEFAULT_VOICE_PROFILE` exported from `lib/claude/client.ts` (tone: "friendly", max_length: 150, etc.).
+3. **Default voice profile** (final fallback): If no organization profile exists or fetch failed, use `DEFAULT_VOICE_PROFILE` exported from `lib/claude/client.ts` (tone: "warm", max_length: 150, etc.).
 
 All database fetch errors are logged with `console.warn()` but do not prevent response generation; the system always falls back to the default profile if needed.
 

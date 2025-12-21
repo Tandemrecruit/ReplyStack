@@ -44,7 +44,13 @@ describe("components/landing/LiveDemo", () => {
         screen.getByRole("button", { name: "Direct" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Concise" }),
+        screen.getByRole("button", { name: "Professional" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Friendly" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Casual" }),
       ).toBeInTheDocument();
     });
 
@@ -109,20 +115,20 @@ describe("components/landing/LiveDemo", () => {
       expect(directButton).toHaveAttribute("aria-pressed", "true");
     });
 
-    it("updates draft when tone changes to Concise", async () => {
+    it("updates draft when tone changes to Casual", async () => {
       const user = userEvent.setup();
       render(<LiveDemo />);
 
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Draft reply \(Concise tone\)/),
+          screen.getByText(/Draft reply \(Casual tone\)/),
         ).toBeInTheDocument();
       });
 
-      const conciseButton = screen.getByRole("button", { name: "Concise" });
-      expect(conciseButton).toHaveAttribute("aria-pressed", "true");
+      const casualButton = screen.getByRole("button", { name: "Casual" });
+      expect(casualButton).toHaveAttribute("aria-pressed", "true");
     });
 
     it("updates draft content when tone changes", async () => {
@@ -146,11 +152,11 @@ describe("components/landing/LiveDemo", () => {
         ).toBeInTheDocument();
       });
 
-      // Change to Concise
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      // Change to Casual
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       await waitFor(() => {
-        expect(screen.getByText(/Thanks for the review/i)).toBeInTheDocument();
+        expect(screen.getByText(/Thanks for the review!/i)).toBeInTheDocument();
         expect(
           screen.queryByText(/Thanks so much for the thoughtful review/i),
         ).not.toBeInTheDocument();
@@ -163,18 +169,18 @@ describe("components/landing/LiveDemo", () => {
 
       const warmButton = screen.getByRole("button", { name: "Warm" });
       const directButton = screen.getByRole("button", { name: "Direct" });
-      const conciseButton = screen.getByRole("button", { name: "Concise" });
+      const casualButton = screen.getByRole("button", { name: "Casual" });
 
       expect(warmButton).toHaveAttribute("aria-pressed", "true");
       expect(directButton).toHaveAttribute("aria-pressed", "false");
-      expect(conciseButton).toHaveAttribute("aria-pressed", "false");
+      expect(casualButton).toHaveAttribute("aria-pressed", "false");
 
       await user.click(directButton);
 
       await waitFor(() => {
         expect(warmButton).toHaveAttribute("aria-pressed", "false");
         expect(directButton).toHaveAttribute("aria-pressed", "true");
-        expect(conciseButton).toHaveAttribute("aria-pressed", "false");
+        expect(casualButton).toHaveAttribute("aria-pressed", "false");
       });
     });
   });
@@ -354,11 +360,11 @@ describe("components/landing/LiveDemo", () => {
       });
     });
 
-    it("detects wait topic and includes concise wait response for Concise tone", async () => {
+    it("detects wait topic and includes casual wait response for Casual tone", async () => {
       const user = userEvent.setup();
       render(<LiveDemo />);
 
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
@@ -366,9 +372,7 @@ describe("components/landing/LiveDemo", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(
-            /Sorry about the wait—our goal is to stay on schedule/i,
-          ),
+          screen.getByText(/Sorry about the wait—we're fixing that!/i),
         ).toBeInTheDocument();
       });
     });
@@ -388,18 +392,18 @@ describe("components/landing/LiveDemo", () => {
       });
     });
 
-    it("detects booking topic with concise response for Concise tone", async () => {
+    it("detects booking topic with casual response for Casual tone", async () => {
       const user = userEvent.setup();
       render(<LiveDemo />);
 
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
       await user.type(textarea, "Easy to book online.");
 
       await waitFor(() => {
-        expect(screen.getByText(/Glad booking was easy/i)).toBeInTheDocument();
+        expect(screen.getByText(/Glad booking was easy!/i)).toBeInTheDocument();
       });
     });
 
@@ -418,11 +422,11 @@ describe("components/landing/LiveDemo", () => {
       });
     });
 
-    it("detects price topic with concise response for Concise tone", async () => {
+    it("detects price topic with casual response for Casual tone", async () => {
       const user = userEvent.setup();
       render(<LiveDemo />);
 
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
@@ -430,7 +434,7 @@ describe("components/landing/LiveDemo", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Appreciate the note on pricing/i),
+          screen.getByText(/Thanks for the pricing note!/i),
         ).toBeInTheDocument();
       });
     });
@@ -490,11 +494,11 @@ describe("components/landing/LiveDemo", () => {
       });
     });
 
-    it("shows generic gratitude for Concise tone when no topics", async () => {
+    it("shows generic gratitude for Casual tone when no topics", async () => {
       const user = userEvent.setup();
       render(<LiveDemo />);
 
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      await user.click(screen.getByRole("button", { name: "Casual" }));
 
       const textarea = screen.getByLabelText("Review text");
       await user.clear(textarea);
@@ -502,7 +506,7 @@ describe("components/landing/LiveDemo", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Glad it went well overall/i),
+          screen.getByText(/Glad it went well!/i),
         ).toBeInTheDocument();
       });
     });
@@ -532,10 +536,10 @@ describe("components/landing/LiveDemo", () => {
         expect(draftContains("love to see you again")).toBe(true);
       });
 
-      // Concise tone
-      await user.click(screen.getByRole("button", { name: "Concise" }));
+      // Casual tone
+      await user.click(screen.getByRole("button", { name: "Casual" }));
       await waitFor(() => {
-        expect(draftContains("hope to see you again")).toBe(true);
+        expect(draftContains("See you next time")).toBe(true);
       });
     });
 

@@ -68,7 +68,7 @@ CRITICAL: This is a negative review. Follow this structure:
 | `{business_name}` | `locations.name` | "Joe's Pizza" |
 | `{industry}` | `voice_profiles.personality_notes` or inferred | "Italian restaurant" |
 | `{city}` | Extracted from `locations.address` | "Austin" |
-| `{tone}` | `voice_profiles.tone` | "friendly" |
+| `{tone}` | `voice_profiles.tone` | "warm" |
 | `{personality_notes}` | `voice_profiles.personality_notes` | "Family-owned for 30 years, known for thin crust" |
 | `{sign_off_style}` | `voice_profiles.sign_off_style` | "- Joe, Owner" |
 | `{example_responses}` | `voice_profiles.example_responses` | Array joined with newlines |
@@ -149,10 +149,11 @@ These phrases make responses sound robotic:
 
 | Tone | Description | Best For |
 |------|-------------|----------|
-| `friendly` | Warm, conversational, uses "!" appropriately | Restaurants, salons, casual retail |
-| `professional` | Polished but not stiff, no slang | Medical, legal, financial services |
-| `casual` | Very relaxed, might use colloquialisms | Bars, gyms, entertainment |
-| `formal` | Traditional, proper grammar, reserved | Luxury services, high-end retail |
+| `warm` | Warm and approachable | Restaurants, salons, family businesses |
+| `direct` | Straightforward and to the point | Service businesses, quick interactions |
+| `professional` | Polished and business-like | Medical, legal, financial services |
+| `friendly` | Conversational and personable | Retail, customer service, community businesses |
+| `casual` | Relaxed and informal | Bars, gyms, entertainment, creative businesses |
 
 ---
 

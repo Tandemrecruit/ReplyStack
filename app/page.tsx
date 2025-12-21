@@ -201,7 +201,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-foreground-secondary">
                     <div className="flex gap-1">
-                      {["Warm", "Direct", "Cheerful"].map((tone) => (
+                      {["Warm", "Direct", "Professional"].map((tone) => (
                         <span
                           key={tone}
                           className="px-2 py-1 rounded-full border border-border bg-surface text-foreground"
@@ -292,7 +292,7 @@ export default function LandingPage() {
               {
                 title: "Set Your Voice",
                 description:
-                  "We learn from your past replies + a 6-question tone quiz. Choose Warm, Direct, or Concierge tone on each draft.",
+                  "We learn from your past replies + a 6-question tone quiz. Choose from 5 tone options (Warm, Direct, Professional, Friendly, Casual) on each draft.",
               },
               {
                 title: "Respond Instantly",
@@ -636,7 +636,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold">
             Ready to transform your review management?
           </h2>
-          <p className="text-xl text-accent-100">
+          <p className="text-xl text-accent-900">
             Join hundreds of local businesses responding faster with ReplyStack.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
