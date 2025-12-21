@@ -2,6 +2,21 @@
 
 ## 2025-12-21
 
+### Code Quality
+
+- Made ReviewsFilters component route-agnostic: replaced hardcoded "/reviews" path with dynamic base path using optional `basePath` prop or `usePathname()` hook with fallback, automatically removes query strings and trims trailing slashes, enabling component reuse across different routes while maintaining backward compatibility
+- Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks with single component usage, improving maintainability and reducing code duplication
+- Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe `const typedReviews: ReviewWithLocation[] | null = reviews` assignment and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`) and explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
+- Fixed reviews page tests to handle async Server Component: added mocks for `createServerSupabaseClient`, `redirect`, and Next.js navigation hooks (`useRouter`, `useSearchParams`, `usePathname`), updated tests to await async component rendering, and extracted mock setup into reusable helper function to reduce duplication
+- Refactored reviews page tests to extract repeated mock setup: moved duplicate `createServerSupabaseClient` mock configuration from individual tests into `beforeEach` block, reducing code duplication and improving test maintainability
+- Enhanced reviews page test coverage: created parameterized `createMockSupabaseClient` helper function to support multiple test scenarios, added tests for user with locations but no reviews, user with reviews (including ReviewCard rendering), error states (user lookup failure, missing user data, no organization, locations fetch failure, reviews fetch failure), and filtered empty state, improving test coverage from 7 to 17 test cases
+- Replaced unsafe type assertion in reviews API route with runtime validation: applied same validation pattern as reviews page, added type guard functions and mapping function to validate Supabase query results, updated validation to handle undefined values for optional fields (normalizing to null), ensuring consistent type safety across both API route and page component
+- Fixed dead code in reviews API route: added `platform` field to Supabase select query and API response transformation to match validation and mapping logic, ensuring the field is properly selected from database and returned in responses (defaults to "google" if null, matching reviews page behavior)
+- Fixed unused response data in GenerateResponseButton component: updated `onSuccess` callback to accept and pass the API response data (id, reviewId, generatedText, status, tokensUsed) instead of parsing JSON without using it, enabling callers to access response metadata when needed
+- Fixed trailing `?` in ReviewsFilters component URLs: updated router.push logic to conditionally append query string only when params are non-empty, preventing URLs like `/reviews?` when all filters are cleared
+- Added validation failure logging in reviews API route: modified mapping step to log each invalid review with context (row index, review id, external_review_id, validation errors) using console.error before filtering, avoiding sensitive user content in logs while maintaining existing filter behavior
+- Fixed Promise mock in reviews page tests: replaced custom then/catch implementation with real Promise instance that delegates then/catch/finally to underlying Promise, ensuring full Promise behavior while maintaining chainable query builder methods (in, eq, order, range) that return this
+
 ### Features
 
 - Standardized tone options across all components:
@@ -11,7 +26,9 @@
 
 ### Bug Fixes
 
+- Fixed response parsing error in generate-response-button component: changed error handling to check `response.ok` before calling `response.json()`, preventing errors when server returns non-JSON (e.g., HTML error pages); now safely attempts JSON parsing for error responses, falls back to text parsing when Content-Type indicates non-JSON, and provides meaningful error messages to users
 - Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error
+- Improved accessibility in GenerateResponseButton component: added `aria-busy={isLoading}` attribute to button element so screen readers announce when the generate action is in progress, tied to the same `isLoading` state used for disabling and label changes
 
 ### UI/UX
 

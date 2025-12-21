@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 
 /**
  * Default pagination values
@@ -22,21 +23,11 @@ interface ReviewLocation {
 /**
  * Review with joined location data from Supabase query
  */
-interface ReviewWithLocation {
-  id: string;
-  external_review_id: string;
-  reviewer_name: string | null;
-  reviewer_photo_url: string | null;
-  rating: number | null;
-  review_text: string | null;
-  review_date: string | null;
-  has_response: boolean | null;
-  status: string | null;
-  sentiment: string | null;
-  created_at: string | null;
-  location_id: string | null;
+type Review = Database["public"]["Tables"]["reviews"]["Row"];
+
+type ReviewWithLocation = Review & {
   locations: ReviewLocation | null;
-}
+};
 
 /**
  * Valid status filter values
@@ -47,6 +38,204 @@ const VALID_STATUSES = ["pending", "responded", "ignored"] as const;
  * Valid sentiment filter values
  */
 const VALID_SENTIMENTS = ["positive", "neutral", "negative"] as const;
+
+/**
+ * Type guard to validate that a value is a valid ReviewLocation
+ */
+function isValidReviewLocation(value: unknown): value is ReviewLocation {
+  if (!value || typeof value !== "object") return false;
+  const loc = value as Record<string, unknown>;
+  return (
+    typeof loc.id === "string" &&
+    typeof loc.name === "string" &&
+    typeof loc.google_location_id === "string"
+  );
+}
+
+/**
+ * Type guard to validate that a value is a valid ReviewWithLocation
+ */
+function isValidReviewWithLocation(
+  value: unknown,
+): value is ReviewWithLocation {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Record<string, unknown>;
+  return (
+    typeof review.id === "string" &&
+    typeof review.external_review_id === "string" &&
+    (review.reviewer_name === null ||
+      review.reviewer_name === undefined ||
+      typeof review.reviewer_name === "string") &&
+    (review.reviewer_photo_url === null ||
+      review.reviewer_photo_url === undefined ||
+      typeof review.reviewer_photo_url === "string") &&
+    (review.rating === null ||
+      review.rating === undefined ||
+      typeof review.rating === "number") &&
+    (review.review_text === null ||
+      review.review_text === undefined ||
+      typeof review.review_text === "string") &&
+    (review.review_date === null ||
+      review.review_date === undefined ||
+      typeof review.review_date === "string") &&
+    (review.has_response === null ||
+      review.has_response === undefined ||
+      typeof review.has_response === "boolean") &&
+    (review.status === null ||
+      review.status === undefined ||
+      typeof review.status === "string") &&
+    (review.sentiment === null ||
+      review.sentiment === undefined ||
+      typeof review.sentiment === "string") &&
+    (review.created_at === null ||
+      review.created_at === undefined ||
+      typeof review.created_at === "string") &&
+    (review.location_id === null ||
+      review.location_id === undefined ||
+      typeof review.location_id === "string") &&
+    (review.platform === null ||
+      review.platform === undefined ||
+      typeof review.platform === "string") &&
+    (review.locations === null ||
+      review.locations === undefined ||
+      isValidReviewLocation(review.locations))
+  );
+}
+
+/**
+ * Validates a raw Supabase query result and returns specific validation errors
+ */
+function getValidationErrors(raw: unknown): string[] {
+  const errors: string[] = [];
+  if (!raw || typeof raw !== "object") {
+    return ["not an object"];
+  }
+  const review = raw as Record<string, unknown>;
+
+  if (typeof review.id !== "string") {
+    errors.push("missing or invalid id");
+  }
+  if (typeof review.external_review_id !== "string") {
+    errors.push("missing or invalid external_review_id");
+  }
+  if (
+    review.reviewer_name !== null &&
+    review.reviewer_name !== undefined &&
+    typeof review.reviewer_name !== "string"
+  ) {
+    errors.push("invalid reviewer_name type");
+  }
+  if (
+    review.reviewer_photo_url !== null &&
+    review.reviewer_photo_url !== undefined &&
+    typeof review.reviewer_photo_url !== "string"
+  ) {
+    errors.push("invalid reviewer_photo_url type");
+  }
+  if (
+    review.rating !== null &&
+    review.rating !== undefined &&
+    typeof review.rating !== "number"
+  ) {
+    errors.push("invalid rating type");
+  }
+  if (
+    review.review_text !== null &&
+    review.review_text !== undefined &&
+    typeof review.review_text !== "string"
+  ) {
+    errors.push("invalid review_text type");
+  }
+  if (
+    review.review_date !== null &&
+    review.review_date !== undefined &&
+    typeof review.review_date !== "string"
+  ) {
+    errors.push("invalid review_date type");
+  }
+  if (
+    review.has_response !== null &&
+    review.has_response !== undefined &&
+    typeof review.has_response !== "boolean"
+  ) {
+    errors.push("invalid has_response type");
+  }
+  if (
+    review.status !== null &&
+    review.status !== undefined &&
+    typeof review.status !== "string"
+  ) {
+    errors.push("invalid status type");
+  }
+  if (
+    review.sentiment !== null &&
+    review.sentiment !== undefined &&
+    typeof review.sentiment !== "string"
+  ) {
+    errors.push("invalid sentiment type");
+  }
+  if (
+    review.created_at !== null &&
+    review.created_at !== undefined &&
+    typeof review.created_at !== "string"
+  ) {
+    errors.push("invalid created_at type");
+  }
+  if (
+    review.location_id !== null &&
+    review.location_id !== undefined &&
+    typeof review.location_id !== "string"
+  ) {
+    errors.push("invalid location_id type");
+  }
+  if (
+    review.platform !== null &&
+    review.platform !== undefined &&
+    typeof review.platform !== "string"
+  ) {
+    errors.push("invalid platform type");
+  }
+  if (
+    review.locations !== null &&
+    review.locations !== undefined &&
+    !isValidReviewLocation(review.locations)
+  ) {
+    errors.push("invalid locations object");
+  }
+
+  return errors;
+}
+
+/**
+ * Maps raw Supabase query result to ReviewWithLocation with validation
+ */
+function mapToReviewWithLocation(raw: unknown): ReviewWithLocation | null {
+  if (!isValidReviewWithLocation(raw)) {
+    return null;
+  }
+  return {
+    id: raw.id,
+    external_review_id: raw.external_review_id,
+    reviewer_name: raw.reviewer_name ?? null,
+    reviewer_photo_url: raw.reviewer_photo_url ?? null,
+    rating: raw.rating ?? null,
+    review_text: raw.review_text ?? null,
+    review_date: raw.review_date ?? null,
+    has_response: raw.has_response ?? null,
+    status: raw.status ?? null,
+    sentiment: raw.sentiment ?? null,
+    created_at: raw.created_at ?? null,
+    location_id: raw.location_id ?? null,
+    platform: raw.platform ?? null,
+    locations: raw.locations
+      ? {
+          id: raw.locations.id,
+          name: raw.locations.name,
+          google_location_id: raw.locations.google_location_id,
+        }
+      : null,
+  };
+}
 
 /**
  * Handle GET /api/reviews for the authenticated user's organization.
@@ -165,6 +354,7 @@ export async function GET(request: NextRequest) {
         sentiment,
         created_at,
         location_id,
+        platform,
         locations!inner (
           id,
           name,
@@ -209,9 +399,6 @@ export async function GET(request: NextRequest) {
     // Execute query
     const { data: reviews, count, error: reviewsError } = await query;
 
-    // Type the reviews result
-    const typedReviews: ReviewWithLocation[] | null = reviews;
-
     if (reviewsError) {
       console.error("Failed to fetch reviews:", reviewsError.message);
       return NextResponse.json(
@@ -220,8 +407,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Map and validate reviews from Supabase query result
+    const typedReviews: ReviewWithLocation[] = (reviews ?? [])
+      .map((raw, index) => {
+        const validationErrors = getValidationErrors(raw);
+        if (validationErrors.length > 0) {
+          // Extract safe identifiers (avoid logging sensitive content)
+          const rawRow = raw as Record<string, unknown>;
+          const reviewId = typeof rawRow.id === "string" ? rawRow.id : "unknown";
+          const externalReviewId =
+            typeof rawRow.external_review_id === "string"
+              ? rawRow.external_review_id
+              : "unknown";
+          console.error(
+            `Review validation failed [row ${index}, table: reviews, id: ${reviewId}, external_review_id: ${externalReviewId}]: ${validationErrors.join(", ")}`,
+          );
+          return null;
+        }
+        return mapToReviewWithLocation(raw);
+      })
+      .filter((review): review is ReviewWithLocation => review !== null);
+
     // Transform reviews to include location name
-    const transformedReviews = (typedReviews ?? []).map((review) => {
+    const transformedReviews = typedReviews.map((review) => {
       return {
         id: review.id,
         external_review_id: review.external_review_id,
@@ -235,6 +443,7 @@ export async function GET(request: NextRequest) {
         sentiment: review.sentiment,
         created_at: review.created_at,
         location_id: review.location_id,
+        platform: review.platform ?? "google",
         location_name: review.locations?.name ?? "Unknown Location",
       };
     });
