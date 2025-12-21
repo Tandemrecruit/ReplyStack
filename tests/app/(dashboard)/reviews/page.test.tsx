@@ -83,18 +83,24 @@ function createMockSupabaseClient(options: MockClientOptions = {}) {
         };
       }
       if (table === "reviews") {
+        // Create a real Promise that resolves with the query result
+        const promise = Promise.resolve({
+          data: reviews,
+          error: reviewsError,
+        });
+        // Create an object with chainable query builder methods
         const mockQuery = {
           in: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
-          then: vi.fn((onResolve) => {
-            return Promise.resolve({
-              data: reviews,
-              error: reviewsError,
-            }).then(onResolve);
-          }),
-          catch: vi.fn(),
+          range: vi.fn().mockReturnThis(),
         };
+        // Attach Promise methods that delegate to the underlying Promise
+        Object.assign(mockQuery, {
+          then: promise.then.bind(promise),
+          catch: promise.catch.bind(promise),
+          finally: promise.finally.bind(promise),
+        });
         return {
           select: vi.fn().mockReturnValue(mockQuery),
         };

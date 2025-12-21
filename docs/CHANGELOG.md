@@ -14,6 +14,8 @@
 - Fixed dead code in reviews API route: added `platform` field to Supabase select query and API response transformation to match validation and mapping logic, ensuring the field is properly selected from database and returned in responses (defaults to "google" if null, matching reviews page behavior)
 - Fixed unused response data in GenerateResponseButton component: updated `onSuccess` callback to accept and pass the API response data (id, reviewId, generatedText, status, tokensUsed) instead of parsing JSON without using it, enabling callers to access response metadata when needed
 - Fixed trailing `?` in ReviewsFilters component URLs: updated router.push logic to conditionally append query string only when params are non-empty, preventing URLs like `/reviews?` when all filters are cleared
+- Added validation failure logging in reviews API route: modified mapping step to log each invalid review with context (row index, review id, external_review_id, validation errors) using console.error before filtering, avoiding sensitive user content in logs while maintaining existing filter behavior
+- Fixed Promise mock in reviews page tests: replaced custom then/catch implementation with real Promise instance that delegates then/catch/finally to underlying Promise, ensuring full Promise behavior while maintaining chainable query builder methods (in, eq, order, range) that return this
 
 ### Features
 

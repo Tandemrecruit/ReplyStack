@@ -103,6 +103,110 @@ function isValidReviewWithLocation(
 }
 
 /**
+ * Validates a raw Supabase query result and returns specific validation errors
+ */
+function getValidationErrors(raw: unknown): string[] {
+  const errors: string[] = [];
+  if (!raw || typeof raw !== "object") {
+    return ["not an object"];
+  }
+  const review = raw as Record<string, unknown>;
+
+  if (typeof review.id !== "string") {
+    errors.push("missing or invalid id");
+  }
+  if (typeof review.external_review_id !== "string") {
+    errors.push("missing or invalid external_review_id");
+  }
+  if (
+    review.reviewer_name !== null &&
+    review.reviewer_name !== undefined &&
+    typeof review.reviewer_name !== "string"
+  ) {
+    errors.push("invalid reviewer_name type");
+  }
+  if (
+    review.reviewer_photo_url !== null &&
+    review.reviewer_photo_url !== undefined &&
+    typeof review.reviewer_photo_url !== "string"
+  ) {
+    errors.push("invalid reviewer_photo_url type");
+  }
+  if (
+    review.rating !== null &&
+    review.rating !== undefined &&
+    typeof review.rating !== "number"
+  ) {
+    errors.push("invalid rating type");
+  }
+  if (
+    review.review_text !== null &&
+    review.review_text !== undefined &&
+    typeof review.review_text !== "string"
+  ) {
+    errors.push("invalid review_text type");
+  }
+  if (
+    review.review_date !== null &&
+    review.review_date !== undefined &&
+    typeof review.review_date !== "string"
+  ) {
+    errors.push("invalid review_date type");
+  }
+  if (
+    review.has_response !== null &&
+    review.has_response !== undefined &&
+    typeof review.has_response !== "boolean"
+  ) {
+    errors.push("invalid has_response type");
+  }
+  if (
+    review.status !== null &&
+    review.status !== undefined &&
+    typeof review.status !== "string"
+  ) {
+    errors.push("invalid status type");
+  }
+  if (
+    review.sentiment !== null &&
+    review.sentiment !== undefined &&
+    typeof review.sentiment !== "string"
+  ) {
+    errors.push("invalid sentiment type");
+  }
+  if (
+    review.created_at !== null &&
+    review.created_at !== undefined &&
+    typeof review.created_at !== "string"
+  ) {
+    errors.push("invalid created_at type");
+  }
+  if (
+    review.location_id !== null &&
+    review.location_id !== undefined &&
+    typeof review.location_id !== "string"
+  ) {
+    errors.push("invalid location_id type");
+  }
+  if (
+    review.platform !== null &&
+    review.platform !== undefined &&
+    typeof review.platform !== "string"
+  ) {
+    errors.push("invalid platform type");
+  }
+  if (
+    review.locations !== null &&
+    review.locations !== undefined &&
+    !isValidReviewLocation(review.locations)
+  ) {
+    errors.push("invalid locations object");
+  }
+
+  return errors;
+}
+
+/**
  * Maps raw Supabase query result to ReviewWithLocation with validation
  */
 function mapToReviewWithLocation(raw: unknown): ReviewWithLocation | null {
@@ -305,7 +409,23 @@ export async function GET(request: NextRequest) {
 
     // Map and validate reviews from Supabase query result
     const typedReviews: ReviewWithLocation[] = (reviews ?? [])
-      .map(mapToReviewWithLocation)
+      .map((raw, index) => {
+        const validationErrors = getValidationErrors(raw);
+        if (validationErrors.length > 0) {
+          // Extract safe identifiers (avoid logging sensitive content)
+          const rawRow = raw as Record<string, unknown>;
+          const reviewId = typeof rawRow.id === "string" ? rawRow.id : "unknown";
+          const externalReviewId =
+            typeof rawRow.external_review_id === "string"
+              ? rawRow.external_review_id
+              : "unknown";
+          console.error(
+            `Review validation failed [row ${index}, table: reviews, id: ${reviewId}, external_review_id: ${externalReviewId}]: ${validationErrors.join(", ")}`,
+          );
+          return null;
+        }
+        return mapToReviewWithLocation(raw);
+      })
       .filter((review): review is ReviewWithLocation => review !== null);
 
     // Transform reviews to include location name
