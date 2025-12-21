@@ -101,7 +101,7 @@ describe("GET /api/voice-profile", () => {
       id: "profile-1",
       organization_id: "org-1",
       name: "Default",
-      tone: "friendly",
+      tone: "warm",
       personality_notes: "Professional and friendly",
       sign_off_style: "The Team",
       max_length: 150,

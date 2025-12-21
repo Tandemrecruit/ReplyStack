@@ -52,7 +52,7 @@ describe("lib/claude/client", () => {
     id: "vp1",
     organization_id: null,
     name: "Default Voice",
-    tone: "friendly",
+    tone: "warm",
     personality_notes: null,
     example_responses: null,
     sign_off_style: null,

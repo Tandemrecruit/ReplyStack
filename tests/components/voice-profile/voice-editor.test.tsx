@@ -291,7 +291,11 @@ describe("components/voice-profile/VoiceEditor", () => {
       screen.getByRole("button", { name: /Professional/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Casual/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Formal/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Warm/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Direct/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Friendly/i }),
+    ).toBeInTheDocument();
   });
 
   it("highlights selected tone option", () => {
@@ -353,8 +357,8 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("uses default tone when profile tone is missing", () => {
     render(<VoiceEditor profile={{}} onSave={vi.fn()} />);
 
-    const friendlyButton = screen.getByRole("button", { name: /Friendly/i });
-    expect(friendlyButton.className).toContain("border-primary-500");
+    const warmButton = screen.getByRole("button", { name: /Warm/i });
+    expect(warmButton.className).toContain("border-primary-500");
   });
 
   it("uses default max_length when profile max_length is missing", () => {
@@ -707,9 +711,10 @@ describe("components/voice-profile/VoiceEditor", () => {
     render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
 
     expect(screen.getByText("Warm and approachable")).toBeInTheDocument();
+    expect(screen.getByText("Straightforward and to the point")).toBeInTheDocument();
     expect(screen.getByText("Polished and business-like")).toBeInTheDocument();
-    expect(screen.getByText("Relaxed and conversational")).toBeInTheDocument();
-    expect(screen.getByText("Traditional and reserved")).toBeInTheDocument();
+    expect(screen.getByText("Conversational and personable")).toBeInTheDocument();
+    expect(screen.getByText("Relaxed and informal")).toBeInTheDocument();
   });
 
   it("handles form submission with all fields filled", async () => {
@@ -717,7 +722,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     const onSave = vi.fn();
     render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
 
-    await user.click(screen.getByRole("button", { name: /Formal/i }));
+    await user.click(screen.getByRole("button", { name: /Professional/i }));
     await user.type(
       screen.getByLabelText("Personality Notes"),
       "Family business since 1985",
@@ -733,7 +738,7 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
 
     expect(onSave).toHaveBeenCalledWith({
-      tone: "formal",
+      tone: "professional",
       personality_notes: "Family business since 1985",
       sign_off_style: "— John, Owner",
       max_length: 250,

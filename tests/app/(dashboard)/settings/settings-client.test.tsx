@@ -395,7 +395,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
     it("renders tone selector with default value", () => {
       render(<SettingsClient />);
       const toneSelect = screen.getByLabelText("Tone");
-      expect(toneSelect).toHaveValue("friendly");
+      expect(toneSelect).toHaveValue("warm");
     });
 
     it("renders personality notes textarea", () => {
@@ -452,7 +452,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
     });
 
     // Note: "shows error when tone is not selected" test removed
-    // The component always has a default tone of "friendly" so tone can never be empty
+    // The component always has a default tone of "warm" so tone can never be empty
 
     it("shows error when personality notes are empty", async () => {
       const user = userEvent.setup();
@@ -513,7 +513,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
       await user.click(saveButton);
 
-      // Tone is always "friendly" by default, so no tone error
+      // Tone is always "warm" by default, so no tone error
       expect(screen.getByText("Add personality details")).toBeInTheDocument();
       expect(screen.getByText("Add a sign-off style")).toBeInTheDocument();
       expect(
@@ -585,7 +585,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tone: "friendly",
+            tone: "warm",
             personality_notes: "Family restaurant",
             sign_off_style: "— John, Owner",
           }),
@@ -620,7 +620,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tone: "friendly",
+            tone: "warm",
             personality_notes: "Family restaurant",
             sign_off_style: "— John, Owner",
           }),
@@ -881,8 +881,9 @@ describe("app/(dashboard)/settings/settings-client", () => {
       expect(
         screen.getByRole("option", { name: "Casual" }),
       ).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Warm" })).toBeInTheDocument();
       expect(
-        screen.getByRole("option", { name: "Formal" }),
+        screen.getByRole("option", { name: "Direct" }),
       ).toBeInTheDocument();
     });
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2025-12-21
+
+### Features
+
+- Standardized tone options across all components: updated tone options from inconsistent values (friendly/professional/casual/formal, Warm/Direct/Concise, Warm/Direct/Concierge) to 5 consistent options (Warm, Direct, Professional, Friendly, Casual) in settings-client.tsx, voice-editor.tsx, live-demo.tsx, and landing page; updated default tone from "friendly" to "warm" in database schema, DEFAULT_VOICE_PROFILE, and component defaults; created migration (003_standardize_tone_options.sql) to map existing "formal" values to "professional" and update default tone for new voice profiles; updated all tests to use new tone values; updated documentation (ARCHITECTURE.md, DECISIONS.md, PROMPTS.md) to reflect new tone system
+
+### Documentation
+
+- Created code templates system for AI agents: added template index (`docs/templates/INDEX.md`) with catalog of 16 templates organized by category (API routes, components, server components, database, patterns), created categorized template files with code patterns for common implementations, added Cursor rule (`.cursor/rules/code-templates/RULE.mdc`) instructing agents to reference templates on-demand to reduce context usage, updated ARCHITECTURE.md with development workflow section documenting the template system
+
+### UI/UX
+
+- Updated CTA section paragraph color: changed landing page CTA section paragraph from `text-accent-100` Tailwind class to use CSS variable `var(--color-accent-900)` via inline style for consistent color application
+
 ## 2025-12-20
 
 ### Documentation

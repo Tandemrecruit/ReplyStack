@@ -40,7 +40,7 @@ export const DEFAULT_VOICE_PROFILE: VoiceProfile = {
   id: "",
   organization_id: null,
   name: "Default",
-  tone: "friendly",
+  tone: "warm",
   personality_notes: "Professional and friendly",
   sign_off_style: "The Team",
   example_responses: null,

@@ -6,10 +6,11 @@ import { GoogleConnectButton } from "@/components/settings/google-connect-button
 import { LocationSelector } from "@/components/settings/location-selector";
 
 const TONE_OPTIONS = [
-  { value: "friendly", label: "Friendly" },
+  { value: "warm", label: "Warm" },
+  { value: "direct", label: "Direct" },
   { value: "professional", label: "Professional" },
+  { value: "friendly", label: "Friendly" },
   { value: "casual", label: "Casual" },
-  { value: "formal", label: "Formal" },
 ];
 
 const DEFAULT_TONE = TONE_OPTIONS[0]?.value ?? "";

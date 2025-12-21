@@ -862,7 +862,7 @@ describe("POST /api/responses", () => {
       }),
       expect.objectContaining({
         name: "Default",
-        tone: "friendly",
+        tone: "warm",
       }),
       "Test Location",
       "user@example.com",
@@ -1987,7 +1987,7 @@ describe("POST /api/responses", () => {
       expect.anything(),
       expect.objectContaining({
         name: "Default",
-        tone: "friendly",
+        tone: "warm",
       }),
       "Test Location",
       "user@example.com",

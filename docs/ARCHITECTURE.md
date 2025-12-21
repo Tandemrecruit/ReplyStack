@@ -54,7 +54,7 @@ CREATE TABLE voice_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT DEFAULT 'Default',
-    tone TEXT DEFAULT 'friendly',
+    tone TEXT DEFAULT 'warm',
     personality_notes TEXT,
     example_responses TEXT[],
     sign_off_style TEXT,
@@ -149,7 +149,7 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 ### Claude API
 
-**Model:** `claude-haiku-4-5-20251001`
+**Model:** `claude-haiku-4-5-20251001` (alias: `claude-haiku-4-5')
 
 **Cost Estimation:**
 - Average response: ~100 tokens output
@@ -284,10 +284,40 @@ ReplyStack/
 ├── components/{landing/live-demo.tsx; reviews/review-card.tsx; voice-profile/voice-editor.tsx; ui/button.tsx}
 ├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
+│   └── templates/ (Code templates for common patterns)
 ├── tests/ (Vitest, mirrors app/lib/components)
 ├── public/
 └── middleware.ts
 ```
+
+---
+
+## Development Workflow
+
+### Code Templates
+
+The project includes a template system (`docs/templates/`) to standardize code patterns and reduce token usage when building repetitive parts of the system.
+
+**Usage:**
+1. Check `docs/templates/INDEX.md` to find relevant templates
+2. Read only the specific template file needed (e.g., `docs/templates/api-routes.md`)
+3. Navigate to the specific template section using anchor links
+4. Adapt the template for your use case
+
+**Available Categories:**
+- **API Routes**: GET, POST, PATCH, DELETE, cron job patterns
+- **Components**: Form components, display components
+- **Server Components**: Pages with data fetching
+- **Database**: Query patterns, joins, upserts
+- **Patterns**: Error handling, authentication, constants, types
+
+**Benefits:**
+- Reduced context usage (load only needed templates)
+- Consistent patterns across the codebase
+- Faster development with proven patterns
+- Better maintainability
+
+See [docs/templates/INDEX.md](./templates/INDEX.md) for the full template catalog.
 
 ---
 

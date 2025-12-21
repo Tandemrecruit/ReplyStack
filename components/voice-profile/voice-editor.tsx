@@ -11,9 +11,14 @@ interface VoiceEditorProps {
 
 const TONE_OPTIONS = [
   {
-    value: "friendly",
-    label: "Friendly",
+    value: "warm",
+    label: "Warm",
     description: "Warm and approachable",
+  },
+  {
+    value: "direct",
+    label: "Direct",
+    description: "Straightforward and to the point",
   },
   {
     value: "professional",
@@ -21,11 +26,15 @@ const TONE_OPTIONS = [
     description: "Polished and business-like",
   },
   {
+    value: "friendly",
+    label: "Friendly",
+    description: "Conversational and personable",
+  },
+  {
     value: "casual",
     label: "Casual",
-    description: "Relaxed and conversational",
+    description: "Relaxed and informal",
   },
-  { value: "formal", label: "Formal", description: "Traditional and reserved" },
 ];
 
 /**
@@ -53,7 +62,7 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
     sign_off_style: string;
     max_length: number | string;
   }>({
-    tone: profile?.tone ?? "friendly",
+    tone: profile?.tone ?? "warm",
     personality_notes: profile?.personality_notes ?? "",
     sign_off_style: profile?.sign_off_style ?? "",
     max_length: initialMaxLength,

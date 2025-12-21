@@ -23,12 +23,13 @@
   - [x] Protected route middleware
   - [x] Email verification enforcement
 
-- [X] **Google Business Profile integration**
+- [~] **Google Business Profile integration**
   - [x] OAuth consent screen setup
   - [x] OAuth flow implementation
   - [x] Fetch and store refresh token (encrypted)
   - [x] Location listing and selection
   - [x] Store selected location
+  - [ ] Initial bulk import of 200 reviews when location is first connected
 
 - [X] **Review polling and storage**
   - [x] Review fetch from Google API
@@ -73,6 +74,7 @@
   - [ ] Words to use/avoid (API supports, UI missing)
   - [x] Max length setting (exists in VoiceEditor component)
   - [x] Save and update profile (API fully implemented, UI partially implemented)
+  - [ ] 10-question tone quiz (helps users choose between Warm, Direct, Professional, Friendly, Casual)
 
 - [~] **Stripe integration**
   - [ ] Products and prices in Stripe Dashboard
