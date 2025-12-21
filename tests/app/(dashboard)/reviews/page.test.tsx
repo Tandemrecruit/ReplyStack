@@ -11,21 +11,21 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders the page heading", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     expect(
       screen.getByRole("heading", { name: "Reviews" }),
     ).toBeInTheDocument();
   });
 
   it("renders the page description", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     expect(
       screen.getByText("View and respond to your Google Business reviews"),
     ).toBeInTheDocument();
   });
 
   it("renders rating filter dropdown", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     const ratingSelect = screen.getByRole("combobox", {
       name: /filter by rating/i,
     });
@@ -38,7 +38,7 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders status filter dropdown", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     const statusSelect = screen.getByRole("combobox", {
       name: /filter by status/i,
     });
@@ -54,7 +54,7 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders empty state", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     expect(
       screen.getByRole("heading", { name: "No reviews yet" }),
     ).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("renders empty state icon", () => {
-    render(<ReviewsPage />);
+    render(<ReviewsPage searchParams={{}} />);
     // Use a more specific query if the icon has a aria-label
     const icon = screen.getByRole("img", {
       name: /reviews|empty/i,

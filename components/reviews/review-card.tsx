@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import type { Review } from "@/lib/supabase/types";
 
 interface ReviewCardProps {
   review: Review;
   onGenerateResponse?: (reviewId: string) => void;
+  generateResponseButton?: ReactNode;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,7 +38,11 @@ function StatusBadge({ status }: { status: string }) {
  * @param review - The review data to display (rating, reviewer_name, review_date, review_text, status, id).
  * @param onGenerateResponse - Optional callback invoked as `onGenerateResponse(reviewId)` when the "Generate Response" button is clicked.
  */
-export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
+export function ReviewCard({
+  review,
+  onGenerateResponse,
+  generateResponseButton,
+}: ReviewCardProps) {
   const stars = Array.from({ length: 5 }, (_, i) => i < (review.rating ?? 0));
 
   return (
@@ -90,15 +96,17 @@ export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
       <div className="mt-4 flex items-center justify-between">
         <StatusBadge status={review.status ?? "pending"} />
 
-        {(review.status ?? "pending") === "pending" && onGenerateResponse && (
-          <button
-            onClick={() => onGenerateResponse(review.id)}
-            type="button"
-            className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
-          >
-            Generate Response
-          </button>
-        )}
+        {(review.status ?? "pending") === "pending" &&
+          (generateResponseButton ||
+            (onGenerateResponse && (
+              <button
+                onClick={() => onGenerateResponse(review.id)}
+                type="button"
+                className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
+              >
+                Generate Response
+              </button>
+            )))}
       </div>
     </div>
   );
