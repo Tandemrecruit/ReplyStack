@@ -7,6 +7,7 @@
 - Made ReviewsFilters component route-agnostic: replaced hardcoded "/reviews" path with dynamic base path using optional `basePath` prop or `usePathname()` hook with fallback, automatically removes query strings and trims trailing slashes, enabling component reuse across different routes while maintaining backward compatibility
 - Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks (lines 187-203 and 330-346) with single component usage, improving maintainability and reducing code duplication
 - Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe `const typedReviews: ReviewWithLocation[] | null = reviews` assignment and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`) and explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
+- Fixed reviews page tests to handle async Server Component: added mocks for `createServerSupabaseClient`, `redirect`, and Next.js navigation hooks (`useRouter`, `useSearchParams`, `usePathname`), updated tests to await async component rendering, and extracted mock setup into reusable helper function to reduce duplication
 
 ### Features
 

@@ -2,7 +2,7 @@
 
 ## Phase 1: MVP (Week 1-2)
 
-**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, AI response generation, and landing page are complete. Remaining: dashboard data integration, response editing UI (edit modal, character count, optimistic updates), Stripe integration, and email notifications.
+**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, AI response generation, dashboard data integration (reviews page with functional filters and generate response), and landing page are complete. Remaining: response editing UI (edit modal, character count, optimistic updates), voice profile UI fields (example responses, words to use/avoid), Stripe integration, and email notifications.
 
 **Goal:** One location, core response loop, payments working
 
@@ -43,11 +43,11 @@
   - [x] Generate response endpoint
   - [x] Token usage tracking
 
-- [~] **Basic dashboard UI**
-  - [x] Review list component (ReviewCard component exists)
-  - [~] Rating filter (UI exists but static, API supports it, needs data integration)
-  - [~] Status filter (UI exists but static, API supports it, needs data integration)
-  - [~] Generate response button (component exists, reviews page is static, needs data integration)
+- [X] **Basic dashboard UI**
+  - [x] Review list component (ReviewCard component with full data integration)
+  - [x] Rating filter (fully functional, filters reviews by rating)
+  - [x] Status filter (fully functional, filters reviews by status)
+  - [x] Generate response button (fully functional, generates responses via API)
   - [ ] Response preview (not yet implemented)
 
 - [ ] **Review management features**
@@ -61,19 +61,19 @@
   - [ ] Edit modal component
   - [ ] Character/word count
   - [x] Save draft functionality (responses saved as drafts when generated)
-  - [x] Publish to Google API (endpoint implemented)
-  - [ ] Regenerate response button (API returns existing response instead of regenerating?)
+  - [x] Publish to Google API (endpoint implemented at POST /api/reviews/[reviewId]/publish)
+  - [ ] Regenerate response button (API returns existing response instead of regenerating)
   - [ ] Optimistic UI updates
-  - [~] Error handling and retry (basic error handling exists, retry logic implemented in Claude client)
+  - [x] Error handling and retry (error handling implemented, retry logic in Claude client)
 
 - [~] **Voice profile setup**
-  - [x] Tone selection step
+  - [x] Tone selection step (5 options: Warm, Direct, Professional, Friendly, Casual)
   - [x] Personality notes input
   - [ ] Example responses input (API supports, UI missing)
   - [x] Sign-off configuration
   - [ ] Words to use/avoid (API supports, UI missing)
-  - [x] Max length setting (exists in VoiceEditor component)
-  - [x] Save and update profile (API fully implemented, UI partially implemented)
+  - [x] Max length setting (with validation, 50-500 words)
+  - [x] Save and update profile (API and UI fully implemented via VoiceEditor component)
   - [ ] 10-question tone quiz (helps users choose between Warm, Direct, Professional, Friendly, Casual)
 
 - [~] **Stripe integration**
