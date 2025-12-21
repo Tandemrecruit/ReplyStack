@@ -39,20 +39,85 @@ const TONE_OPTIONS = [
  *
  */
 export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
-  const [formData, setFormData] = useState({
+  const initialMaxLength = profile?.max_length ?? 150;
+  const getInitialMaxLengthError = (value: number): string | null => {
+    if (value < 50 || value > 500) {
+      return "Maximum response length must be between 50 and 500 words";
+    }
+    return null;
+  };
+
+  const [formData, setFormData] = useState<{
+    tone: string;
+    personality_notes: string;
+    sign_off_style: string;
+    max_length: number | string;
+  }>({
     tone: profile?.tone ?? "friendly",
     personality_notes: profile?.personality_notes ?? "",
     sign_off_style: profile?.sign_off_style ?? "",
-    max_length: profile?.max_length ?? 150,
+    max_length: initialMaxLength,
   });
+  const [errors, setErrors] = useState<string | null>(null);
+  const [maxLengthError, setMaxLengthError] = useState<string | null>(
+    getInitialMaxLengthError(initialMaxLength),
+  );
+
+  const validateMaxLength = (value: number | string): boolean => {
+    if (value === "" || value === null || value === undefined) {
+      setMaxLengthError(
+        "Maximum response length must be between 50 and 500 words",
+      );
+      return false;
+    }
+    const numValue = typeof value === "string" ? parseInt(value, 10) : value;
+    if (Number.isNaN(numValue) || numValue < 50 || numValue > 500) {
+      setMaxLengthError(
+        "Maximum response length must be between 50 and 500 words",
+      );
+      return false;
+    }
+    setMaxLengthError(null);
+    return true;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave?.(formData);
+    setErrors(null);
+
+    // Validate max_length is within range
+    if (!validateMaxLength(formData.max_length)) {
+      return;
+    }
+
+    // Ensure max_length is a number before saving
+    const maxLengthNum =
+      typeof formData.max_length === "string"
+        ? parseInt(formData.max_length, 10)
+        : formData.max_length;
+
+    onSave?.({
+      ...formData,
+      max_length: maxLengthNum,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      {/* ARIA live region for error announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {maxLengthError && <span>{maxLengthError}</span>}
+        {errors && <span>{errors}</span>}
+      </div>
+
+      {errors && (
+        <div
+          className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm"
+          role="alert"
+        >
+          {errors}
+        </div>
+      )}
       {/* Tone Selection */}
       <div>
         <p className="block text-sm font-medium text-foreground mb-3">
@@ -139,21 +204,58 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
         <p className="text-sm text-foreground-muted mb-2">
           Target word count for responses
         </p>
-        <input
-          id="maxlength"
-          type="number"
-          min={50}
-          max={500}
-          value={formData.max_length}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              max_length: parseInt(e.target.value, 10) || 150,
-            })
-          }
-          className="w-32 px-3 py-2 bg-surface border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
-        <span className="ml-2 text-sm text-foreground-secondary">words</span>
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <input
+              id="maxlength"
+              type="number"
+              min={50}
+              max={500}
+              value={
+                typeof formData.max_length === "number" &&
+                Number.isNaN(formData.max_length)
+                  ? ""
+                  : formData.max_length
+              }
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") {
+                  setFormData({
+                    ...formData,
+                    max_length: "",
+                  });
+                  validateMaxLength("");
+                } else {
+                  const parsed = parseInt(raw, 10);
+                  setFormData({
+                    ...formData,
+                    max_length: parsed,
+                  });
+                  validateMaxLength(parsed);
+                }
+              }}
+              aria-invalid={maxLengthError ? "true" : "false"}
+              aria-describedby={maxLengthError ? "maxlength-error" : undefined}
+              className={`w-32 px-3 py-2 bg-surface border rounded-md text-foreground focus:outline-none focus:ring-2 ${
+                maxLengthError
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-border focus:ring-primary-500"
+              }`}
+            />
+            <span className="ml-2 text-sm text-foreground-secondary">
+              words
+            </span>
+          </div>
+        </div>
+        {maxLengthError && (
+          <div
+            id="maxlength-error"
+            role="alert"
+            className="mt-2 text-sm text-red-700"
+          >
+            {maxLengthError}
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

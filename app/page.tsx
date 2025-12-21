@@ -6,7 +6,7 @@ import { LiveDemo } from "@/components/landing/live-demo";
 export const metadata: Metadata = {
   title: "ReplyStack | AI-Powered Review Responses for Local Businesses",
   description:
-    "Respond to every Google Business review in 30 seconds with AI that sounds like you. Built for restaurants, dental practices, and local service businesses.",
+    "Get AI-generated review responses within minutes—as fast as 5 minutes on Pro plans. Replies that sound like you, not canned AI. Built for restaurants, dental practices, and local service businesses.",
 };
 
 /**
@@ -65,9 +65,9 @@ export default function LandingPage() {
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight">
-              Respond to every review in{" "}
+              Respond to every review{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-accent-400">
-                30 seconds
+                within minutes
               </span>{" "}
               with replies that sound like you.
             </h1>
@@ -429,9 +429,9 @@ export default function LandingPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 {
-                  label: "Avg. response time",
-                  value: "27 sec",
-                  meta: "Last 30 days",
+                  label: "Avg. detection time",
+                  value: "5-15 min",
+                  meta: "Based on plan tier",
                 },
                 {
                   label: "Response rate",

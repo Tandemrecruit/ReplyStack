@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import {
   fetchAccounts,
   fetchLocations,

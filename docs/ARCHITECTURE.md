@@ -18,9 +18,9 @@
 
 ## Implementation Status (Dec 2025)
 
-- Implemented: project setup, Supabase client/middleware, base layouts, basic components.
-- Scaffolding only: auth pages, dashboard pages, ReviewCard/VoiceEditor (partial UI), all API routes.
-- Not implemented: Google/Claude/Stripe clients (placeholders), cron polling, Stripe webhooks, response generation.
+- Implemented: project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page.
+- Partially implemented: dashboard UI (components exist but need data integration), response editing UI (publish works, edit modal missing), Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending).
+- Not implemented: Stripe checkout/portal, email sending (Resend integration), response editing modal, dashboard data integration, review management features (ignore, search, date filters).
 
 ---
 
@@ -149,19 +149,20 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 ### Claude API
 
-**Model:** `claude-sonnet-4-5-20250929` (alias: `claude-sonnet-4-5`)
+**Model:** `claude-haiku-4-5-20251001`
 
 **Cost Estimation:**
 - Average response: ~100 tokens output
 - With context: ~500 tokens input
-- Cost per response: ~$0.003
-- 1000 responses/month: ~$3
+- Cost per response: ~$0.001 (Haiku pricing: $1.00/M input, $5.00/M output)
+- 1000 responses/month: ~$1
 
 **Implementation:**
 - See [PROMPTS.md](./PROMPTS.md) for prompt architecture
 - Streaming disabled (responses are short)
 - Timeout: 30 seconds
-- Retry: 2 attempts on failure
+- Retry: 2 attempts on failure (exponential backoff)
+- Error handling: 401/403/429 errors are not retried
 
 ### Stripe
 
@@ -284,7 +285,6 @@ ReplyStack/
 ├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
 ├── tests/ (Vitest, mirrors app/lib/components)
-├── python/ (example utilities/tests)
 ├── public/
 └── middleware.ts
 ```

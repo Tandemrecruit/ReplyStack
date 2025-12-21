@@ -1,7 +1,6 @@
 # Setup & Runbook
 
-Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not
-implemented yet). Use this to bootstrap local dev and fill env values.
+Status: Core features implemented. Authentication, Google Business Profile integration, review polling, and AI response generation are complete. Stripe webhooks are stubbed (not yet implemented). Use this guide to set up local development.
 
 ## Prerequisites
 

@@ -515,4 +515,394 @@ describe("components/settings/LocationSelector", () => {
     // Address should not be rendered when empty
     expect(screen.queryByText("123 Main St")).not.toBeInTheDocument();
   });
+
+  it("deactivates unselected locations when saving", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              id: "db-loc-1",
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+            {
+              id: "db-loc-2",
+              google_account_id: "acc-1",
+              google_location_id: "loc-2",
+              name: "Location 2",
+              address: "456 Oak Ave",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ saved: 1 }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    // Unselect loc-2 (it was synced, so it should be deactivated)
+    const checkbox2 = screen.getByRole("checkbox", { name: /Location 2/i });
+    await user.click(checkbox2);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("1 location(s) saved, 1 location(s) deactivated."),
+      ).toBeInTheDocument();
+    });
+
+    // Verify DELETE was called for loc-2
+    expect(mockFetch).toHaveBeenCalledWith("/api/locations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ location_id: "db-loc-2" }),
+    });
+  });
+
+  it("handles partial deactivation failures", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              id: "db-loc-1",
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+            {
+              id: "db-loc-2",
+              google_account_id: "acc-1",
+              google_location_id: "loc-2",
+              name: "Location 2",
+              address: "456 Oak Ave",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: "Failed to deactivate location" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    // Unselect both locations
+    const checkbox1 = screen.getByRole("checkbox", { name: /Location 1/i });
+    const checkbox2 = screen.getByRole("checkbox", { name: /Location 2/i });
+    await user.click(checkbox1);
+    await user.click(checkbox2);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      // Component shows just the error message for single failures
+      expect(
+        screen.getByText(/Failed to deactivate location/),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("handles locations without database IDs when deactivating", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ saved: 1 }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    // Unselect loc-1 (it has no id, so it shouldn't trigger DELETE)
+    const checkbox1 = screen.getByRole("checkbox", { name: /Location 1/i });
+    await user.click(checkbox1);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("1 location(s) saved successfully."),
+      ).toBeInTheDocument();
+    });
+
+    // Verify DELETE was NOT called (location has no id)
+    const deleteCalls = mockFetch.mock.calls.filter(
+      (call) => call[1]?.method === "DELETE",
+    );
+    expect(deleteCalls).toHaveLength(0);
+  });
+
+  it("handles multiple deactivations with some failures", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              id: "db-loc-1",
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+            {
+              id: "db-loc-2",
+              google_account_id: "acc-1",
+              google_location_id: "loc-2",
+              name: "Location 2",
+              address: "456 Oak Ave",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+            {
+              id: "db-loc-3",
+              google_account_id: "acc-1",
+              google_location_id: "loc-3",
+              name: "Location 3",
+              address: "789 Pine Rd",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: "Database error" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    // Unselect all locations
+    const checkbox1 = screen.getByRole("checkbox", { name: /Location 1/i });
+    const checkbox2 = screen.getByRole("checkbox", { name: /Location 2/i });
+    const checkbox3 = screen.getByRole("checkbox", { name: /Location 3/i });
+    await user.click(checkbox1);
+    await user.click(checkbox2);
+    await user.click(checkbox3);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      // Component shows just the error message for single failures
+      expect(screen.getByText(/Database error/)).toBeInTheDocument();
+    });
+  });
+
+  it("clears success message when toggling selection", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ saved: 1 }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    const checkbox = screen.getByRole("checkbox");
+    await user.click(checkbox);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("1 location(s) saved successfully."),
+      ).toBeInTheDocument();
+    });
+
+    // Toggle selection - success message should clear
+    await user.click(checkbox);
+    expect(
+      screen.queryByText("1 location(s) saved successfully."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("handles error when deactivation promise rejects", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              id: "db-loc-1",
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: true,
+            },
+          ],
+        }),
+      })
+      .mockRejectedValueOnce(new Error("Network error"));
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    const checkbox = screen.getByRole("checkbox");
+    await user.click(checkbox);
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      // When promise rejects with Error, the error message is used directly
+      expect(screen.getByText(/Network error/)).toBeInTheDocument();
+    });
+  });
+
+  it("updates local state after successful save", async () => {
+    const user = userEvent.setup();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          locations: [
+            {
+              google_account_id: "acc-1",
+              google_location_id: "loc-1",
+              name: "Location 1",
+              address: "123 Main St",
+              account_name: "Account 1",
+              is_synced: false,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ saved: 1 }),
+      });
+
+    render(<LocationSelector />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Location 1")).toBeInTheDocument();
+    });
+
+    const checkbox = screen.getByRole("checkbox");
+    expect(checkbox).not.toBeChecked();
+
+    await user.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    const saveButton = screen.getByRole("button", { name: "Save Locations" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("1 location(s) saved successfully."),
+      ).toBeInTheDocument();
+    });
+
+    // After save, location should be marked as synced
+    expect(screen.getByText("Synced")).toBeInTheDocument();
+  });
 });

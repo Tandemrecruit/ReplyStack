@@ -2,11 +2,57 @@
 
 This document logs key architectural and product decisions for ReplyStack.
 
+## When to Create a New ADR
+
+Create a new ADR when making decisions that:
+- **Choose between technologies or frameworks** (e.g., Next.js vs Remix, Supabase vs standalone Postgres)
+- **Define architectural patterns** (e.g., multi-tenant strategy, authentication flows, API structure)
+- **Establish security or compliance approaches** (e.g., encryption strategy, token storage)
+- **Set product/business defaults** (e.g., manual approval vs auto-publish, pricing tiers)
+- **Introduce significant technical trade-offs** that future developers need to understand
+- **Change existing patterns** that other code depends on
+
+**Do NOT create ADRs for:**
+- Minor implementation details or code style choices
+- Bug fixes or refactoring that doesn't change architecture
+- Temporary workarounds (document in code comments instead)
+- Features that don't involve architectural decisions
+
+## When to Update Existing ADRs
+
+Update an ADR when:
+- **Status changes:** Move from "Proposed" to "Accepted" or mark as "Deprecated"/"Superseded"
+- **Decision is modified:** If the implementation differs from the original decision, update the ADR to reflect reality
+- **Consequences materialize:** Document actual outcomes (positive or negative) that differ from predictions
+- **Superseded by new ADR:** Add a "Supersedes" section linking to the new ADR, and mark old ADR as "Superseded"
+
+## ADR Numbering
+
+- Use sequential numbering: `ADR-001`, `ADR-002`, etc.
+- Never reuse numbers, even if an ADR is deprecated
+- Check the highest number in this document before creating a new one
+
+## Integration with Code Changes
+
+When implementing code that relates to an ADR:
+- Reference the ADR number in code comments for complex decisions (e.g., `// See ADR-013 for token storage strategy`)
+- If implementation diverges from the ADR, update the ADR first or create a new one explaining the change
+- When deprecating code covered by an ADR, consider whether the ADR should be marked "Deprecated"
+
+## Review Checklist
+
+Before marking an ADR as "Accepted":
+- [ ] Context clearly explains the problem
+- [ ] Decision is specific and actionable
+- [ ] Rationale includes alternatives considered
+- [ ] Consequences (positive and negative) are documented
+- [ ] Status is appropriate (Proposed vs Accepted)
+
 ---
 
 ## ADR-001: Next.js 15 with App Router
 
-**Status:** Accepted
+**Status:** Superseded
 
 ### Context
 
@@ -27,6 +73,10 @@ Next.js 15 with App Router over Pages Router or separate backend.
 
 - Locked into React ecosystem
 - Some learning curve for App Router patterns
+
+### Superseded
+
+This ADR has been superseded by ADR-006, which documents the upgrade to Next.js 16 with React 19 and Tailwind v4. The core decision (App Router over Pages Router) remains valid.
 
 ---
 
@@ -55,35 +105,37 @@ Supabase (managed Postgres + Auth + Row Level Security).
 
 ---
 
-## ADR-003: Claude Sonnet over GPT-5.2 for Response Generation
+## ADR-003: Claude Haiku over Sonnet/GPT-5.2 for Response Generation
 
 **Status:** Accepted
 
 ### Context
 
-Need high-quality, natural-sounding responses for business review replies.
+Need high-quality, natural-sounding responses for business review replies at scale.
 
 ### Decision
 
-Claude Sonnet 4 via Anthropic API.
+Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) via Anthropic API.
 
 ### Rationale
 
-- More natural, human-sounding tone for business communication (multiple sources cite this as Claude's strength)
-- More consistent and predictable response quality
-- We're already building with Claude tools (familiarity)
-- GPT-5.2 is cheaper ($1.75/$14 vs $3/$15 per MTok) but the cost difference is negligible at our scale (~$0.003/response)
-- GPT-5.2 excels at math/reasoning which isn't our primary use case
+- **Cost-effectiveness:** Haiku is significantly cheaper than Sonnet (~$0.002 vs ~$0.003 per response) while maintaining excellent quality for short-form responses
+- **Natural tone:** Claude models (including Haiku) produce more natural, human-sounding business communication than GPT models
+- **Consistent quality:** More predictable response quality for our use case (short review responses)
+- **Familiarity:** We're already building with Claude tools (dev-ai system)
+- **Sufficient capability:** Review responses are straightforward text generation - Haiku's capabilities are sufficient without needing Sonnet's advanced reasoning
+- GPT-5.2 is cheaper but Claude's tone quality is more important for customer-facing responses
 
 ### Tradeoffs
 
-- Paying ~40% more on input tokens
-- Could revisit if costs become material at scale
+- Haiku may be less capable than Sonnet for complex reasoning tasks (not needed for review responses)
+- Could upgrade to Sonnet if quality issues emerge, but initial testing shows Haiku is sufficient
 
 ### Consequences
 
-- Single AI vendor dependency
-- Could add GPT-5.2 fallback if quality issues emerge or costs become significant
+- Single AI vendor dependency (Anthropic)
+- Lower operational costs at scale
+- Could add Sonnet fallback or upgrade path if quality requirements increase
 
 ---
 
@@ -652,6 +704,176 @@ Backend/Infrastructure team (post-MVP)
 ### Supersedes
 
 This ADR supersedes the encryption aspect of ADR-013. ADR-013's token storage strategy remains valid; this ADR adds the application-level encryption layer that was identified as technical debt.
+
+---
+
+## ADR-021: Vitest for Testing Framework
+
+**Status:** Accepted
+
+### Context
+
+Need a testing framework for unit and integration tests that works well with Next.js, TypeScript, and React Server Components.
+
+### Decision
+
+Use Vitest as the primary testing framework over Jest, Mocha, or other alternatives.
+
+### Rationale
+
+- **Native ESM support:** Vitest has first-class ESM support, which aligns with Next.js 16's ESM-first approach
+- **Faster execution:** Vitest uses Vite's fast HMR and is generally faster than Jest for most test suites
+- **Jest-compatible API:** Vitest uses Jest's API, making migration from Jest straightforward and allowing use of Jest ecosystem tools (e.g., `@testing-library/jest-dom`)
+- **TypeScript-first:** Built-in TypeScript support without additional configuration
+- **Better Next.js integration:** Works seamlessly with Next.js App Router and React Server Components
+- **Modern tooling:** Active development, good TypeScript support, and excellent DX
+
+### Alternatives Considered
+
+1. **Jest**
+   - Pros: Mature, large ecosystem, widely used
+   - Cons: Slower execution, requires more configuration for ESM/TypeScript, larger bundle size
+
+2. **Mocha + Chai**
+   - Pros: Flexible, plugin-based architecture
+   - Cons: More setup required, less React-specific tooling, older ecosystem
+
+3. **Tape/Ava**
+   - Pros: Minimal, fast
+   - Cons: Smaller ecosystem, less React testing library integration
+
+### Consequences
+
+- **Positive:**
+  - Faster test execution improves developer feedback loop
+  - Native ESM support reduces configuration complexity
+  - Jest-compatible API allows reuse of existing testing patterns and libraries
+  - Good integration with `@testing-library/react` and `jsdom` for component testing
+
+- **Negative:**
+  - Smaller ecosystem compared to Jest (though growing)
+  - Some Jest plugins may not work directly (though most are compatible)
+  - Team members familiar with Jest may need minor adjustments (API is compatible)
+
+---
+
+## ADR-022: Stripe for Payment Processing
+
+**Status:** Accepted
+
+### Context
+
+Need a payment provider to handle subscription billing for the MVP ($49/month tier). Must support recurring subscriptions, webhooks, customer portal, and trial periods.
+
+### Decision
+
+Use Stripe as the payment processing provider for all subscription billing.
+
+### Rationale
+
+- **Subscription-native:** Stripe is built for subscription billing with excellent support for recurring payments, trials, and plan changes
+- **Developer-friendly API:** Well-documented REST API with TypeScript types and excellent error handling
+- **Webhook reliability:** Robust webhook system with signature verification and idempotency support
+- **Customer portal:** Built-in hosted customer portal for subscription management (billing page, cancel subscriptions)
+- **Trial support:** Native support for trial periods without custom logic
+- **Wide adoption:** Large ecosystem, extensive documentation, and community support
+- **Compliance:** Handles PCI compliance, tax calculations, and international payments
+- **Free tier:** Generous free tier for development and testing
+
+### Alternatives Considered
+
+1. **Paddle**
+   - Pros: Handles tax/VAT automatically, merchant of record model
+   - Cons: Less flexible, smaller ecosystem, more expensive at scale
+
+2. **PayPal Subscriptions**
+   - Pros: Wide user base, familiar to many customers
+   - Cons: Less developer-friendly API, weaker webhook system, limited subscription management features
+
+3. **Braintree**
+   - Pros: Good API, supports multiple payment methods
+   - Cons: More complex setup, less subscription-focused than Stripe
+
+4. **Self-hosted payment processing**
+   - Pros: Full control, no per-transaction fees
+   - Cons: PCI compliance burden, significant development effort, security risks
+
+### Consequences
+
+- **Positive:**
+  - Fast implementation with minimal custom code
+  - Reliable webhook delivery for subscription lifecycle events
+  - Built-in customer portal reduces development effort
+  - Excellent documentation and developer experience
+  - Scales well as business grows
+
+- **Negative:**
+  - Transaction fees (2.9% + $0.30 per transaction) reduce margins
+  - Vendor lock-in (though migration is possible with effort)
+  - Requires webhook signature verification and idempotency handling (standard practice)
+  - International payment support may require additional configuration
+
+---
+
+## ADR-023: Resend for Transactional Email
+
+**Status:** Accepted
+
+### Context
+
+Need a transactional email service to send notifications (new reviews, trial ending, payment failures, welcome emails) to users. Must be reliable, developer-friendly, and cost-effective for MVP scale.
+
+### Decision
+
+Use Resend as the transactional email provider for all user-facing emails.
+
+### Rationale
+
+- **Simple API:** Clean, RESTful API with TypeScript support and minimal configuration
+- **Developer experience:** Excellent documentation, fast setup, good error messages
+- **React Email support:** Native support for React Email templates, allowing component-based email design
+- **Free tier:** Generous free tier (3,000 emails/month) sufficient for MVP and early growth
+- **Reliability:** Built on modern infrastructure with good deliverability rates
+- **Pricing:** Transparent, usage-based pricing that scales predictably
+- **Domain verification:** Straightforward domain verification and DNS setup
+- **Webhooks:** Support for webhook events (delivery, bounces, opens) for monitoring
+
+### Alternatives Considered
+
+1. **SendGrid**
+   - Pros: Mature, large scale, extensive features
+   - Cons: More complex API, higher pricing, overkill for MVP needs
+
+2. **Mailgun**
+   - Pros: Reliable, good API, good deliverability
+   - Cons: More expensive free tier, less modern developer experience
+
+3. **Amazon SES**
+   - Pros: Very cheap at scale, highly reliable
+   - Cons: More complex setup, requires AWS account, less developer-friendly
+
+4. **Postmark**
+   - Pros: Excellent deliverability, simple API
+   - Cons: More expensive, less flexible pricing model
+
+5. **Supabase Edge Functions + SMTP**
+   - Pros: No additional service, full control
+   - Cons: Requires SMTP server setup, deliverability concerns, maintenance burden
+
+### Consequences
+
+- **Positive:**
+  - Fast implementation with minimal boilerplate
+  - React Email integration allows reusable email components
+  - Free tier covers MVP needs without cost concerns
+  - Good developer experience speeds up email feature development
+  - Webhook support enables email delivery monitoring
+
+- **Negative:**
+  - Newer service (less battle-tested than SendGrid/Mailgun)
+  - May need to migrate if requirements exceed Resend's capabilities
+  - Limited advanced features compared to enterprise email services
+  - Vendor lock-in (though emails can be migrated to other providers)
 
 ---
 

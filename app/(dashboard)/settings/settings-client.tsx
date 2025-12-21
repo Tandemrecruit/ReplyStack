@@ -68,7 +68,7 @@ export function SettingsClient() {
 
     setFieldErrors({});
     setIsSaving(true);
-    setStatus({ type: "idle" });
+    setStatus({ type: "idle", message: "" });
 
     try {
       const response = await fetch("/api/voice-profile", {

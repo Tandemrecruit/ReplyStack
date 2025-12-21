@@ -46,15 +46,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.venv/
-venv/
-.envrc
-
 # IDE configurations
 .cursorignore
 .cursor/
@@ -63,3 +54,14 @@ venv/
 
 # supabase
 .supabase/
+
+# stryker temp files
+.stryker-tmp
+
+# dev-ai tools
+lib/dev-ai/*
+docs/DEV_AI_TOOLS.md
+
+# dev-ai tests
+tests/lib/dev-ai/*
+

@@ -802,4 +802,617 @@ describe("GET /api/reviews", () => {
       location_name: "Downtown Location",
     });
   });
+
+  it("ignores invalid status filter values", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest(
+      "http://localhost/api/reviews?status=invalid",
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // Invalid status should be ignored, no filter applied
+  });
+
+  it("ignores invalid rating filter values", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews?rating=10");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // Rating 10 is out of range, should be ignored
+  });
+
+  it("ignores rating filter when not a number", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews?rating=abc");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // Non-numeric rating should be ignored
+  });
+
+  it("ignores invalid sentiment filter values", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest(
+      "http://localhost/api/reviews?sentiment=invalid",
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // Invalid sentiment should be ignored
+  });
+
+  it("ignores location_id filter when location doesn't belong to org", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }], // Only loc-1 belongs to org
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest(
+      "http://localhost/api/reviews?location_id=loc-2",
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    // loc-2 doesn't belong to org, filter should be ignored
+  });
+
+  it("handles pagination with page 0", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews?page=0");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.page).toBe(1); // Should default to 1
+  });
+
+  it("handles pagination with negative page", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews?page=-5");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.page).toBe(1); // Should default to 1
+  });
+
+  it("handles limit with 0 or negative values", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [],
+                    count: 0,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews?limit=0");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.limit).toBe(20); // Should default to 20
+  });
+
+  it("handles reviews with null location names", async () => {
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "user-1", organization_id: "org-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "locations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ id: "loc-1" }],
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          const queryChain = {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  range: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        id: "rev-1",
+                        external_review_id: "ext-1",
+                        reviewer_name: "John",
+                        reviewer_photo_url: null,
+                        rating: 5,
+                        review_text: "Great!",
+                        review_date: "2025-01-15T10:00:00Z",
+                        has_response: false,
+                        status: "pending",
+                        sentiment: "positive",
+                        created_at: "2025-01-15T10:00:00Z",
+                        location_id: "loc-1",
+                        locations: null, // Null location
+                      },
+                    ],
+                    count: 1,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+          return queryChain;
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    const request = makeNextRequest("http://localhost/api/reviews");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.reviews[0].location_name).toBe("Unknown Location");
+  });
+
+  it("handles user lookup error", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: { message: "Database error" },
+            }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const request = makeNextRequest("http://localhost/api/reviews");
+    const response = await GET(request);
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "User not found",
+    });
+  });
 });

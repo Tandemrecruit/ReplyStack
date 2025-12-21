@@ -2,7 +2,7 @@
 
 ## Phase 1: MVP (Week 1-2)
 
-**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, and landing page are complete. Remaining: AI response generation, dashboard data integration, response editing UI, Stripe, and email notifications.
+**Current Status (Dec 2025):** Project scaffolding, authentication, Google Business Profile integration, review polling, voice profile API, AI response generation, and landing page are complete. Remaining: dashboard data integration, response editing UI (edit modal, character count, optimistic updates), Stripe integration, and email notifications.
 
 **Goal:** One location, core response loop, payments working
 
@@ -15,7 +15,7 @@
   - [x] Configure Biome (linting and formatting)
   - [x] Set up Tailwind CSS
 
-- [x] **Authentication**
+- [X] **Authentication**
   - [x] Email/password registration
   - [x] Email/password login
   - [x] Google OAuth sign-in
@@ -36,28 +36,34 @@
   - [x] Cron job for polling (every 15 min)
   - [x] Deduplication logic
 
-- [ ] **AI response generation**
-  - [ ] Claude API integration
-  - [ ] System prompt with voice profile
-  - [ ] Generate response endpoint
-  - [ ] Token usage tracking
+- [X] **AI response generation**
+  - [x] Claude API integration
+  - [x] System prompt with voice profile
+  - [x] Generate response endpoint
+  - [x] Token usage tracking
 
 - [~] **Basic dashboard UI**
   - [x] Review list component (ReviewCard component exists)
-  - [x] Rating filter (UI exists, needs data integration)
-  - [x] Status filter (UI exists, needs data integration)
-  - [x] Generate response button (component exists, needs AI integration)
+  - [~] Rating filter (UI exists but static, API supports it, needs data integration)
+  - [~] Status filter (UI exists but static, API supports it, needs data integration)
+  - [~] Generate response button (component exists, reviews page is static, needs data integration)
   - [ ] Response preview (not yet implemented)
+
+- [ ] **Review management features**
+  - [ ] Mark review as "ignored" (status field exists in DB, but no API endpoint or UI)
+  - [ ] Search reviews by text content (not implemented)
+  - [ ] Filter by date range (API does not support, needs implementation)
 
 ### Week 2: Polish & Launch
 
 - [~] **Response editing and publishing**
   - [ ] Edit modal component
   - [ ] Character/word count
-  - [ ] Save draft functionality
+  - [x] Save draft functionality (responses saved as drafts when generated)
   - [x] Publish to Google API (endpoint implemented)
+  - [ ] Regenerate response button (API returns existing response instead of regenerating?)
   - [ ] Optimistic UI updates
-  - [ ] Error handling and retry
+  - [~] Error handling and retry (basic error handling exists, retry logic implemented in Claude client)
 
 - [~] **Voice profile setup**
   - [x] Tone selection step
@@ -65,22 +71,37 @@
   - [ ] Example responses input (API supports, UI missing)
   - [x] Sign-off configuration
   - [ ] Words to use/avoid (API supports, UI missing)
-  - [~] Max length setting (exists in VoiceEditor component, missing from settings page)
+  - [x] Max length setting (exists in VoiceEditor component)
   - [x] Save and update profile (API fully implemented, UI partially implemented)
 
-- [ ] **Stripe integration**
+- [~] **Stripe integration**
   - [ ] Products and prices in Stripe Dashboard
   - [ ] Checkout session creation
-  - [ ] Webhook handler
+  - [~] Webhook handler (stub exists, needs implementation)
   - [ ] Customer portal link
   - [ ] Trial logic (14 days)
   - [ ] Subscription status checks
 
-- [ ] **Email notifications**
-  - [ ] Resend integration
+- [~] **Email notifications**
+  - [~] Resend integration (preferences API/UI done, no email sending yet)
   - [ ] New review notification
   - [ ] Welcome email
-  - [ ] Notification preferences
+  - [x] Notification preferences (API and UI implemented)
+
+- [~] **Account management**
+  - [x] Update password (update-password-form exists)
+  - [ ] Update email in settings
+  - [ ] Delete account functionality (GDPR requirement)
+
+- [ ] **Onboarding & UX**
+  - [ ] Voice Profile Wizard (guided multi-step onboarding)
+  - [ ] First response tutorial/guidance
+  - [ ] Success metrics tracking (time to first response)
+
+- [ ] **Infrastructure & monitoring**
+  - [ ] Basic error tracking (Sentry integration)
+  - [~] Rate limiting (error handling for rate limits exists, but no per-user limits implemented)
+  - [ ] Google API rate limit monitoring
 
 - [X] **Landing page**
   - [x] Hero section
@@ -88,6 +109,14 @@
   - [x] Pricing section
   - [x] FAQ (pricing-faq page exists)
   - [x] CTA buttons
+
+- [ ] **Waitlist management**
+  - [ ] Waitlist database table (email, name, signup_date, invited_at, invited_by)
+  - [ ] Waitlist signup form on landing page
+  - [ ] API endpoint for waitlist signups (POST /api/waitlist)
+  - [ ] Admin interface to view/manage waitlist
+  - [ ] Invite functionality (send signup link to waitlist users)
+  - [ ] Email integration for waitlist invites (Resend)
 
 - [ ] **Soft launch**
   - [ ] Deploy to production
@@ -136,6 +165,11 @@
   - [ ] Growth: $79/month (3 locations, unlimited)
   - [ ] Agency: $199/month (10 locations, team features)
   - [ ] Plan upgrade/downgrade flow
+  - [ ] Trial ending reminders (email notifications)
+
+- [ ] **Response history & quality**
+  - [ ] Response history view per review (responses table exists but no UI)
+  - [ ] View previous generated responses
 
 - [ ] **Auto-respond toggle**
   - [ ] Enable for 4-5 star reviews only
@@ -216,13 +250,20 @@ Reserve 20% of each phase for:
 ## Launch Checklist
 
 ### Pre-Launch
-- [ ] Error tracking (Sentry)
+- [ ] Error tracking (Sentry) - moved to Phase 1 infrastructure
 - [ ] Analytics (Posthog or similar)
 - [ ] Terms of Service
 - [ ] Privacy Policy
-- [ ] GDPR compliance check
+- [ ] GDPR compliance
+  - [ ] Cookie consent banner
+  - [ ] Data retention policies
+  - [ ] User data deletion (right to be forgotten)
+  - [ ] Privacy policy implementation
 - [ ] Load testing
-- [ ] Backup strategy verified
+- [ ] Backup & recovery
+  - [ ] Automated database backups
+  - [ ] Data export functionality
+  - [ ] Disaster recovery plan
 
 ### Launch Day
 - [ ] Monitor error rates

@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment node
+ */
+
 import { randomBytes } from "node:crypto";
 
 // Store original env

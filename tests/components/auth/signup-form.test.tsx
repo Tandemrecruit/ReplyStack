@@ -366,12 +366,13 @@ describe("components/auth/SignupForm", () => {
   });
 
   it("disables inputs during submission", async () => {
-    mockSignUp.mockImplementation(
-      () =>
-        new Promise((resolve) =>
-          setTimeout(() => resolve({ error: null }), 100),
-        ),
-    );
+    // Promise constructor runs synchronously, so resolvePromise is guaranteed to be assigned
+    let resolvePromise!: (value: { error: null }) => void;
+    const submissionPromise = new Promise<{ error: null }>((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    mockSignUp.mockImplementation(() => submissionPromise);
 
     const user = userEvent.setup();
     render(<SignupForm />);
@@ -381,9 +382,15 @@ describe("components/auth/SignupForm", () => {
     await user.type(screen.getByLabelText("Confirm password"), "Password1");
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(screen.getByLabelText("Email address")).toBeDisabled();
-    expect(screen.getByLabelText("Password")).toBeDisabled();
-    expect(screen.getByLabelText("Confirm password")).toBeDisabled();
+    // Check inputs are disabled during submission
+    await waitFor(() => {
+      expect(screen.getByLabelText("Email address")).toBeDisabled();
+      expect(screen.getByLabelText("Password")).toBeDisabled();
+      expect(screen.getByLabelText("Confirm password")).toBeDisabled();
+    });
+
+    // Resolve the promise to complete submission
+    resolvePromise({ error: null });
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalled();

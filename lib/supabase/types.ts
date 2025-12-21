@@ -446,27 +446,10 @@ export const Constants = {
   },
 } as const;
 
-// Convenience type aliases for common table types
-export type Review = Tables<"reviews">;
-export type ReviewInsert = TablesInsert<"reviews">;
-export type ReviewUpdate = TablesUpdate<"reviews">;
-
-export type VoiceProfile = Tables<"voice_profiles">;
-export type VoiceProfileInsert = TablesInsert<"voice_profiles">;
-export type VoiceProfileUpdate = TablesUpdate<"voice_profiles">;
-
-export type Location = Tables<"locations">;
-export type LocationInsert = TablesInsert<"locations">;
-export type LocationUpdate = TablesUpdate<"locations">;
-
-export type User = Tables<"users">;
-export type UserInsert = TablesInsert<"users">;
-export type UserUpdate = TablesUpdate<"users">;
-
-export type Organization = Tables<"organizations">;
-export type OrganizationInsert = TablesInsert<"organizations">;
-export type OrganizationUpdate = TablesUpdate<"organizations">;
-
-export type Response = Tables<"responses">;
-export type ResponseInsert = TablesInsert<"responses">;
-export type ResponseUpdate = TablesUpdate<"responses">;
+// Type aliases for commonly used table types
+export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
+export type ReviewInsert = Database["public"]["Tables"]["reviews"]["Insert"];
+export type Review = Database["public"]["Tables"]["reviews"]["Row"];
+export type VoiceProfile =
+  Database["public"]["Tables"]["voice_profiles"]["Row"];
+export type Location = Database["public"]["Tables"]["locations"]["Row"];
