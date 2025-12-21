@@ -877,6 +877,203 @@ Use Resend as the transactional email provider for all user-facing emails.
 
 ---
 
+## ADR-024: Claude API Integration Pattern
+
+**Status:** Accepted
+
+### Context
+
+We need a reliable, production-ready integration with Anthropic's Claude API for generating review responses. The integration must handle network failures, rate limits, timeouts, and provide consistent error handling while tracking token usage for cost monitoring.
+
+### Decision
+
+Implement Claude API integration in `lib/claude/client.ts` with the following pattern:
+
+- **Timeout handling:** All API requests use a 30-second timeout via `fetchWithTimeout()` with `AbortController`
+- **Retry logic:** Exponential backoff retry (1s, 2s delays) with maximum 2 total attempts (1 initial + 1 retry)
+- **Error handling:** Custom `ClaudeAPIError` class with HTTP status codes; no retry on 401 (auth), 403 (forbidden), or 429 (rate limit) errors
+- **Token tracking:** Track and return `tokensUsed` (input + output tokens) for cost monitoring
+- **Input validation:** Truncate review text to 10,000 characters to avoid token limit issues
+- **Prompt building:** Separate functions for system prompt (from voice profile) and user prompt (from review data)
+- **API configuration:** Use Claude Haiku 4.5 model (`claude-haiku-4-5-20251001`), max 500 output tokens, Anthropic API version `2023-06-01`
+
+### Rationale
+
+- **Timeout protection:** Prevents hanging requests from blocking the application; 30 seconds balances user experience with API response times
+- **Retry with backoff:** Handles transient network failures without overwhelming the API; exponential backoff reduces contention
+- **No retry on auth/rate limit:** These errors require manual intervention (key rotation, rate limit handling), not automatic retries
+- **Token tracking:** Essential for cost monitoring and usage analytics; enables per-organization billing in the future
+- **Input truncation:** Prevents API errors from extremely long reviews while preserving most content
+- **Separate prompt functions:** Maintainable, testable code that aligns with prompt templates documented in `docs/PROMPTS.md`
+- **Custom error class:** Enables API route handlers to map Claude errors to appropriate HTTP status codes (408 → 504, 429 → 429, etc.)
+
+### Alternatives Considered
+
+1. **No timeout handling**
+   - Pros: Simpler code
+   - Cons: Risk of hanging requests, poor user experience
+
+2. **Fixed retry delay**
+   - Pros: Simpler logic
+   - Cons: Less efficient under high load, may exacerbate rate limits
+
+3. **Retry all errors**
+   - Pros: More resilient to transient issues
+   - Cons: Wastes API calls on auth/rate limit errors that won't resolve automatically
+
+4. **No token tracking**
+   - Pros: Simpler implementation
+   - Cons: No cost visibility, can't implement usage-based billing
+
+### Consequences
+
+- **Positive:**
+  - Reliable API integration with graceful failure handling
+  - Cost visibility through token tracking
+  - Clear error messages for debugging and user feedback
+  - Maintainable code structure that matches prompt documentation
+
+- **Negative:**
+  - Additional complexity in error handling and retry logic
+  - 30-second timeout may be too long for some use cases (can be adjusted)
+  - Token tracking adds minimal overhead but requires storage in database
+  - Input truncation may lose context for extremely long reviews (rare edge case)
+
+---
+
+## ADR-025: Voice Profile Resolution Fallback Hierarchy
+
+**Status:** Accepted
+
+### Context
+
+When generating AI responses to reviews, the system needs to determine which voice profile (personality, tone, word preferences) to use. Organizations may have multiple locations, each potentially with its own voice profile, or a single organization-wide profile. The system must gracefully handle cases where profiles are missing or fail to load.
+
+### Decision
+
+Implement a three-tier fallback hierarchy for voice profile resolution in `app/api/responses/route.ts`:
+
+1. **Location-specific voice profile** (highest priority): If `location.voice_profile_id` exists, fetch and use that profile. If fetch fails, log warning and fall back to next tier.
+2. **Organization voice profile** (fallback): If no location profile exists or fetch failed, fetch the organization's voice profile (first profile where `organization_id` matches). If fetch fails, log warning and fall back to next tier.
+3. **Default voice profile** (final fallback): If no organization profile exists or fetch failed, use `DEFAULT_VOICE_PROFILE` exported from `lib/claude/client.ts` (tone: "friendly", max_length: 150, etc.).
+
+All database fetch errors are logged with `console.warn()` but do not prevent response generation; the system always falls back to the default profile if needed.
+
+### Rationale
+
+- **Location-specific profiles:** Enables multi-location businesses to have different voices per location (e.g., formal for corporate office, casual for retail store)
+- **Organization-wide profiles:** Provides a sensible default for single-location businesses or when location profiles aren't configured
+- **Default fallback:** Ensures the system always has a valid voice profile, preventing API errors and providing a consistent user experience
+- **Graceful error handling:** Database fetch failures (network issues, RLS policy changes) don't break response generation; warnings enable debugging without blocking users
+- **Explicit hierarchy:** Clear, predictable resolution order that matches user expectations (location-specific overrides organization-wide)
+
+### Alternatives Considered
+
+1. **Organization-only profiles**
+   - Pros: Simpler logic, fewer database queries
+   - Cons: No support for location-specific voices, less flexible for multi-location businesses
+
+2. **Fail hard on profile fetch errors**
+   - Pros: Forces resolution of database issues immediately
+   - Cons: Breaks response generation for transient errors, poor user experience
+
+3. **Cache profiles in memory**
+   - Pros: Faster resolution, fewer database queries
+   - Cons: Cache invalidation complexity, stale data risk, not needed for current scale
+
+4. **User-level voice profiles**
+   - Pros: Personalization per user
+   - Cons: Overkill for current use case (business voice, not personal), adds complexity
+
+### Consequences
+
+- **Positive:**
+  - Flexible voice configuration supporting both single and multi-location businesses
+  - Resilient to database errors and missing configuration
+  - Clear, maintainable resolution logic
+  - Always generates responses even when profiles are misconfigured
+
+- **Negative:**
+  - Multiple database queries in worst case (location profile fetch + org profile fetch)
+  - Silent fallback to default profile may mask configuration issues (mitigated by warning logs)
+  - Location-specific profiles require additional schema support (`voice_profile_id` on `locations` table)
+  - Developers must understand the hierarchy when debugging voice-related issues
+
+---
+
+## ADR-026: Stryker Mutation Testing Workflow
+
+**Status:** Accepted
+
+### Context
+
+Code coverage metrics alone don't guarantee test quality. A test suite can have 100% coverage but still miss bugs if assertions are weak or edge cases aren't properly validated. We need a systematic way to verify that our tests actually catch bugs, not just execute code paths.
+
+### Decision
+
+Adopt Stryker mutation testing as a quality assurance workflow with the following configuration:
+
+- **Test runner:** Vitest (via `@stryker-mutator/vitest-runner`)
+- **Coverage analysis:** Per-test coverage (`coverageAnalysis: "perTest"`) to identify which tests catch which mutations
+- **Mutation scope:** Mutate source files in `lib/`, `app/`, `components/`, and `middleware.ts`; exclude test files, config files, scripts, and generated code
+- **Reporting:** HTML reports in `reports/mutation/` directory, clear-text console output, and progress indicators
+- **Workflow:** Run `npx stryker run` manually during development and code review; not required in CI (too slow for every commit)
+
+### Rationale
+
+- **Mutation testing validates test quality:** Introduces realistic bugs (e.g., `!=` → `==`, `+` → `-`, removing null checks) and verifies tests catch them
+- **Vitest integration:** Aligns with our existing test framework (ADR-021), no need for separate test runner
+- **Per-test coverage:** Identifies which specific tests catch which mutations, enabling targeted test improvements
+- **Focused mutation scope:** Only mutates production code, not tests or config files, reducing noise and execution time
+- **HTML reports:** Visual mutation score dashboard helps identify weak test areas
+- **Manual workflow:** Mutation testing is computationally expensive; running on-demand during development/review is more practical than blocking CI
+
+### Alternatives Considered
+
+1. **No mutation testing**
+   - Pros: Simpler workflow, no additional tooling
+   - Cons: No systematic way to verify test quality beyond coverage metrics
+
+2. **Jest mutation testing (Stryker with Jest runner)**
+   - Pros: Familiar if team uses Jest
+   - Cons: We use Vitest (ADR-021), would require dual test runners
+
+3. **CI-blocking mutation tests**
+   - Pros: Ensures all code meets mutation score threshold
+   - Cons: Too slow for every commit, would slow down development velocity
+
+4. **Manual bug injection**
+   - Pros: No tooling overhead
+   - Cons: Inconsistent, time-consuming, easy to miss important mutations
+
+### Implementation Details
+
+- **Configuration file:** `stryker.config.json` with mutation patterns, test runner, and reporting settings
+- **Excluded patterns:** Test files (`**/*.test.{ts,tsx}`, `**/*.spec.{ts,tsx}`), config files (`vitest.config.ts`, `next.config.ts`, `tsconfig*.json`), scripts directory, and generated reports
+- **Mutation score interpretation:**
+  - > 80%: Excellent test quality
+  - 60-80%: Good, but some gaps
+  - < 60%: Tests need improvement
+- **Workflow integration:** Documented in `docs/TEST_QUALITY.md` with setup steps and interpretation guidelines
+
+### Consequences
+
+- **Positive:**
+  - Systematic validation of test quality beyond coverage metrics
+  - Identifies weak tests that need strengthening
+  - Catches test smells (trivial assertions, missing edge cases)
+  - Improves confidence in test suite's ability to catch bugs
+  - Visual reports make it easy to identify problem areas
+
+- **Negative:**
+  - Additional tooling and dependency (`@stryker-mutator/core`, `@stryker-mutator/vitest-runner`)
+  - Computationally expensive (runs full test suite for each mutation)
+  - Requires manual execution (not automated in CI)
+  - Learning curve for interpreting mutation scores and reports
+  - May generate false positives (mutations that don't represent real bugs)
+
+---
+
 ## Template for New Decisions
 
 ```markdown

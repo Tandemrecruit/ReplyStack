@@ -4,6 +4,7 @@
 
 ### Documentation
 
+- Added three new ADRs to DECISIONS.md: ADR-024 (Claude API Integration Pattern) documenting timeout handling, retry logic with exponential backoff, custom error handling, token tracking, and prompt building patterns; ADR-025 (Voice Profile Resolution Fallback Hierarchy) documenting three-tier fallback system (location-specific → organization-wide → default profile) with graceful error handling; ADR-026 (Stryker Mutation Testing Workflow) documenting mutation testing configuration, Vitest integration, per-test coverage analysis, and quality assurance workflow
 - Updated documentation to reflect current implementation status: corrected Claude model references from Sonnet to Haiku across ARCHITECTURE.md, DECISIONS.md (ADR-003), PROMPTS.md, and README.md; updated implementation status sections in ARCHITECTURE.md, SPEC.md, and SETUP.md to accurately reflect completed features (authentication, Google Business Profile integration, review polling, AI response generation) and in-progress features (dashboard UI data integration, response editing UI, Stripe webhooks); updated SPEC.md feature checklist with accurate completion status using [x], [~], and [ ] markers
 - Corrected Claude Haiku 4.5 pricing estimates: updated cost per response from ~$0.002 to ~$0.001 based on current pricing ($1.00/M input tokens, $5.00/M output tokens) in ARCHITECTURE.md and PROMPTS.md; updated monthly estimate for 1000 responses from ~$2 to ~$1
 
