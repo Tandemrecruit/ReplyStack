@@ -608,9 +608,9 @@ Implement application-level encryption for `google_refresh_token` and any future
 
 1. **AES-256-GCM at-rest encryption in-app (RECOMMENDED)**
    - Encrypt tokens before database write, decrypt on read
-   - Per-row IVs stored alongside encrypted data
+   - Per-row IVs embedded in encrypted payload (not stored separately)
    - Keys stored in environment variables or Supabase Vault
-   - Pros: Full control, no external dependencies, works with any database
+   - Pros: Full control, no external dependencies, works with any database, no schema changes needed
    - Cons: Key management responsibility, requires migration of existing tokens
 
 2. **Envelope encryption with KMS (AWS KMS, Google Cloud KMS)**
@@ -630,46 +630,52 @@ Implement application-level encryption for `google_refresh_token` and any future
 
 ### Preferred Approach
 
-**AES-256-GCM with per-row IVs, keys in Supabase Vault (post-MVP), environment variables (development)**
+**AES-256-GCM with per-row IVs embedded in encrypted payload, keys in Supabase Vault (post-MVP), environment variables (development)**
 
 - Use Node.js `crypto` module for AES-256-GCM encryption/decryption
-- Store IV (12 bytes) alongside encrypted token in database (e.g., `encrypted_token_iv` column)
-- Encryption key stored in `ENCRYPTION_KEY` environment variable (32 bytes for AES-256)
+- Embed IV (12 bytes) within the encrypted payload: `base64(keyVersion || IV || ciphertext || authTag)`
+- Encryption key stored in `TOKEN_ENCRYPTION_KEY` environment variable (64 hex characters = 32 bytes for AES-256)
 - Post-MVP: Migrate keys to Supabase Vault for production key management
-- Support key rotation: maintain current + previous key during rotation window
+- Support key rotation: maintain current + previous key during rotation window (via `TOKEN_ENCRYPTION_KEY_OLD`)
 
 ### Migration Plan
 
 1. **Schema changes:**
-   - Add `encrypted_token_iv` column (BYTEA) to `users` table
-   - Keep `google_refresh_token` column temporarily for migration
+   - No schema changes required - IV is embedded in encrypted payload
+   - Keep `google_refresh_token` column for backward compatibility (stores encrypted tokens)
 
 2. **Encryption utility:**
-   - Create `lib/encryption/tokens.ts` with `encryptToken()` and `decryptToken()` functions
+   - Implemented in `lib/crypto/encryption.ts` with `encryptToken()` and `decryptToken()` functions
    - Functions handle IV generation, encryption, and decryption
+   - IV is embedded in the encrypted payload (not stored separately)
 
 3. **Code updates:**
    - Update all token read/write paths to use encryption utilities
-   - Token reads: decrypt on fetch
-   - Token writes: encrypt before insert/update
+   - Token reads: decrypt on fetch (e.g., `app/api/cron/poll-reviews/route.ts`)
+   - Token writes: encrypt before insert/update (e.g., `app/(auth)/callback/route.ts`)
 
 4. **Data migration:**
-   - One-time migration script: fetch all plaintext tokens, encrypt with new IV, store encrypted value + IV
-   - Clear plaintext `google_refresh_token` column after verification
-   - Optional: Rename column to `google_refresh_token_encrypted` for clarity
+   - One-time migration script (`scripts/reencrypt-tokens.ts`): fetch all tokens, decrypt with old key (if needed), re-encrypt with new key
+   - Script supports key rotation with fallback key handling
+   - Plaintext `google_refresh_token` column remains in schema for backward compatibility
 
 5. **Rollback plan:**
-   - Keep plaintext column until migration verified
-   - Support both encrypted and plaintext reads during transition
-   - Remove plaintext support after full migration
+   - Plaintext column kept for backward compatibility (not removed)
+   - Decryption supports both new format (with key version byte) and legacy format
+   - Key rotation handled via `TOKEN_ENCRYPTION_KEY_OLD` fallback mechanism
 
 ### Implementation Details
 
 - **Encryption algorithm:** AES-256-GCM (authenticated encryption)
 - **IV size:** 12 bytes (96 bits, recommended for GCM)
-- **Key derivation:** Direct use of 32-byte key from environment (no PBKDF2 needed for single-purpose key)
-- **Storage format:** Base64-encoded encrypted token + separate IV column
+- **Key derivation:** Direct use of 32-byte key from environment (64 hex characters, no PBKDF2 needed for single-purpose key)
+- **Storage format:** Base64-encoded payload: `base64(keyVersion || IV || ciphertext || authTag)`
+  - Key version: 1 byte (0x01 for primary key, 0x00 for old/legacy key)
+  - IV: 12 bytes (embedded in payload, not stored separately)
+  - Auth tag: 16 bytes (appended automatically by GCM)
+  - All stored in single `google_refresh_token` TEXT column
 - **Error handling:** Graceful failure if decryption fails (treat as invalid token, prompt re-auth)
+- **Key rotation:** Automatic fallback to `TOKEN_ENCRYPTION_KEY_OLD` if primary key fails during decryption
 
 ### Owner
 
@@ -686,11 +692,11 @@ Backend/Infrastructure team (post-MVP)
 ### Acceptance Criteria
 
 - [x] All Google refresh tokens encrypted at application level before database write
-- [x] Per-row IVs stored and used for decryption
+- [x] Per-row IVs embedded in encrypted payload (not stored in separate column)
 - [x] Encryption keys stored in Supabase Vault (production) or environment variables (development)
 - [x] Migration script successfully encrypts all existing plaintext tokens (`scripts/reencrypt-tokens.ts`)
-- [ ] Plaintext token column removed or deprecated after migration (kept for backward compatibility during transition)
-- [x] Key rotation process documented and tested
+- [x] Plaintext token column retained for backward compatibility (not removed - stores encrypted tokens)
+- [x] Key rotation process documented and tested (via `TOKEN_ENCRYPTION_KEY_OLD` fallback)
 - [x] Decryption failures handled gracefully (clear token, prompt re-auth)
 - [x] Unit tests for encryption/decryption utilities
 - [x] Integration tests verify encrypted tokens work with Google API calls

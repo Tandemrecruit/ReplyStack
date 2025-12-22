@@ -678,6 +678,315 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
     );
   });
 
+  it("updates existing response when response already exists", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
+    const existingResponseId = "resp-existing-1";
+    const existingGeneratedText = "Thank you for your feedback!";
+
+    // Create mock functions that we can verify later
+    const mockUpdate = vi.fn();
+    const mockInsert = vi.fn();
+
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "user-1",
+                    organization_id: "org-1",
+                    google_refresh_token: encryptedToken,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "review-1",
+                    external_review_id: "ext-1",
+                    location_id: "loc-1",
+                    has_response: false,
+                    locations: {
+                      id: "loc-1",
+                      google_account_id: "acc-1",
+                      google_location_id: "loc-1",
+                      organization_id: "org-1",
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          const updateChain = {
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: existingResponseId,
+                    review_id: "review-1",
+                    generated_text: existingGeneratedText,
+                    edited_text:
+                      "Thank you for your feedback! We appreciate it.",
+                    final_text:
+                      "Thank you for your feedback! We appreciate it.",
+                    status: "published",
+                    published_at: "2025-01-15T10:00:00Z",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+
+          mockUpdate.mockReturnValue(updateChain);
+
+          return {
+            // For checking existing response
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: existingResponseId,
+                    generated_text: existingGeneratedText,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            // For updating existing response
+            update: mockUpdate,
+            // For inserting (should not be called)
+            insert: mockInsert,
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    vi.mocked(publishResponse).mockResolvedValue(true);
+
+    // Publish edited response (different from generated_text)
+    const editedResponseText = "Thank you for your feedback! We appreciate it.";
+    const request = makeNextRequest(
+      "http://localhost/api/reviews/review-1/publish",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ response_text: editedResponseText }),
+      },
+    );
+    const response = await POST(request, {
+      params: Promise.resolve({ reviewId: "review-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toMatchObject({
+      success: true,
+      message: "Response published successfully",
+      response_id: existingResponseId,
+      published_at: "2025-01-15T10:00:00Z",
+    });
+
+    // Verify update was called (not insert)
+    expect(mockUpdate).toHaveBeenCalledWith({
+      edited_text: editedResponseText, // Should set edited_text when content differs
+      final_text: editedResponseText,
+      status: "published",
+      published_at: expect.any(String),
+    });
+    expect(mockInsert).not.toHaveBeenCalled();
+
+    // Verify Google API was called with edited text
+    expect(publishResponse).toHaveBeenCalledWith(
+      "access-token",
+      "acc-1",
+      "loc-1",
+      "ext-1",
+      editedResponseText,
+    );
+  });
+
+  it("updates existing response without edited_text when content matches generated_text", async () => {
+    // Encrypt the token as it would be stored in the database
+    const encryptedToken = encryptToken("refresh-token");
+
+    const existingResponseId = "resp-existing-2";
+    const existingGeneratedText = "Thank you for your feedback!";
+
+    // Create mock functions that we can verify later
+    const mockUpdate = vi.fn();
+    const mockInsert = vi.fn();
+
+    const mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "user-1",
+                    organization_id: "org-1",
+                    google_refresh_token: encryptedToken,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "review-1",
+                    external_review_id: "ext-1",
+                    location_id: "loc-1",
+                    has_response: false,
+                    locations: {
+                      id: "loc-1",
+                      google_account_id: "acc-1",
+                      google_location_id: "loc-1",
+                      organization_id: "org-1",
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          const updateChain = {
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: existingResponseId,
+                    review_id: "review-1",
+                    generated_text: existingGeneratedText,
+                    edited_text: null, // Should be null when content matches
+                    final_text: existingGeneratedText,
+                    status: "published",
+                    published_at: "2025-01-15T10:00:00Z",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+
+          mockUpdate.mockReturnValue(updateChain);
+
+          return {
+            // For checking existing response
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: existingResponseId,
+                    generated_text: existingGeneratedText,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            // For updating existing response
+            update: mockUpdate,
+            // For inserting (should not be called)
+            insert: mockInsert,
+          };
+        }
+        return {};
+      }),
+    };
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      mockSupabase as never,
+    );
+
+    vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    vi.mocked(publishResponse).mockResolvedValue(true);
+
+    // Publish same text as generated_text (no edit)
+    const request = makeNextRequest(
+      "http://localhost/api/reviews/review-1/publish",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ response_text: existingGeneratedText }),
+      },
+    );
+    const response = await POST(request, {
+      params: Promise.resolve({ reviewId: "review-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toMatchObject({
+      success: true,
+      message: "Response published successfully",
+      response_id: existingResponseId,
+      published_at: "2025-01-15T10:00:00Z",
+    });
+
+    // Verify update was called with edited_text: null (content matches generated)
+    expect(mockUpdate).toHaveBeenCalledWith({
+      edited_text: null, // Should be null when content matches generated_text
+      final_text: existingGeneratedText,
+      status: "published",
+      published_at: expect.any(String),
+    });
+    expect(mockInsert).not.toHaveBeenCalled();
+
+    // Verify Google API was called
+    expect(publishResponse).toHaveBeenCalledWith(
+      "access-token",
+      "acc-1",
+      "loc-1",
+      "ext-1",
+      existingGeneratedText,
+    );
+  });
+
   it("returns error when Google API publish fails", async () => {
     // Encrypt the token as it would be stored in the database
     const encryptedToken = encryptToken("refresh-token");

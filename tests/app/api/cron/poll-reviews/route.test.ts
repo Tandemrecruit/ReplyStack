@@ -94,6 +94,8 @@ describe("GET /api/cron/poll-reviews", () => {
     usersError?: unknown;
     organizationsData?: unknown[];
     organizationsError?: unknown;
+    cronPollStateData?: unknown[];
+    cronPollStateError?: unknown;
   }) => {
     const mockFrom = vi.fn((table: string) => {
       if (table === "locations") {
@@ -132,6 +134,23 @@ describe("GET /api/cron/poll-reviews", () => {
               data: defaultOrgs,
               error: overrides?.organizationsError ?? null,
             }),
+          }),
+        };
+      }
+      if (table === "cron_poll_state") {
+        // Default to empty array (no previous processing) to allow all tiers to process
+        const defaultState =
+          overrides?.cronPollStateData !== undefined
+            ? overrides.cronPollStateData
+            : [];
+        return {
+          select: vi.fn().mockResolvedValue({
+            data: defaultState,
+            error: overrides?.cronPollStateError ?? null,
+          }),
+          upsert: vi.fn().mockResolvedValue({
+            data: null,
+            error: null,
           }),
         };
       }
@@ -859,6 +878,364 @@ describe("GET /api/cron/poll-reviews", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json.errors).toContain("Location Location 1: Google API error");
+    });
+  });
+
+  describe("tier-based processing", () => {
+    it("skips starter tier locations when minute is not divisible by 15", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:07:00Z")); // minute 7
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: "starter" }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.message).toContain("No locations to process");
+        expect(json.locationsProcessed).toBe(0);
+        expect(fetchReviews).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("processes starter tier locations when minute is divisible by 15", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:15:00Z")); // minute 15
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+        vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+        vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: "starter" }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.locationsProcessed).toBe(1);
+        expect(fetchReviews).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("skips growth tier locations when minute is not divisible by 10", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:07:00Z")); // minute 7
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: "growth" }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.message).toContain("No locations to process");
+        expect(json.locationsProcessed).toBe(0);
+        expect(fetchReviews).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("processes growth tier locations when minute is divisible by 10", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:10:00Z")); // minute 10
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+        vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+        vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: "growth" }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.locationsProcessed).toBe(1);
+        expect(fetchReviews).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("processes agency tier locations regardless of minute", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:07:00Z")); // minute 7 (not divisible by 10 or 15)
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+        vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+        vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: "agency" }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.locationsProcessed).toBe(1);
+        expect(fetchReviews).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("treats null/unknown tier as starter tier", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:07:00Z")); // minute 7
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1",
+                organization_id: "org-1",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token",
+              },
+            ],
+            organizationsData: [{ id: "org-1", plan_tier: null }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.message).toContain("No locations to process");
+        expect(json.locationsProcessed).toBe(0);
+        expect(fetchReviews).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("filters locations correctly when multiple tiers are present", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:15:00Z")); // minute 15 (processes starter and agency)
+
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        delete process.env.CRON_SECRET;
+
+        vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+        vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+        vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockSupabaseClient({
+            locationsData: [
+              {
+                id: "loc-1",
+                google_account_id: "acc-1",
+                google_location_id: "loc-1",
+                name: "Location 1 (starter)",
+                organization_id: "org-1",
+              },
+              {
+                id: "loc-2",
+                google_account_id: "acc-2",
+                google_location_id: "loc-2",
+                name: "Location 2 (growth)",
+                organization_id: "org-2",
+              },
+              {
+                id: "loc-3",
+                google_account_id: "acc-3",
+                google_location_id: "loc-3",
+                name: "Location 3 (agency)",
+                organization_id: "org-3",
+              },
+            ],
+            usersData: [
+              {
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "encrypted-token-1",
+              },
+              {
+                id: "user-2",
+                organization_id: "org-2",
+                google_refresh_token: "encrypted-token-2",
+              },
+              {
+                id: "user-3",
+                organization_id: "org-3",
+                google_refresh_token: "encrypted-token-3",
+              },
+            ],
+            organizationsData: [
+              { id: "org-1", plan_tier: "starter" },
+              { id: "org-2", plan_tier: "growth" },
+              { id: "org-3", plan_tier: "agency" },
+            ],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        // Should process starter (minute 15) and agency (always), but skip growth (minute 15 not divisible by 10)
+        expect(json.locationsProcessed).toBe(2);
+        expect(fetchReviews).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

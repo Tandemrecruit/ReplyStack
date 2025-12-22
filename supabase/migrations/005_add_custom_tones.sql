@@ -62,11 +62,14 @@ CREATE POLICY "Users can delete custom tones in their organization"
 ALTER TABLE voice_profiles DROP CONSTRAINT IF EXISTS voice_profiles_tone_check;
 
 -- Add new constraint that allows standard tones OR custom tone format (custom:{uuid})
+-- Validates that custom tones follow the format custom:{uuid} where {uuid} is a valid UUID
 ALTER TABLE voice_profiles
 ADD CONSTRAINT voice_profiles_tone_check
 CHECK (
     tone IN ('warm', 'direct', 'professional', 'friendly', 'casual')
-    OR (tone LIKE 'custom:%' AND length(tone) > 7)
+    OR (tone LIKE 'custom:%' 
+        AND length(tone) = 43 
+        AND substring(tone FROM 8) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 );
 
 -- DOWN MIGRATION (for rollback):

@@ -248,20 +248,20 @@ describe("components/reviews/ResponseEditModal", () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("clears error when user starts typing after validation error", async () => {
+    it("allows retry after fixing validation error", async () => {
       const user = userEvent.setup();
 
       render(<ResponseEditModal {...defaultProps} initialText="" />);
 
-      // Trigger validation error
+      // Trigger validation error by attempting to publish empty text
       await user.click(screen.getByRole("button", { name: "Publish" }));
       expect(screen.getByRole("alert")).toBeInTheDocument();
 
-      // Type in textarea
+      // Fix the validation issue by adding text
       const textarea = screen.getByRole("textbox");
       await user.type(textarea, "New text");
 
-      // Click publish again - should work now
+      // Retry publish - should succeed now that validation passes
       await user.click(screen.getByRole("button", { name: "Publish" }));
       expect(mockFetch).toHaveBeenCalled();
     });

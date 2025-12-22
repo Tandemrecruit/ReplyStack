@@ -55,7 +55,16 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(customTones ?? []);
+    // Normalize snake_case to camelCase at API boundary
+    const normalizedTones = (customTones ?? []).map((tone) => ({
+      id: tone.id,
+      name: tone.name,
+      description: tone.description,
+      enhancedContext: tone.enhanced_context,
+      createdAt: tone.created_at,
+    }));
+
+    return NextResponse.json(normalizedTones);
   } catch (error) {
     console.error("Custom tones GET error:", error);
     return NextResponse.json(

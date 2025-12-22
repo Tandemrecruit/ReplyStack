@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GoogleConnectButton } from "@/components/settings/google-connect-button";
 import { LocationSelector } from "@/components/settings/location-selector";
 import { ToneQuiz } from "@/components/voice-profile/tone-quiz";
-
-type CustomTone = {
-  id: string;
-  name: string;
-  description: string;
-  enhanced_context: string;
-  created_at: string;
-};
+import type { CustomTone } from "@/lib/types/custom-tone";
 
 const TONE_OPTIONS = [
   { value: "warm", label: "Warm" },
@@ -60,6 +53,8 @@ export function SettingsClient() {
   const [customTones, setCustomTones] = useState<CustomTone[]>([]);
   const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
   const [showQuiz, setShowQuiz] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const handleSaveVoiceProfile = async () => {
     const errors: Record<string, string> = {};
@@ -131,6 +126,46 @@ export function SettingsClient() {
   };
   const feedbackColor = colorMap[status.type] ?? "text-foreground-secondary";
 
+  // Fetch custom tones - reusable function for both initial load and refresh
+  const fetchCustomTones = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      const { showLoading = true } = options ?? {};
+
+      if (showLoading) {
+        setIsLoadingCustomTones(true);
+      }
+
+      try {
+        const response = await fetch("/api/custom-tones");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData?.error ?? "Failed to fetch custom tones");
+        }
+        const data = await response.json().catch(() => []);
+        if (Array.isArray(data)) {
+          setCustomTones(data);
+        } else {
+          setCustomTones([]);
+        }
+      } catch (error) {
+        console.error("Error fetching custom tones:", error);
+        setStatus({
+          type: "error",
+          message:
+            error instanceof Error
+              ? `Unable to load custom tones: ${error.message}`
+              : "Unable to load custom tones. Please try again.",
+        });
+        setCustomTones([]);
+      } finally {
+        if (showLoading) {
+          setIsLoadingCustomTones(false);
+        }
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     const fetchNotificationPreference = async () => {
       setIsLoadingNotifications(true);
@@ -148,24 +183,96 @@ export function SettingsClient() {
       }
     };
 
-    const fetchCustomTones = async () => {
-      setIsLoadingCustomTones(true);
-      try {
-        const response = await fetch("/api/custom-tones");
-        const data = await response.json().catch(() => []);
-        if (Array.isArray(data)) {
-          setCustomTones(data);
-        }
-      } catch (error) {
-        console.error("Error fetching custom tones:", error);
-      } finally {
-        setIsLoadingCustomTones(false);
+    fetchNotificationPreference();
+    fetchCustomTones();
+  }, [fetchCustomTones]);
+
+  // Handle dialog open/close with focus management
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (showQuiz) {
+      // Store the trigger element for focus restoration (fallback to activeElement if ref not set)
+      if (!triggerRef.current) {
+        const activeElement = document.activeElement;
+        triggerRef.current =
+          activeElement instanceof HTMLButtonElement ? activeElement : null;
+      }
+
+      dialog.showModal();
+
+      // Focus first focusable element in modal after it opens
+      requestAnimationFrame(() => {
+        const firstFocusable = dialog.querySelector(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) as HTMLElement | null;
+        firstFocusable?.focus();
+      });
+    } else {
+      dialog.close();
+      // Restore focus to trigger element
+      if (triggerRef.current instanceof HTMLElement) {
+        requestAnimationFrame(() => {
+          triggerRef.current?.focus();
+        });
+      }
+    }
+  }, [showQuiz]);
+
+  // Handle ESC key and backdrop click
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleCancel = (e: Event) => {
+      e.preventDefault();
+      setShowQuiz(false);
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      // Check if clicked on backdrop (the dialog element itself, not its content)
+      if (e.target === dialog) {
+        setShowQuiz(false);
       }
     };
 
-    fetchNotificationPreference();
-    fetchCustomTones();
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("click", handleClick);
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("click", handleClick);
+    };
   }, []);
+
+  // Mark background content as aria-hidden when modal is open
+  useEffect(() => {
+    if (showQuiz) {
+      // Find the main content area, excluding the dialog
+      const mainContent = document.querySelector('main, [role="main"]');
+      const dialog = dialogRef.current;
+
+      if (mainContent && mainContent !== dialog) {
+        const previousAriaHidden = mainContent.getAttribute("aria-hidden");
+        const previousInert = mainContent.hasAttribute("inert");
+
+        mainContent.setAttribute("aria-hidden", "true");
+        mainContent.setAttribute("inert", "");
+
+        return () => {
+          if (previousAriaHidden === null) {
+            mainContent.removeAttribute("aria-hidden");
+          } else {
+            mainContent.setAttribute("aria-hidden", previousAriaHidden);
+          }
+          if (!previousInert) {
+            mainContent.removeAttribute("inert");
+          }
+        };
+      }
+    }
+  }, [showQuiz]);
 
   const handleToggleEmailNotifications = async () => {
     const previousValue = emailNotifications;
@@ -252,6 +359,7 @@ export function SettingsClient() {
                 Tone
               </label>
               <button
+                ref={triggerRef}
                 type="button"
                 onClick={() => setShowQuiz(true)}
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -390,30 +498,35 @@ export function SettingsClient() {
         </div>
       </section>
 
-      {/* Tone Quiz Modal */}
+      {/* Tone Quiz Modal - See ADR-027 for native dialog pattern */}
       {showQuiz && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-lg border border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <ToneQuiz
-              onComplete={(customTone) => {
-                setShowQuiz(false);
-                if (customTone) {
-                  setTone(`custom:${customTone.id}`);
-                  // Refresh custom tones list
-                  fetch("/api/custom-tones")
-                    .then((res) => res.json())
-                    .then((data) => {
-                      if (Array.isArray(data)) {
-                        setCustomTones(data);
-                      }
-                    })
-                    .catch(console.error);
-                }
-              }}
-              onClose={() => setShowQuiz(false)}
-            />
+        <dialog
+          ref={dialogRef}
+          className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/50"
+          aria-labelledby="tone-quiz-modal-title"
+        >
+          {/* Centered content container */}
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface shadow-lg overflow-y-auto">
+              <div className="p-6">
+                <h2 id="tone-quiz-modal-title" className="sr-only">
+                  Tone Quiz
+                </h2>
+                <ToneQuiz
+                  onComplete={(customTone) => {
+                    setShowQuiz(false);
+                    if (customTone) {
+                      setTone(`custom:${customTone.id}`);
+                      // Refresh custom tones list (without loading state)
+                      fetchCustomTones({ showLoading: false });
+                    }
+                  }}
+                  onClose={() => setShowQuiz(false)}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        </dialog>
       )}
 
       {/* Notifications */}

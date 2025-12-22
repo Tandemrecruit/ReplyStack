@@ -744,6 +744,471 @@ describe("POST /api/responses", () => {
     );
   });
 
+  it("generates response with custom tone enhanced context", async () => {
+    vi.mocked(generateResponse).mockResolvedValue({
+      text: "Thank you for your feedback!",
+      tokensUsed: 100,
+    });
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 4,
+                    reviewer_name: "Jane",
+                    review_text: "Good experience",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-2",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: "vp-1",
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "resp-3" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "vp-1",
+                    organization_id: "org-1",
+                    name: "Location Voice",
+                    tone: "custom:custom-tone-id",
+                    personality_notes: "Friendly and helpful",
+                    sign_off_style: "Best regards",
+                    example_responses: null,
+                    words_to_use: null,
+                    words_to_avoid: null,
+                    max_length: 200,
+                    created_at: "2025-01-01T00:00:00Z",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "custom_tones") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: {
+                      id: "custom-tone-id",
+                      organization_id: "org-1",
+                      enhanced_context:
+                        "This is a custom tone with enhanced context for personalized responses.",
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({
+      id: "resp-3",
+      reviewId: "r1",
+      generatedText: "Thank you for your feedback!",
+      status: "draft",
+      tokensUsed: 100,
+    });
+    expect(generateResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "r1",
+        review_text: "Good experience",
+      }),
+      expect.objectContaining({
+        id: "vp-1",
+        tone: "custom:custom-tone-id",
+      }),
+      "Test Location",
+      "user@example.com",
+      "This is a custom tone with enhanced context for personalized responses.",
+    );
+  });
+
+  it("generates response with custom tone but no enhanced context passes undefined", async () => {
+    vi.mocked(generateResponse).mockResolvedValue({
+      text: "Thank you for your feedback!",
+      tokensUsed: 100,
+    });
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 4,
+                    reviewer_name: "Jane",
+                    review_text: "Good experience",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-2",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: "vp-1",
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "resp-4" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "vp-1",
+                    organization_id: "org-1",
+                    name: "Location Voice",
+                    tone: "custom:custom-tone-id",
+                    personality_notes: "Friendly and helpful",
+                    sign_off_style: "Best regards",
+                    example_responses: null,
+                    words_to_use: null,
+                    words_to_avoid: null,
+                    max_length: 200,
+                    created_at: "2025-01-01T00:00:00Z",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "custom_tones") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: {
+                      id: "custom-tone-id",
+                      organization_id: "org-1",
+                      enhanced_context: null, // No enhanced context
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({
+      id: "resp-4",
+      reviewId: "r1",
+      generatedText: "Thank you for your feedback!",
+      status: "draft",
+      tokensUsed: 100,
+    });
+    expect(generateResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "r1",
+        review_text: "Good experience",
+      }),
+      expect.objectContaining({
+        id: "vp-1",
+        tone: "custom:custom-tone-id",
+      }),
+      "Test Location",
+      "user@example.com",
+      undefined, // Should pass undefined when enhanced_context is null
+    );
+  });
+
+  it("generates response with custom tone that doesn't exist passes undefined", async () => {
+    vi.mocked(generateResponse).mockResolvedValue({
+      text: "Thank you for your feedback!",
+      tokensUsed: 100,
+    });
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === "users") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "u1",
+                    organization_id: "org-1",
+                    email: "user@example.com",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "reviews") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "r1",
+                    rating: 4,
+                    reviewer_name: "Jane",
+                    review_text: "Good experience",
+                    review_date: "2025-01-01T00:00:00Z",
+                    reviewer_photo_url: null,
+                    external_review_id: "ext-2",
+                    platform: "google",
+                    status: "pending",
+                    sentiment: "positive",
+                    has_response: false,
+                    location_id: "loc-1",
+                    created_at: "2025-01-01T00:00:00Z",
+                    locations: {
+                      id: "loc-1",
+                      name: "Test Location",
+                      organization_id: "org-1",
+                      voice_profile_id: "vp-1",
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "resp-5" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "voice_profiles") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "vp-1",
+                    organization_id: "org-1",
+                    name: "Location Voice",
+                    tone: "custom:nonexistent-tone-id",
+                    personality_notes: "Friendly and helpful",
+                    sign_off_style: "Best regards",
+                    example_responses: null,
+                    words_to_use: null,
+                    words_to_avoid: null,
+                    max_length: 200,
+                    created_at: "2025-01-01T00:00:00Z",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "custom_tones") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null, // Custom tone doesn't exist
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    } as never);
+
+    const request = makeNextRequest("http://localhost/api/responses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reviewId: "r1" }),
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({
+      id: "resp-5",
+      reviewId: "r1",
+      generatedText: "Thank you for your feedback!",
+      status: "draft",
+      tokensUsed: 100,
+    });
+    expect(generateResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "r1",
+        review_text: "Good experience",
+      }),
+      expect.objectContaining({
+        id: "vp-1",
+        tone: "custom:nonexistent-tone-id",
+      }),
+      "Test Location",
+      "user@example.com",
+      undefined, // Should pass undefined when custom tone doesn't exist
+    );
+  });
+
   it("generates response with default voice profile when none found", async () => {
     vi.mocked(generateResponse).mockResolvedValue({
       text: "Thank you for your review!",

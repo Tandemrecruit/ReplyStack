@@ -1,137 +1,41 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { ClaudeAPIError } from "@/lib/claude/client";
+import { callClaudeWithRetry } from "@/lib/claude/client";
+import { QUIZ_QUESTIONS, type QuizAnswer } from "@/lib/quiz/questions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
-type QuizAnswer = {
-  questionId: number;
-  answerIds: number[];
-};
+/**
+ * Validate quiz answers structure and content
+ *
+ * @param answers - Array of quiz answers to validate
+ * @returns Error message if validation fails, null if valid
+ */
+function validateQuizAnswers(answers: QuizAnswer[]): string | null {
+  for (const answer of answers) {
+    // Check that questionId exists in QUIZ_QUESTIONS
+    const question = QUIZ_QUESTIONS.find((q) => q.id === answer.questionId);
+    if (!question) {
+      return `Invalid question ID: ${answer.questionId}`;
+    }
 
-const QUIZ_QUESTIONS = [
-  {
-    id: 1,
-    text: "What is your preferred communication style?",
-    answers: [
-      { id: 1, text: "Warm and empathetic" },
-      { id: 2, text: "Direct and straightforward" },
-      { id: 3, text: "Professional and polished" },
-      { id: 4, text: "Friendly and conversational" },
-      { id: 5, text: "Casual and relaxed" },
-    ],
-  },
-  {
-    id: 2,
-    text: "How do you handle negative reviews?",
-    answers: [
-      { id: 1, text: "Acknowledge concerns with empathy and offer solutions" },
-      { id: 2, text: "Address issues directly and professionally" },
-      { id: 3, text: "Thank for feedback and invite private discussion" },
-      { id: 4, text: "Show understanding while maintaining brand voice" },
-      { id: 5, text: "Keep it brief and move conversation offline" },
-    ],
-  },
-  {
-    id: 3,
-    text: "What is your preferred response length?",
-    answers: [
-      { id: 1, text: "Very brief (50-100 words)" },
-      { id: 2, text: "Short (100-150 words)" },
-      { id: 3, text: "Medium (150-250 words)" },
-      { id: 4, text: "Detailed (250-350 words)" },
-      { id: 5, text: "Comprehensive (350+ words)" },
-    ],
-  },
-  {
-    id: 4,
-    text: "What type of customer relationship do you want to build?",
-    answers: [
-      { id: 1, text: "Personal and caring" },
-      { id: 2, text: "Professional and trustworthy" },
-      { id: 3, text: "Friendly and approachable" },
-      { id: 4, text: "Efficient and solution-focused" },
-      { id: 5, text: "Relaxed and authentic" },
-    ],
-  },
-  {
-    id: 5,
-    text: "How do you prioritize handling complaints?",
-    answers: [
-      { id: 1, text: "Address immediately with personal attention" },
-      { id: 2, text: "Acknowledge quickly and provide clear next steps" },
-      { id: 3, text: "Respond professionally with structured approach" },
-      { id: 4, text: "Show understanding and offer flexible solutions" },
-      { id: 5, text: "Keep response brief and direct to resolution" },
-    ],
-  },
-  {
-    id: 6,
-    text: "What formality level matches your brand?",
-    answers: [
-      { id: 1, text: "Very formal" },
-      { id: 2, text: "Formal" },
-      { id: 3, text: "Moderately formal" },
-      { id: 4, text: "Casual" },
-      { id: 5, text: "Very casual" },
-    ],
-  },
-  {
-    id: 7,
-    text: "How urgent should your responses feel?",
-    answers: [
-      { id: 1, text: "Very urgent - immediate action" },
-      { id: 2, text: "Urgent - prompt response" },
-      { id: 3, text: "Moderate - timely but thoughtful" },
-      { id: 4, text: "Relaxed - take time to respond" },
-      { id: 5, text: "Very relaxed - no rush" },
-    ],
-  },
-  {
-    id: 8,
-    text: "What communication tone best represents your brand?",
-    answers: [
-      { id: 1, text: "Empathetic and understanding" },
-      { id: 2, text: "Confident and authoritative" },
-      { id: 3, text: "Professional and reliable" },
-      { id: 4, text: "Warm and welcoming" },
-      { id: 5, text: "Authentic and genuine" },
-    ],
-  },
-  {
-    id: 9,
-    text: "What industry type(s) does your business operate in?",
-    answers: [
-      { id: 1, text: "Restaurant & Food Service" },
-      { id: 2, text: "Retail & E-commerce" },
-      { id: 3, text: "Healthcare & Medical" },
-      { id: 4, text: "Professional Services" },
-      { id: 5, text: "Hospitality & Travel" },
-      { id: 6, text: "Beauty & Wellness" },
-      { id: 7, text: "Technology & Software" },
-      { id: 8, text: "Education & Training" },
-      { id: 9, text: "Real Estate" },
-      { id: 10, text: "Other" },
-    ],
-  },
-  {
-    id: 10,
-    text: "What brand personality traits describe your business?",
-    answers: [
-      { id: 1, text: "Trustworthy" },
-      { id: 2, text: "Innovative" },
-      { id: 3, text: "Caring" },
-      { id: 4, text: "Professional" },
-      { id: 5, text: "Friendly" },
-      { id: 6, text: "Authentic" },
-      { id: 7, text: "Efficient" },
-      { id: 8, text: "Creative" },
-      { id: 9, text: "Reliable" },
-      { id: 10, text: "Approachable" },
-    ],
-  },
-];
+    // Check that answerIds is an array and not empty
+    if (!Array.isArray(answer.answerIds) || answer.answerIds.length === 0) {
+      return `Missing answers for question ${answer.questionId}`;
+    }
+
+    // Check that every answerId exists in the matched question's answers
+    for (const answerId of answer.answerIds) {
+      const answerOption = question.answers.find((a) => a.id === answerId);
+      if (!answerOption) {
+        return `Invalid answer ID ${answerId} for question ${answer.questionId}`;
+      }
+    }
+  }
+
+  return null;
+}
 
 /**
  * Build a formatted summary of quiz responses for Claude prompt
@@ -162,83 +66,44 @@ function buildQuizSummary(answers: QuizAnswer[]): string {
 }
 
 /**
- * Call Claude API directly for tone generation
+ * Extract the first balanced JSON object from text using brace balancing.
+ *
+ * Scans the text to find the first complete JSON object by tracking
+ * opening and closing braces, handling nested objects correctly.
+ *
+ * @param text - The text to extract JSON from
+ * @returns The extracted JSON string, or null if no balanced object found
  */
-async function callClaudeForTone(
-  systemPrompt: string,
-  userPrompt: string,
-): Promise<{ text: string; tokensUsed: number }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new ClaudeAPIError(500, "AI service not configured");
+function extractBalancedJson(text: string): string | null {
+  let braceCount = 0;
+  let startIndex = -1;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (char === "{") {
+      if (braceCount === 0) {
+        startIndex = i;
+      }
+      braceCount++;
+    } else if (char === "}") {
+      braceCount--;
+      if (braceCount === 0 && startIndex !== -1) {
+        return text.slice(startIndex, i + 1);
+      }
+    }
   }
 
-  const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
-  const ANTHROPIC_VERSION = "2023-06-01";
-  const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
-  const MAX_TOKENS = 500;
-  const TIMEOUT_MS = 30000;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: MAX_TOKENS,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage =
-        (errorData as { error?: { message?: string } }).error?.message ??
-        "Claude API request failed";
-
-      throw new ClaudeAPIError(response.status, errorMessage);
-    }
-
-    const data = (await response.json()) as {
-      content: Array<{ type: string; text: string }>;
-      usage: { input_tokens: number; output_tokens: number };
-    };
-    const text = data.content[0]?.text ?? "";
-    const tokensUsed = data.usage.input_tokens + data.usage.output_tokens;
-
-    return { text, tokensUsed };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error instanceof ClaudeAPIError) {
-      throw error;
-    }
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new ClaudeAPIError(408, "Request timed out");
-    }
-    throw error;
-  }
+  return null;
 }
 
 /**
  * Generate a custom tone name, description, and enhanced context using Claude AI
  */
-async function generateCustomTone(quizSummary: string): Promise<{
+async function generateCustomTone(
+  quizSummary: string,
+  requestId?: string,
+): Promise<{
   name: string;
   description: string;
   enhancedContext: string;
@@ -248,13 +113,15 @@ async function generateCustomTone(quizSummary: string): Promise<{
 2. A brief description (1-2 sentences explaining the tone)
 3. Enhanced context (detailed instructions for AI to use when generating review responses in this tone)
 
-The enhanced context should be specific, actionable instructions that guide AI response generation. It should incorporate the quiz responses to create a unique voice that goes beyond standard tones.`;
+The enhanced context should be specific, actionable instructions that guide AI response generation. It should incorporate the quiz responses to create a unique voice that goes beyond standard tones.
+
+IMPORTANT: Your response must be ONLY a valid JSON object with no surrounding text, comments, or markdown formatting.`;
 
   const userPrompt = `Based on these quiz responses, generate a custom tone:
 
 ${quizSummary}
 
-Please provide your response in the following JSON format:
+Return ONLY a valid JSON object in this exact format (no other text):
 {
   "name": "Tone Name Here",
   "description": "Brief description of the tone",
@@ -262,37 +129,79 @@ Please provide your response in the following JSON format:
 }`;
 
   try {
-    const result = await callClaudeForTone(systemPrompt, userPrompt);
+    const result = await callClaudeWithRetry(systemPrompt, userPrompt);
     const text = result.text.trim();
 
-    // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as {
-        name?: string;
-        description?: string;
-        enhancedContext?: string;
-      };
-
-      if (parsed.name && parsed.description && parsed.enhancedContext) {
-        return {
-          name: parsed.name,
-          description: parsed.description,
-          enhancedContext: parsed.enhancedContext,
+    // Try to extract JSON using brace-balancing
+    const jsonString = extractBalancedJson(text);
+    if (jsonString) {
+      try {
+        const parsed = JSON.parse(jsonString) as {
+          name?: string;
+          description?: string;
+          enhancedContext?: string;
         };
+
+        if (parsed.name && parsed.description && parsed.enhancedContext) {
+          return {
+            name: parsed.name,
+            description: parsed.description,
+            enhancedContext: parsed.enhancedContext,
+          };
+        }
+      } catch (parseError) {
+        // JSON string found but parsing failed - fall through to fallback
+        console.warn("Failed to parse extracted JSON:", parseError);
       }
     }
 
     // Fallback if JSON parsing fails
     const lines = text.split("\n").filter((line) => line.trim());
+    const name = lines[0]?.replace(/^[#*-\s]*/g, "").trim() ?? "Custom Tone";
+    const description =
+      lines[1]?.replace(/^[#*-\s]*/g, "").trim() ??
+      "A personalized tone based on your preferences";
+    const enhancedContext =
+      lines.slice(2).join("\n").trim() ||
+      "Use the quiz responses to guide response generation with a personalized approach.";
+
+    // Track which fallback defaults were applied
+    const appliedDefaults: string[] = [];
+    if (name === "Custom Tone") appliedDefaults.push("name");
+    if (description === "A personalized tone based on your preferences")
+      appliedDefaults.push("description");
+    if (
+      enhancedContext ===
+      "Use the quiz responses to guide response generation with a personalized approach."
+    )
+      appliedDefaults.push("enhancedContext");
+
+    // Truncate Claude response to avoid PII leaks (max 500 chars)
+    const truncatedResponse =
+      text.length > 500 ? `${text.slice(0, 500)}...` : text;
+
+    // Warning-level log with structured data for monitoring
+    console.warn(
+      JSON.stringify({
+        event: "fallback_parsing_triggered",
+        metric: "fallback_parsing_triggered",
+        level: "warn",
+        requestId: requestId ?? "unknown",
+        message: "Fallback line-based parsing used for Claude response",
+        data: {
+          truncatedResponse,
+          parsedLines: lines,
+          appliedDefaults:
+            appliedDefaults.length > 0 ? appliedDefaults : "none",
+          lineCount: lines.length,
+        },
+      }),
+    );
+
     return {
-      name: lines[0]?.replace(/^[#*-\s]*/g, "").trim() ?? "Custom Tone",
-      description:
-        lines[1]?.replace(/^[#*-\s]*/g, "").trim() ??
-        "A personalized tone based on your preferences",
-      enhancedContext:
-        lines.slice(2).join("\n").trim() ||
-        "Use the quiz responses to guide response generation with a personalized approach.",
+      name,
+      description,
+      enhancedContext,
     };
   } catch (error) {
     console.error("Error generating custom tone with Claude:", error);
@@ -310,6 +219,9 @@ Please provide your response in the following JSON format:
  * @returns JSON object with generated custom tone
  */
 export async function POST(request: NextRequest) {
+  // Generate request ID for tracking and logging
+  const requestId = crypto.randomUUID();
+
   try {
     const supabase = await createServerSupabaseClient();
 
@@ -359,9 +271,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate each answer object structure and content
+    const validationError = validateQuizAnswers(answers);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
+    }
+
     // Build quiz summary and generate custom tone
     const quizSummary = buildQuizSummary(answers);
-    const customTone = await generateCustomTone(quizSummary);
+    const customTone = await generateCustomTone(quizSummary, requestId);
 
     // Save custom tone to database
     const { data: insertedTone, error: insertError } = await supabase
@@ -373,7 +291,7 @@ export async function POST(request: NextRequest) {
         enhanced_context: customTone.enhancedContext,
         quiz_responses: answers as Json,
       })
-      .select("id, name, description, enhanced_context")
+      .select("id, name, description, enhanced_context, created_at")
       .single();
 
     if (insertError || !insertedTone) {
@@ -384,12 +302,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize snake_case to camelCase at API boundary
     return NextResponse.json({
       customTone: {
         id: insertedTone.id,
         name: insertedTone.name,
         description: insertedTone.description,
         enhancedContext: insertedTone.enhanced_context,
+        createdAt: insertedTone.created_at ?? new Date().toISOString(),
       },
     });
   } catch (error) {

@@ -1,6 +1,6 @@
 # ReplyStack
 
-AI-powered Google Business review response tool for local businesses. Respond to every review in 30 seconds with AI that sounds like you.
+AI-powered Google Business review response tool for local businesses. Respond to every review within 15 minutes with AI that sounds like you.
 
 ## Development Status
 

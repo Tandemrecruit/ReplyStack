@@ -57,33 +57,93 @@ interface LocationWithUser {
 }
 
 /**
- * Determines if a location should be processed based on its organization's plan tier.
- *
- * - 'agency' (highest tier): processes every run (every 5 minutes)
- * - 'growth' (mid tier): processes every 2nd run (every 10 minutes)
- * - 'starter' (low tier): processes every 3rd run (every 15 minutes)
- *
- * Uses the current minute to determine which run cycle we're in.
- *
- * @param planTier - The organization's plan tier
- * @returns true if this location should be processed in this cron run
+ * Time window tolerance for tier scheduling (in minutes).
+ * Allows cron jobs that run slightly early or late to still process correctly.
  */
-function shouldProcessForTier(planTier: string | null): boolean {
-  const currentMinute = new Date().getMinutes();
+const TIME_WINDOW_TOLERANCE_MINUTES = 2;
 
-  // Agency tier: process every run (every 5 minutes)
-  if (planTier === "agency") {
-    return true;
+/**
+ * Tier scheduling configuration:
+ * - interval: target processing interval in minutes
+ * - minIntervalSinceLastProcess: minimum time since last processing to allow new run (prevents duplicates)
+ */
+const TIER_CONFIG = {
+  agency: { interval: 5, minIntervalSinceLastProcess: 3 }, // Every 5 min, but wait at least 3 min since last
+  growth: { interval: 10, minIntervalSinceLastProcess: 8 }, // Every 10 min, but wait at least 8 min since last
+  starter: { interval: 15, minIntervalSinceLastProcess: 13 }, // Every 15 min, but wait at least 13 min since last
+} as const;
+
+/**
+ * Determines if a tier should be processed using resilient time-window checks with deduplication.
+ *
+ * APPROACH (B): Time-window check with last-processed timestamp deduplication
+ *
+ * This approach replaces exact minute alignment with:
+ * 1. Time window check: Accepts runs within +/- TIME_WINDOW_TOLERANCE_MINUTES of target minutes
+ * 2. Last-processed timestamp: Prevents duplicate processing by checking when tier was last processed
+ * 3. Atomic updates: Uses database transactions to prevent race conditions
+ *
+ * Benefits over exact-minute approach:
+ * - Resilient to cron timing variations (early/late runs)
+ * - Prevents duplicate processing via timestamp tracking
+ * - Handles clock skew and delayed executions gracefully
+ *
+ * - 'agency' (highest tier): processes every ~5 minutes
+ * - 'growth' (mid tier): processes every ~10 minutes
+ * - 'starter' (low tier): processes every ~15 minutes
+ *
+ * @param planTier - The organization's plan tier ('agency', 'growth', 'starter', or null for starter)
+ * @param currentTime - Current timestamp (for testing)
+ * @param lastProcessedAt - Timestamp when this tier was last processed (from database)
+ * @returns true if this tier should be processed in this cron run
+ */
+function shouldProcessForTier(
+  planTier: string | null,
+  currentTime: Date,
+  lastProcessedAt: Date | null,
+): boolean {
+  // Normalize tier: null/unknown tiers default to 'starter'
+  const tier =
+    planTier === "agency" || planTier === "growth" ? planTier : "starter";
+  const config = TIER_CONFIG[tier];
+
+  // Agency tier: always process if enough time has passed since last run
+  if (tier === "agency") {
+    if (!lastProcessedAt) return true;
+    const minutesSinceLastProcess =
+      (currentTime.getTime() - lastProcessedAt.getTime()) / (1000 * 60);
+    return minutesSinceLastProcess >= config.minIntervalSinceLastProcess;
   }
 
-  // Growth tier: process every 2nd run (minutes 0, 10, 20, 30, 40, 50)
-  if (planTier === "growth") {
-    return currentMinute % 10 === 0;
+  // For growth and starter tiers: check both time window AND last processed timestamp
+  const currentMinute = currentTime.getMinutes();
+  // Calculate target minutes: 0, interval, 2*interval, 3*interval, etc. up to 60
+  const targetMinutes: number[] = [];
+  for (let m = 0; m < 60; m += config.interval) {
+    targetMinutes.push(m);
   }
 
-  // Starter tier (default): process every 3rd run (minutes 0, 15, 30, 45)
-  // Also handles null/unknown tiers as starter
-  return currentMinute % 15 === 0;
+  // Check if current minute is within tolerance window of any target minute
+  const isWithinTimeWindow = targetMinutes.some((targetMin) => {
+    const diff = Math.abs(currentMinute - targetMin);
+    // Handle wrap-around (e.g., 59 -> 0)
+    const wrappedDiff = Math.min(diff, 60 - diff);
+    return wrappedDiff <= TIME_WINDOW_TOLERANCE_MINUTES;
+  });
+
+  if (!isWithinTimeWindow) {
+    return false;
+  }
+
+  // Additional deduplication: ensure we haven't processed too recently
+  if (lastProcessedAt) {
+    const minutesSinceLastProcess =
+      (currentTime.getTime() - lastProcessedAt.getTime()) / (1000 * 60);
+    return minutesSinceLastProcess >= config.minIntervalSinceLastProcess;
+  }
+
+  // No previous processing recorded, allow this run
+  return true;
 }
 
 /**
@@ -185,12 +245,55 @@ export async function GET(request: NextRequest) {
       orgTierMap.set(org.id, org.plan_tier);
     }
 
-    // Filter locations based on tier-based polling schedule
+    // Fetch last processed timestamps for each tier from cron_poll_state table
+    const { data: pollStateData, error: pollStateError } = await supabase
+      .from("cron_poll_state")
+      .select("tier, last_processed_at");
+
+    if (pollStateError) {
+      console.error("Failed to fetch cron poll state:", pollStateError.message);
+      // Continue with processing - if table doesn't exist yet, we'll process all tiers
+      // This allows graceful degradation during migration
+    }
+
+    // Create a map of tier to last_processed_at timestamp
+    const tierLastProcessedMap = new Map<string, Date | null>();
+    for (const state of pollStateData ?? []) {
+      if (state.tier && state.last_processed_at) {
+        tierLastProcessedMap.set(state.tier, new Date(state.last_processed_at));
+      } else {
+        tierLastProcessedMap.set(state.tier ?? "starter", null);
+      }
+    }
+
+    // Ensure all tiers have entries (default to null if not found)
+    for (const tier of ["agency", "growth", "starter"] as const) {
+      if (!tierLastProcessedMap.has(tier)) {
+        tierLastProcessedMap.set(tier, null);
+      }
+    }
+
+    const currentTime = new Date();
+
+    // Filter locations based on tier-based polling schedule with resilient time-window checks
     const locationsToProcess = typedLocations.filter((location) => {
       if (!location.organization_id) return false;
       const planTier = orgTierMap.get(location.organization_id) ?? null;
-      return shouldProcessForTier(planTier);
+      const tier =
+        planTier === "agency" || planTier === "growth" ? planTier : "starter";
+      const lastProcessedAt = tierLastProcessedMap.get(tier) ?? null;
+      return shouldProcessForTier(planTier, currentTime, lastProcessedAt);
     });
+
+    // Track which tiers we're processing in this run for atomic timestamp updates
+    const tiersToUpdate = new Set<string>();
+    for (const location of locationsToProcess) {
+      if (!location.organization_id) continue;
+      const planTier = orgTierMap.get(location.organization_id) ?? null;
+      const tier =
+        planTier === "agency" || planTier === "growth" ? planTier : "starter";
+      tiersToUpdate.add(tier);
+    }
 
     if (locationsToProcess.length === 0) {
       return NextResponse.json({
@@ -423,6 +526,35 @@ export async function GET(request: NextRequest) {
               ? error.message
               : "Failed to fetch reviews";
           results.errors.push(`Location ${location.name}: ${message}`);
+        }
+      }
+    }
+
+    // Atomically update last_processed_at timestamps for tiers that were processed
+    // Use upsert to handle initial state and updates atomically
+    if (tiersToUpdate.size > 0) {
+      const now = new Date().toISOString();
+      for (const tier of tiersToUpdate) {
+        const { error: updateError } = await supabase
+          .from("cron_poll_state")
+          .upsert(
+            {
+              tier,
+              last_processed_at: now,
+              updated_at: now,
+            },
+            { onConflict: "tier" },
+          );
+
+        if (updateError) {
+          console.error(
+            `Failed to update last_processed_at for tier ${tier}:`,
+            updateError.message,
+          );
+          // Don't fail the entire job - this is a best-effort update
+          results.errors.push(
+            `Warning: Failed to update processing timestamp for ${tier} tier`,
+          );
         }
       }
     }

@@ -195,7 +195,7 @@ async function callClaudeAPI(
  * @returns The generated text and token count
  * @throws ClaudeAPIError after all retries exhausted
  */
-async function callClaudeWithRetry(
+export async function callClaudeWithRetry(
   systemPrompt: string,
   userPrompt: string,
   maxAttempts: number = MAX_ATTEMPTS,
@@ -308,9 +308,9 @@ function buildSystemPrompt(
   const wordsToAvoid = voiceProfile.words_to_avoid?.join(", ") ?? "";
   const wordsToUse = voiceProfile.words_to_use?.join(", ") ?? "";
 
-  // Extract tone name for display (remove "custom:" prefix if present)
+  // Extract tone name for display (return "Custom Tone" for custom tones)
   const toneDisplay = voiceProfile.tone?.startsWith("custom:")
-    ? voiceProfile.tone.replace("custom:", "Custom Tone")
+    ? "Custom Tone"
     : voiceProfile.tone;
 
   let prompt = `You are a review response writer for ${businessName}.

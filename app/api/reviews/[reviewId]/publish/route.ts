@@ -217,11 +217,23 @@ export async function POST(
     }
 
     // Check for existing response to preserve generated_text
-    const { data: existingResponse } = await supabase
-      .from("responses")
-      .select("id, generated_text")
-      .eq("review_id", reviewId)
-      .maybeSingle();
+    const { data: existingResponse, error: existingResponseError } =
+      await supabase
+        .from("responses")
+        .select("id, generated_text")
+        .eq("review_id", reviewId)
+        .maybeSingle();
+
+    if (existingResponseError) {
+      console.error(
+        "Failed to check for existing response:",
+        existingResponseError.message,
+      );
+      return NextResponse.json(
+        { error: "Failed to check for existing response" },
+        { status: 500 },
+      );
+    }
 
     const now = new Date().toISOString();
 

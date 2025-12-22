@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type { VoiceProfile } from "@/lib/supabase/types";
-
-type CustomTone = {
-  id: string;
-  name: string;
-  description: string;
-  enhanced_context: string;
-  created_at: string;
-};
+import type { CustomTone } from "@/lib/types/custom-tone";
 
 interface VoiceEditorProps {
   profile?: Partial<VoiceProfile>;
@@ -83,21 +76,48 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
     const fetchCustomTones = async () => {
       try {
-        const response = await fetch("/api/custom-tones");
-        const data = await response.json().catch(() => []);
-        if (Array.isArray(data)) {
+        const response = await fetch("/api/custom-tones", { signal });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch custom tones: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        let data: CustomTone[] = [];
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          console.error("Error parsing custom tones response:", parseError);
+          throw new Error("Invalid JSON response from server");
+        }
+
+        if (!signal.aborted && Array.isArray(data)) {
           setCustomTones(data);
         }
       } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          // Request was aborted, don't log or update state
+          return;
+        }
         console.error("Error fetching custom tones:", error);
       } finally {
-        setIsLoadingCustomTones(false);
+        if (!signal.aborted) {
+          setIsLoadingCustomTones(false);
+        }
       }
     };
 
     fetchCustomTones();
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const validateMaxLength = (value: number | string): boolean => {
