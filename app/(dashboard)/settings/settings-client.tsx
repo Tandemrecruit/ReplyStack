@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 
 import { GoogleConnectButton } from "@/components/settings/google-connect-button";
 import { LocationSelector } from "@/components/settings/location-selector";
+import { ToneQuiz } from "@/components/voice-profile/tone-quiz";
+
+type CustomTone = {
+  id: string;
+  name: string;
+  description: string;
+  enhanced_context: string;
+  created_at: string;
+};
 
 const TONE_OPTIONS = [
   { value: "warm", label: "Warm" },
@@ -48,6 +57,9 @@ export function SettingsClient() {
     personalityNotes?: string;
     signOff?: string;
   }>({});
+  const [customTones, setCustomTones] = useState<CustomTone[]>([]);
+  const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   const handleSaveVoiceProfile = async () => {
     const errors: Record<string, string> = {};
@@ -82,7 +94,13 @@ export function SettingsClient() {
         }),
       });
 
-      const data = await response.json().catch(() => undefined);
+      let data: { error?: string } | undefined;
+      try {
+        data = await response.json();
+      } catch {
+        // Invalid JSON - will use default error message below
+        data = undefined;
+      }
 
       if (!response.ok) {
         setStatus({
@@ -130,7 +148,23 @@ export function SettingsClient() {
       }
     };
 
+    const fetchCustomTones = async () => {
+      setIsLoadingCustomTones(true);
+      try {
+        const response = await fetch("/api/custom-tones");
+        const data = await response.json().catch(() => []);
+        if (Array.isArray(data)) {
+          setCustomTones(data);
+        }
+      } catch (error) {
+        console.error("Error fetching custom tones:", error);
+      } finally {
+        setIsLoadingCustomTones(false);
+      }
+    };
+
     fetchNotificationPreference();
+    fetchCustomTones();
   }, []);
 
   const handleToggleEmailNotifications = async () => {
@@ -210,28 +244,75 @@ export function SettingsClient() {
         <div className="mt-6 space-y-6">
           {/* Tone Selection */}
           <div>
-            <label
-              className="block text-sm font-medium text-foreground"
-              htmlFor="tone-select"
-            >
-              Tone
-            </label>
-            <select
-              id="tone-select"
-              value={tone}
-              onChange={(event) => setTone(event.target.value)}
-              className={`mt-1 w-full max-w-xs px-3 py-2 bg-surface border rounded-md text-foreground ${
-                fieldErrors.tone
-                  ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  : "border-border"
-              }`}
-            >
-              {TONE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                className="block text-sm font-medium text-foreground"
+                htmlFor="tone-select"
+              >
+                Tone
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowQuiz(true)}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Take Tone Quiz
+              </button>
+            </div>
+
+            {/* Standard Tones */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-foreground-secondary mb-1">
+                Standard Tones
+              </p>
+              <select
+                id="tone-select"
+                value={tone.startsWith("custom:") ? "" : tone}
+                onChange={(event) => setTone(event.target.value)}
+                className={`w-full max-w-xs px-3 py-2 bg-surface border rounded-md text-foreground ${
+                  fieldErrors.tone
+                    ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    : "border-border"
+                }`}
+              >
+                <option value="">Select a standard tone...</option>
+                {TONE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Custom Tones */}
+            {!isLoadingCustomTones && customTones.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-foreground-secondary mb-1">
+                  Custom Tones
+                </p>
+                <select
+                  id="custom-tone-select"
+                  value={tone.startsWith("custom:") ? tone : ""}
+                  onChange={(event) => setTone(event.target.value)}
+                  className={`w-full max-w-xs px-3 py-2 bg-surface border rounded-md text-foreground ${
+                    fieldErrors.tone
+                      ? "border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      : "border-border"
+                  }`}
+                >
+                  <option value="">Select a custom tone...</option>
+                  {customTones.map((customTone) => (
+                    <option
+                      key={customTone.id}
+                      value={`custom:${customTone.id}`}
+                    >
+                      {customTone.name} - {customTone.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {fieldErrors.tone ? (
               <p className="mt-1 text-sm text-red-600">{fieldErrors.tone}</p>
             ) : null}
@@ -308,6 +389,32 @@ export function SettingsClient() {
           </output>
         </div>
       </section>
+
+      {/* Tone Quiz Modal */}
+      {showQuiz && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-lg border border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <ToneQuiz
+              onComplete={(customTone) => {
+                setShowQuiz(false);
+                if (customTone) {
+                  setTone(`custom:${customTone.id}`);
+                  // Refresh custom tones list
+                  fetch("/api/custom-tones")
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (Array.isArray(data)) {
+                        setCustomTones(data);
+                      }
+                    })
+                    .catch(console.error);
+                }
+              }}
+              onClose={() => setShowQuiz(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Notifications */}
       <section className="p-6 bg-surface rounded-lg border border-border">

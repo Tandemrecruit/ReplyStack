@@ -92,6 +92,8 @@ describe("GET /api/cron/poll-reviews", () => {
     locationsError?: unknown;
     usersData?: unknown[];
     usersError?: unknown;
+    organizationsData?: unknown[];
+    organizationsError?: unknown;
   }) => {
     const mockFrom = vi.fn((table: string) => {
       if (table === "locations") {
@@ -114,6 +116,21 @@ describe("GET /api/cron/poll-reviews", () => {
                 data: overrides?.usersData ?? [],
                 error: overrides?.usersError ?? null,
               }),
+            }),
+          }),
+        };
+      }
+      if (table === "organizations") {
+        // Default to agency tier so locations are processed every run
+        const defaultOrgs =
+          overrides?.organizationsData !== undefined
+            ? overrides.organizationsData
+            : [{ id: "org-1", plan_tier: "agency" }];
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: defaultOrgs,
+              error: overrides?.organizationsError ?? null,
             }),
           }),
         };
@@ -1492,6 +1509,16 @@ describe("GET /api/cron/poll-reviews", () => {
                   ],
                   error: null,
                 }),
+              }),
+            }),
+          };
+        }
+        if (table === "organizations") {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: [{ id: "org-1", plan_tier: "agency" }],
+                error: null,
               }),
             }),
           };

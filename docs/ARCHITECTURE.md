@@ -18,9 +18,9 @@
 
 ## Implementation Status (Dec 2025)
 
-- Implemented: project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features).
-- Partially implemented: dashboard UI (components exist but need data integration), Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending).
-- Not implemented: Stripe checkout/portal, email sending (Resend integration), dashboard data integration, review management features (ignore, search, date filters).
+- Implemented: project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features), dashboard UI with data integration (reviews page with functional filters and generate response button), tone quiz with custom tone generation.
+- Partially implemented: Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending), voice profile UI (example responses and words to use/avoid fields missing).
+- Not implemented: Stripe checkout/portal, email sending (Resend integration), review management features (ignore, search, date filters), regenerate response button, optimistic UI updates.
 
 ---
 

@@ -182,12 +182,29 @@ export async function POST(request: NextRequest) {
     // Use default voice profile if none found
     const effectiveProfile = voiceProfile ?? DEFAULT_VOICE_PROFILE;
 
+    // Check if tone is a custom tone and fetch enhanced context
+    let customToneEnhancedContext: string | null = null;
+    if (effectiveProfile.tone?.startsWith("custom:")) {
+      const customToneId = effectiveProfile.tone.replace("custom:", "");
+      const { data: customTone } = await supabase
+        .from("custom_tones")
+        .select("enhanced_context")
+        .eq("id", customToneId)
+        .eq("organization_id", userData.organization_id)
+        .maybeSingle();
+
+      if (customTone?.enhanced_context) {
+        customToneEnhancedContext = customTone.enhanced_context;
+      }
+    }
+
     // Generate response using Claude
     const result = await generateResponse(
       review,
       effectiveProfile,
       location.name,
       userData.email ?? undefined,
+      customToneEnhancedContext ?? undefined,
     );
 
     // Store the generated response

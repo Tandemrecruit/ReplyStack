@@ -600,6 +600,7 @@ describe("POST /api/responses", () => {
       }),
       "Test Location",
       "user@example.com",
+      undefined,
     );
   });
 
@@ -739,6 +740,7 @@ describe("POST /api/responses", () => {
       }),
       "Test Location",
       "user@example.com",
+      undefined,
     );
   });
 
@@ -866,6 +868,7 @@ describe("POST /api/responses", () => {
       }),
       "Test Location",
       "user@example.com",
+      undefined,
     );
   });
 
@@ -1991,6 +1994,7 @@ describe("POST /api/responses", () => {
       }),
       "Test Location",
       "user@example.com",
+      undefined,
     );
   });
 });

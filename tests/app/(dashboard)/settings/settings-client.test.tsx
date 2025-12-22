@@ -187,6 +187,10 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
+          json: async () => [],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
           json: async () => ({ emailNotifications: false }),
         });
 
@@ -221,6 +225,10 @@ describe("app/(dashboard)/settings/settings-client", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: false }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockResolvedValueOnce({
           ok: true,
@@ -336,6 +344,10 @@ describe("app/(dashboard)/settings/settings-client", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockReturnValueOnce(updatePromise);
 
@@ -630,11 +642,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error message when save fails", async () => {
       const user = userEvent.setup();
-      // First mock for notification fetch, second for save
+      // First mock for notification fetch, second for custom tones, third for save
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -660,11 +676,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows default error message when save fails without error", async () => {
       const user = userEvent.setup();
-      // First mock for notification fetch, second for save
+      // First mock for notification fetch, second for custom tones, third for save
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -692,11 +712,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("handles network error when saving", async () => {
       const user = userEvent.setup();
-      // First mock for notification fetch, second rejects for save
+      // First mock for notification fetch, second for custom tones, third rejects for save
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockRejectedValueOnce(new Error("Network error"));
 
@@ -725,11 +749,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("handles invalid JSON response when saving", async () => {
       const user = userEvent.setup();
-      // First mock for notification fetch, second for save with invalid JSON
+      // First mock for notification fetch, second for custom tones, third for save with invalid JSON
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockResolvedValueOnce({
           ok: false,
@@ -764,11 +792,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
         resolveSave = resolve;
       });
 
-      // First mock for notification fetch, then pending promise for save
+      // First mock for notification fetch, second for custom tones, then pending promise for save
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockReturnValueOnce(savePromise);
 
@@ -807,11 +839,15 @@ describe("app/(dashboard)/settings/settings-client", () => {
         resolveSecondSave = resolve;
       });
 
-      // First mock for notification fetch, first save success, second save pending
+      // First mock for notification fetch, second for custom tones, first save success, second save pending
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ emailNotifications: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
         })
         .mockResolvedValueOnce({
           ok: true,
