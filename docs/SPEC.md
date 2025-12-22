@@ -98,7 +98,7 @@ Settings Page
 
 ## MVP Feature Requirements
 
-Status note (Dec 2025): Core features are implemented. Authentication, Google Business Profile integration, review polling, AI response generation, and voice profile management are complete. Dashboard UI data integration, response editing UI, and Stripe integration are in progress.
+Status note (Dec 2025): Core features are implemented. Authentication, Google Business Profile integration, review polling, AI response generation, voice profile management, response editing modal, and dashboard UI data integration are complete. Stripe integration and email notifications are in progress.
 
 ### Authentication
 - [x] Email/password registration and login
@@ -121,13 +121,14 @@ Status note (Dec 2025): Core features are implemented. Authentication, Google Bu
 - [ ] Mark review as "ignored" (status field exists, no API/UI)
 
 ### Voice Profile
-- [x] Tone selection (friendly, professional, casual, formal)
+- [x] Tone selection (Warm, Direct, Professional, Friendly, Casual, plus custom tones)
 - [x] Personality notes (free text)
 - [~] Example responses (3-5 samples) (API supports, UI missing)
 - [x] Sign-off style (name, title, business name)
 - [~] Words to use (brand terms, values) (API supports, UI missing)
 - [~] Words to avoid (competitor names, sensitive terms) (API supports, UI missing)
 - [x] Maximum response length (word count)
+- [x] Tone quiz (10-question interactive quiz with custom tone generation)
 
 ### AI Response Generation
 - [x] One-click response generation
@@ -136,8 +137,8 @@ Status note (Dec 2025): Core features are implemented. Authentication, Google Bu
 - [ ] Regenerate button for alternatives (API returns existing response)
 
 ### Response Workflow
-- [x] Edit response in modal before publishing
-- [x] Character count display
+- [x] Edit response in modal before publishing (ResponseEditModal with review context)
+- [x] Character and word count display
 - [ ] Preview how response will look
 - [x] Publish to Google with confirmation
 - [ ] Response history per review (responses table exists, no UI)

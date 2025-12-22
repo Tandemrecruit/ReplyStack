@@ -2,6 +2,10 @@
 
 ## 2025-12-22
 
+### Documentation
+
+- Updated documentation to reflect current implementation status: marked response editing modal and character/word count as complete in ROADMAP.md, updated SPEC.md to include word count and tone quiz features, updated README.md development status, and updated ARCHITECTURE.md implementation status section
+
 ### Code Quality
 
 - Fixed TypeScript errors: added missing type exports (Review, ReviewInsert, VoiceProfile, Location, UserInsert) and custom_tones table definition to Database type, fixed currentQuestion undefined issues in tone-quiz component, and corrected Json type casting in tone-quiz generate route

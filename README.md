@@ -4,7 +4,7 @@ AI-powered Google Business review response tool for local businesses. Respond to
 
 ## Development Status
 
-Core features implemented. Authentication, Google Business Profile integration, review polling, and AI response generation are complete. Dashboard UI data integration, response editing UI, and Stripe webhooks are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
+Core features implemented. Authentication, Google Business Profile integration, review polling, AI response generation, response editing modal, and dashboard UI data integration are complete. Stripe integration and email notifications are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
 
 ## Tech Stack
 
