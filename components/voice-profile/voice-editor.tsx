@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { VoiceProfile } from "@/lib/supabase/types";
+
+type CustomTone = {
+  id: string;
+  name: string;
+  description: string;
+  enhanced_context: string;
+  created_at: string;
+};
 
 interface VoiceEditorProps {
   profile?: Partial<VoiceProfile>;
@@ -71,6 +79,26 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [maxLengthError, setMaxLengthError] = useState<string | null>(
     getInitialMaxLengthError(initialMaxLength),
   );
+  const [customTones, setCustomTones] = useState<CustomTone[]>([]);
+  const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
+
+  useEffect(() => {
+    const fetchCustomTones = async () => {
+      try {
+        const response = await fetch("/api/custom-tones");
+        const data = await response.json().catch(() => []);
+        if (Array.isArray(data)) {
+          setCustomTones(data);
+        }
+      } catch (error) {
+        console.error("Error fetching custom tones:", error);
+      } finally {
+        setIsLoadingCustomTones(false);
+      }
+    };
+
+    fetchCustomTones();
+  }, []);
 
   const validateMaxLength = (value: number | string): boolean => {
     if (value === "" || value === null || value === undefined) {
@@ -132,28 +160,81 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
         <p className="block text-sm font-medium text-foreground mb-3">
           Response Tone
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          {TONE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFormData({ ...formData, tone: option.value })}
-              className={`
-                p-4 rounded-lg border text-left transition-colors
-                ${
-                  formData.tone === option.value
-                    ? "border-primary-500 bg-primary-50"
-                    : "border-border hover:border-border-hover"
-                }
-              `}
-            >
-              <p className="font-medium text-foreground">{option.label}</p>
-              <p className="text-sm text-foreground-secondary">
-                {option.description}
-              </p>
-            </button>
-          ))}
+
+        {/* Standard Tones */}
+        <div className="mb-6">
+          <p className="text-sm font-medium text-foreground-secondary mb-2">
+            Standard Tones
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {TONE_OPTIONS.map((option) => {
+              const isSelected =
+                formData.tone === option.value &&
+                !formData.tone.startsWith("custom:");
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, tone: option.value })
+                  }
+                  className={`
+                    p-4 rounded-lg border text-left transition-colors
+                    ${
+                      isSelected
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-border hover:border-border-hover"
+                    }
+                  `}
+                >
+                  <p className="font-medium text-foreground">{option.label}</p>
+                  <p className="text-sm text-foreground-secondary">
+                    {option.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Custom Tones */}
+        {!isLoadingCustomTones && customTones.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {customTones.map((customTone) => {
+                const customToneValue = `custom:${customTone.id}`;
+                const isSelected = formData.tone === customToneValue;
+                return (
+                  <button
+                    key={customTone.id}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, tone: customToneValue })
+                    }
+                    className={`
+                      p-4 rounded-lg border text-left transition-colors
+                      ${
+                        isSelected
+                          ? "border-primary-500 bg-primary-50"
+                          : "border-border hover:border-border-hover"
+                      }
+                    `}
+                  >
+                    <p className="font-medium text-foreground">
+                      {customTone.name}
+                    </p>
+                    <p className="text-sm text-foreground-secondary">
+                      {customTone.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Personality Notes */}

@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     // Build list of locations with user data (use filtered locations)
     const locationsWithUsers: LocationWithUser[] = [];
     for (const location of locationsToProcess) {
-      if (!location.organization_id) continue;
+      if (!location.organization_id || !location.id) continue;
       const user = orgToUser.get(location.organization_id);
       if (!user) continue;
 

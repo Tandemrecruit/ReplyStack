@@ -1,5 +1,33 @@
 # Changelog
 
+## 2025-12-22
+
+### Code Quality
+
+- Fixed TypeScript errors: added missing type exports (Review, ReviewInsert, VoiceProfile, Location, UserInsert) and custom_tones table definition to Database type, fixed currentQuestion undefined issues in tone-quiz component, and corrected Json type casting in tone-quiz generate route
+
+### Testing
+
+- Fixed settings client test error message handling: improved JSON parsing error handling to properly check response.ok before showing error messages
+- Fixed API responses route tests: updated generateResponse call assertions to include the 5th argument (customToneEnhancedContext) that was missing from test expectations
+- Fixed cron poll-reviews route tests: added organizations table mock to test helper to support tier-based filtering logic, and added check to skip locations without id field to prevent errors
+- Fixed remaining 10 failing tests: updated all settings client tests to mock both /api/notifications and /api/custom-tones fetch calls that occur on component mount, and added organizations table mock to edge case test for locations without id field
+
+### Accessibility
+
+- Fixed SVG accessibility issue in tone quiz component: added aria-label to checkmark icon for screen reader support
+
+### Features
+
+- Added interactive tone quiz with custom tone generation: 10-question quiz generates personalized tones based on user responses
+- Quiz supports both single-select and multi-select questions covering communication style, review handling, response length, customer relationships, and brand personality
+- Custom tones are saved to database with AI-generated name, description, and enhanced context for response generation
+- Updated tone selectors in settings and voice editor to display both standard tones and custom tones in separate sections
+- Custom tone enhanced context is now included in AI prompt when generating review responses
+- Added API endpoint `/api/tone-quiz/generate` for generating custom tones using Claude AI
+- Added API endpoint `/api/custom-tones` for fetching organization's custom tones
+- Updated database schema to support custom tones with `custom_tones` table and modified `voice_profiles.tone` constraint to allow `custom:{id}` format
+
 ## 2025-12-21
 
 ### Code Quality
