@@ -216,21 +216,46 @@ export async function POST(
       );
     }
 
-    // Upsert response record
-    const { data: responseRecord, error: responseError } = await supabase
+    // Check for existing response to preserve generated_text
+    const { data: existingResponse } = await supabase
       .from("responses")
-      .upsert(
-        {
-          review_id: reviewId,
-          generated_text: responseText,
-          final_text: responseText,
-          status: "published",
-          published_at: new Date().toISOString(),
-        },
-        { onConflict: "review_id" },
-      )
-      .select()
-      .single();
+      .select("id, generated_text")
+      .eq("review_id", reviewId)
+      .maybeSingle();
+
+    const now = new Date().toISOString();
+
+    // Determine if text was edited (only set edited_text if different from generated)
+    const wasEdited = existingResponse
+      ? responseText !== existingResponse.generated_text
+      : false;
+
+    // Update existing response or insert new one
+    const { data: responseRecord, error: responseError } = existingResponse
+      ? // Update existing response - preserve generated_text
+        await supabase
+          .from("responses")
+          .update({
+            edited_text: wasEdited ? responseText : null,
+            final_text: responseText,
+            status: "published",
+            published_at: now,
+          })
+          .eq("id", existingResponse.id)
+          .select()
+          .single()
+      : // Insert new response (edge case: direct publish without generate)
+        await supabase
+          .from("responses")
+          .insert({
+            review_id: reviewId,
+            generated_text: responseText,
+            final_text: responseText,
+            status: "published",
+            published_at: now,
+          })
+          .select()
+          .single();
 
     if (responseError) {
       console.error("Failed to save response record:", responseError.message);

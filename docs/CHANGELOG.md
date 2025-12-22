@@ -19,12 +19,16 @@
 
 ### Features
 
+- Added Response Editing Modal to review workflow: opens after AI response generation, displays review context (reviewer name, rating, excerpt), provides editable textarea with live character/word counts, publishes edited text to Google Business Profile via existing API, handles errors with accessible error banner, closes and refreshes UI on success; uses native `<dialog>` element for accessibility with ESC key and backdrop click to close, focus management on open/close
+
 - Standardized tone options across all components:
   - Updated tone options from inconsistent values (friendly/professional/casual/formal, Warm/Direct/Concise, Warm/Direct/Concierge) to 5 consistent options (Warm, Direct, Professional, Friendly, Casual) in settings-client.tsx, voice-editor.tsx, live-demo.tsx, and landing page
   - Changed default tone from "friendly" to "warm" in database schema, DEFAULT_VOICE_PROFILE, and component defaults
   - Created migration (003_standardize_tone_options.sql) to map existing "formal" values to "professional" and update default tone for new voice profiles
 
 ### Bug Fixes
+
+- Fixed publish API to preserve original AI-generated text: existing `generated_text` is no longer overwritten on publish, stores user edits in `edited_text` field only when modified, sets `final_text` to the published content; checks for existing response before update to prevent data loss
 
 - Fixed response parsing error in generate-response-button component: changed error handling to check `response.ok` before calling `response.json()`, preventing errors when server returns non-JSON (e.g., HTML error pages); now safely attempts JSON parsing for error responses, falls back to text parsing when Content-Type indicates non-JSON, and provides meaningful error messages to users
 - Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error

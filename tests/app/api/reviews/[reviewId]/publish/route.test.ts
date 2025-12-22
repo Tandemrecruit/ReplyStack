@@ -610,7 +610,17 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
         }
         if (table === "responses") {
           return {
-            upsert: vi.fn().mockReturnValue({
+            // For checking existing response
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null, // No existing response
+                  error: null,
+                }),
+              }),
+            }),
+            // For inserting new response (when no existing)
+            insert: vi.fn().mockReturnValue({
               select: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {

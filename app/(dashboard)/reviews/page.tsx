@@ -376,7 +376,14 @@ export default async function ReviewsPage({
               review={review}
               generateResponseButton={
                 (review.status ?? "pending") === "pending" ? (
-                  <GenerateResponseButton reviewId={review.id} />
+                  <GenerateResponseButton
+                    reviewId={review.id}
+                    reviewSummary={{
+                      reviewerName: review.reviewer_name,
+                      rating: review.rating,
+                      reviewText: review.review_text,
+                    }}
+                  />
                 ) : undefined
               }
             />

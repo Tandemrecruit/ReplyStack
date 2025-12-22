@@ -20,6 +20,17 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/reviews"),
 }));
 
+// Mock HTMLDialogElement methods (not implemented in jsdom)
+// Required for ResponseEditModal component used in GenerateResponseButton
+HTMLDialogElement.prototype.showModal = vi.fn(function (
+  this: HTMLDialogElement,
+) {
+  this.setAttribute("open", "");
+});
+HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
+  this.removeAttribute("open");
+});
+
 import ReviewsPage, { metadata } from "@/app/(dashboard)/reviews/page";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -329,9 +340,7 @@ describe("app/(dashboard)/reviews/page", () => {
       const Component = await ReviewsPage({ searchParams: {} });
       render(Component);
       expect(
-        screen.getByText(
-          "Please complete your account setup to view reviews.",
-        ),
+        screen.getByText("Please complete your account setup to view reviews."),
       ).toBeInTheDocument();
     });
 
