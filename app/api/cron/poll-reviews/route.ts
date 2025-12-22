@@ -57,11 +57,45 @@ interface LocationWithUser {
 }
 
 /**
+ * Determines if a location should be processed based on its organization's plan tier.
+ *
+ * - 'agency' (highest tier): processes every run (every 5 minutes)
+ * - 'growth' (mid tier): processes every 2nd run (every 10 minutes)
+ * - 'starter' (low tier): processes every 3rd run (every 15 minutes)
+ *
+ * Uses the current minute to determine which run cycle we're in.
+ *
+ * @param planTier - The organization's plan tier
+ * @returns true if this location should be processed in this cron run
+ */
+function shouldProcessForTier(planTier: string | null): boolean {
+  const currentMinute = new Date().getMinutes();
+
+  // Agency tier: process every run (every 5 minutes)
+  if (planTier === "agency") {
+    return true;
+  }
+
+  // Growth tier: process every 2nd run (minutes 0, 10, 20, 30, 40, 50)
+  if (planTier === "growth") {
+    return currentMinute % 10 === 0;
+  }
+
+  // Starter tier (default): process every 3rd run (minutes 0, 15, 30, 45)
+  // Also handles null/unknown tiers as starter
+  return currentMinute % 15 === 0;
+}
+
+/**
  * Polls Google Business Profile for new reviews for active locations and upserts them into the database.
  *
- * This handler is intended to run as a cron job (configured to run regularly) and will:
+ * This handler is intended to run as a cron job (configured to run every 5 minutes) and will:
  * - verify an optional cron secret for authorization,
- * - fetch active locations and associated users with Google refresh tokens,
+ * - fetch active locations and filter them based on organization plan tier:
+ *   - 'agency' tier: processes every run (every 5 minutes)
+ *   - 'growth' tier: processes every 2nd run (every 10 minutes)
+ *   - 'starter' tier: processes every 3rd run (every 15 minutes)
+ * - fetch associated users with Google refresh tokens for filtered locations,
  * - refresh access tokens per user and fetch reviews for each of their locations,
  * - upsert retrieved reviews (deduplicated by external_review_id) and infer sentiment from rating,
  * - clear expired refresh tokens for users if detected, and
@@ -122,16 +156,67 @@ export async function GET(request: NextRequest) {
     // Type assertion: locations is an array of LocationQueryResult
     const typedLocations = locations as LocationQueryResult[];
 
-    // Get unique organization IDs
+    // Get unique organization IDs (filter out nulls)
     const orgIds = [
-      ...new Set(typedLocations.map((l) => l.organization_id).filter(Boolean)),
+      ...new Set(
+        typedLocations
+          .map((l) => l.organization_id)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+
+    // Fetch organizations to get plan_tier for tier-based filtering
+    const { data: organizations, error: orgsError } = await supabase
+      .from("organizations")
+      .select("id, plan_tier")
+      .in("id", orgIds);
+
+    if (orgsError) {
+      console.error("Failed to fetch organizations:", orgsError.message);
+      return NextResponse.json(
+        { error: "Failed to fetch organizations" },
+        { status: 500 },
+      );
+    }
+
+    // Create a map of organization_id to plan_tier
+    const orgTierMap = new Map<string, string | null>();
+    for (const org of organizations ?? []) {
+      orgTierMap.set(org.id, org.plan_tier);
+    }
+
+    // Filter locations based on tier-based polling schedule
+    const locationsToProcess = typedLocations.filter((location) => {
+      if (!location.organization_id) return false;
+      const planTier = orgTierMap.get(location.organization_id) ?? null;
+      return shouldProcessForTier(planTier);
+    });
+
+    if (locationsToProcess.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message:
+          "No locations to process in this polling cycle (tier-based scheduling)",
+        ...results,
+        duration: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Get unique organization IDs from filtered locations (filter out nulls)
+    const filteredOrgIds = [
+      ...new Set(
+        locationsToProcess
+          .map((l) => l.organization_id)
+          .filter((id): id is string => id !== null),
+      ),
     ];
 
     // Get users with refresh tokens for these organizations
     const { data: users, error: usersError } = await supabase
       .from("users")
       .select("id, organization_id, google_refresh_token")
-      .in("organization_id", orgIds)
+      .in("organization_id", filteredOrgIds)
       .not("google_refresh_token", "is", null);
 
     if (usersError) {
@@ -162,9 +247,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build list of locations with user data
+    // Build list of locations with user data (use filtered locations)
     const locationsWithUsers: LocationWithUser[] = [];
-    for (const location of typedLocations) {
+    for (const location of locationsToProcess) {
       if (!location.organization_id) continue;
       const user = orgToUser.get(location.organization_id);
       if (!user) continue;

@@ -33,6 +33,24 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `502`: AI service unavailable
   - `504`: AI response generation timed out
 
+### POST /api/reviews/[reviewId]/publish
+
+- Auth: Required (Supabase session).
+- Body: `{ response_text: string }`.
+- Publishes a response to Google Business Profile as a reply to the specified review.
+- Updates the review status to "responded" and `has_response` to `true`.
+- Saves response to database:
+  - If response already exists: preserves `generated_text`, stores edits in `edited_text` (only if modified), sets `final_text` to published content.
+  - If no existing response: creates new response record with `generated_text` and `final_text` set to published content.
+- Returns: `{ success: boolean, message: string, response_id: string, published_at: string }`.
+- Error responses:
+  - `400`: Missing or empty `response_text`, Google account not connected, no organization
+  - `401`: Unauthorized, Google authentication expired or corrupted (requires reconnection)
+  - `404`: User not found, review not found, review belongs to different organization
+  - `403`: Google API permission denied
+  - `500`: Database error, Google API error, general server error
+- Note: If Google publish succeeds but database update fails, returns `200` with `warning` field indicating database inconsistency.
+
 ### GET /api/cron/poll-reviews
 
 - Auth: `Authorization: Bearer $CRON_SECRET`.

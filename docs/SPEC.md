@@ -136,8 +136,8 @@ Status note (Dec 2025): Core features are implemented. Authentication, Google Bu
 - [ ] Regenerate button for alternatives (API returns existing response)
 
 ### Response Workflow
-- [ ] Edit response in modal before publishing
-- [ ] Character count display
+- [x] Edit response in modal before publishing
+- [x] Character count display
 - [ ] Preview how response will look
 - [x] Publish to Google with confirmation
 - [ ] Response history per review (responses table exists, no UI)

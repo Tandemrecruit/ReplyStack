@@ -379,7 +379,7 @@ Adopt shared components:
 
 ## ADR-013: Google OAuth Token Strategy
 
-**Status:** Deprecated
+**Status:** Superseded
 
 ### Context
 
@@ -401,6 +401,10 @@ Store Google refresh tokens in the `users` table (`google_refresh_token` column)
 - Every API call requires a token refresh operation (adds ~100-200ms latency)
 - Token refresh failures (401) automatically clear the refresh token from the database, requiring user re-authentication
 - **SECURITY RISK / TECHNICAL DEBT:** Tokens are stored as plaintext TEXT. While Supabase provides default at-rest encryption at the database level, this does not protect against exposure via database backups, exports, or direct database access. Application-level encryption is required for production-grade security. See ADR-020 for remediation plan.
+
+### Superseded
+
+This ADR has been superseded by ADR-020, which adds application-level encryption for Google refresh tokens. The core token storage strategy (storing refresh tokens in the database, on-demand access token refresh) remains valid and is still implemented. ADR-020 adds the encryption layer that was identified as technical debt in this ADR.
 
 ---
 
@@ -585,6 +589,10 @@ Implement a single-voice-profile-per-organization pattern with `GET /api/voice-p
 
 ADR-013 stores Google refresh tokens as plaintext TEXT in the `users` table, relying solely on Supabase's default database-level at-rest encryption. This creates a security risk: tokens are exposed in database backups, exports, direct database access, and any scenario where the database storage layer is compromised. Application-level encryption is required to protect tokens even when database-level protections are bypassed.
 
+### Implementation Status
+
+**IMPLEMENTED:** Application-level encryption has been implemented in `lib/crypto/encryption.ts` with AES-256-GCM encryption, per-row IVs, and key rotation support. All Google refresh token read/write paths have been updated to use encryption. The migration script (`scripts/reencrypt-tokens.ts`) is available for re-encrypting existing tokens during key rotation.
+
 ### Threat Model
 
 - **Database backups/exports:** Plaintext tokens in SQL dumps or backup files can be accessed by anyone with backup access
@@ -677,16 +685,16 @@ Backend/Infrastructure team (post-MVP)
 
 ### Acceptance Criteria
 
-- [ ] All Google refresh tokens encrypted at application level before database write
-- [ ] Per-row IVs stored and used for decryption
-- [ ] Encryption keys stored in Supabase Vault (production) or environment variables (development)
-- [ ] Migration script successfully encrypts all existing plaintext tokens
-- [ ] Plaintext token column removed or deprecated after migration
-- [ ] Key rotation process documented and tested
-- [ ] Decryption failures handled gracefully (clear token, prompt re-auth)
-- [ ] Unit tests for encryption/decryption utilities
-- [ ] Integration tests verify encrypted tokens work with Google API calls
-- [ ] Documentation updated with key management procedures
+- [x] All Google refresh tokens encrypted at application level before database write
+- [x] Per-row IVs stored and used for decryption
+- [x] Encryption keys stored in Supabase Vault (production) or environment variables (development)
+- [x] Migration script successfully encrypts all existing plaintext tokens (`scripts/reencrypt-tokens.ts`)
+- [ ] Plaintext token column removed or deprecated after migration (kept for backward compatibility during transition)
+- [x] Key rotation process documented and tested
+- [x] Decryption failures handled gracefully (clear token, prompt re-auth)
+- [x] Unit tests for encryption/decryption utilities
+- [x] Integration tests verify encrypted tokens work with Google API calls
+- [x] Documentation updated with key management procedures
 
 ### Consequences
 
@@ -1071,6 +1079,175 @@ Adopt Stryker mutation testing as a quality assurance workflow with the followin
   - Requires manual execution (not automated in CI)
   - Learning curve for interpreting mutation scores and reports
   - May generate false positives (mutations that don't represent real bugs)
+
+---
+
+## ADR-027: Native Dialog Element for Modals
+
+**Status:** Accepted
+
+### Context
+
+We need modal dialogs for user interactions (e.g., editing AI-generated responses before publishing). The choice of modal implementation affects accessibility, bundle size, maintenance burden, and consistency across the application.
+
+### Decision
+
+Use the native HTML `<dialog>` element for all modal dialogs instead of third-party modal libraries (Radix UI Dialog, Headless UI, React Modal, etc.).
+
+### Rationale
+
+- **Native browser support:** `<dialog>` is supported in all modern browsers (Chrome 37+, Firefox 98+, Safari 15.4+, Edge 79+) with built-in accessibility features
+- **Zero dependencies:** No additional JavaScript bundle size, reducing initial load time
+- **Built-in accessibility:** Native `<dialog>` provides automatic focus trapping, ARIA attributes, and ESC key handling
+- **Simpler implementation:** Less code to maintain, no library updates or breaking changes
+- **Performance:** Native implementation is faster than JavaScript-based solutions
+- **Backdrop styling:** Native `::backdrop` pseudo-element provides backdrop styling without additional DOM elements
+- **Focus management:** Native focus trapping works automatically, though we still implement custom focus restoration for better UX
+
+### Alternatives Considered
+
+1. **Radix UI Dialog**
+   - Pros: Excellent accessibility, well-maintained, React-optimized
+   - Cons: Additional bundle size (~15KB), dependency to maintain, overkill for simple modals
+
+2. **Headless UI Dialog**
+   - Pros: Unstyled, accessible, Tailwind-friendly
+   - Cons: Additional bundle size, dependency to maintain, requires more setup
+
+3. **React Modal**
+   - Pros: Simple API, widely used
+   - Cons: Less accessible by default, requires more manual accessibility work, additional dependency
+
+4. **Custom modal implementation**
+   - Pros: Full control, no dependencies
+   - Cons: Significant development effort to implement accessibility features (focus trapping, ARIA attributes, ESC handling), maintenance burden
+
+### Implementation Pattern
+
+All modals should follow this pattern (established in `components/reviews/response-edit-modal.tsx`):
+
+- Use `<dialog>` element with `ref` for imperative control
+- Call `dialog.showModal()` to open, `dialog.close()` to close
+- Store trigger element before opening for focus restoration
+- Focus primary interactive element (e.g., textarea) after opening using `requestAnimationFrame`
+- Restore focus to trigger element on close
+- Handle `cancel` event (ESC key) and backdrop clicks
+- Use `aria-labelledby` for dialog title association
+- Conditionally render content based on `isOpen` prop to avoid duplicate DOM nodes
+
+### Consequences
+
+- **Positive:**
+  - Smaller bundle size (no modal library dependencies)
+  - Better performance (native implementation)
+  - Built-in accessibility features reduce implementation errors
+  - Less maintenance burden (no library updates)
+  - Consistent modal behavior across the application
+
+- **Negative:**
+  - Limited browser support for older browsers (IE11, Safari < 15.4) - not a concern for modern web apps
+  - Less flexibility than library solutions (though sufficient for our use cases)
+  - Manual focus management still required for optimal UX (though native dialog handles basic trapping)
+  - Styling requires understanding of `::backdrop` pseudo-element and dialog positioning quirks
+
+### Future Considerations
+
+- If we need more advanced modal features (animations, complex positioning, nested modals), we may need to reconsider this decision
+- For now, native `<dialog>` meets all current requirements and aligns with our goal of minimal dependencies
+
+---
+
+## ADR-028: Response Data Model - Preserving Generated Text
+
+**Status:** Accepted
+
+### Context
+
+When users edit AI-generated responses before publishing, we need to track both the original AI-generated text and the user's edited version. This data model affects how we display response history, analyze edit patterns, and potentially regenerate responses in the future.
+
+### Decision
+
+Store three separate text fields in the `responses` table:
+- `generated_text`: The original AI-generated response (never overwritten)
+- `edited_text`: The user's edited version (only set if user made changes, null otherwise)
+- `final_text`: The text that was actually published to Google (always set on publish)
+
+When publishing a response:
+- If a response record already exists: preserve `generated_text`, set `edited_text` only if the published text differs from `generated_text`, set `final_text` to the published content
+- If no response record exists: set both `generated_text` and `final_text` to the published content (edge case: direct publish without generation)
+
+### Rationale
+
+- **Audit trail:** Preserving `generated_text` allows us to see what the AI originally suggested, enabling analysis of edit patterns and AI quality
+- **Edit detection:** Comparing `final_text` to `generated_text` determines if edits were made (if different, set `edited_text`)
+- **Data integrity:** Never overwriting `generated_text` prevents data loss if a user publishes, then wants to see the original AI suggestion
+- **Future features:** Enables potential features like "revert to original AI response" or "show what changed" diff views
+- **Analytics:** Can analyze how often users edit AI responses and what types of changes they make
+- **Regeneration support:** If we add "regenerate response" feature, we can compare new generations to the original
+
+### Alternatives Considered
+
+1. **Single text field with edit flag**
+   - Store only `response_text` and a boolean `was_edited` flag
+   - Pros: Simpler schema, less storage
+   - Cons: Loses original AI text, can't show "revert to original" or diff views
+
+2. **Version history table**
+   - Store each version of the response in a separate `response_versions` table
+   - Pros: Complete history, supports multiple edits
+   - Cons: Overkill for MVP, adds complexity, most responses won't have multiple versions
+
+3. **Overwrite generated_text on edit**
+   - Update `generated_text` when user edits, losing original
+   - Pros: Simpler logic, single source of truth
+   - Cons: Loses audit trail, can't analyze AI quality or edit patterns
+
+4. **JSON field with versions**
+   - Store `{ original: "...", edited: "...", published: "..." }` in a JSON column
+   - Pros: Flexible, single field
+   - Cons: Less queryable, harder to index, type safety concerns
+
+### Implementation Details
+
+The publish endpoint (`POST /api/reviews/[reviewId]/publish`) implements this logic:
+
+```typescript
+// Check if text was edited (only set edited_text if different from generated)
+const wasEdited = existingResponse
+  ? responseText !== existingResponse.generated_text
+  : false;
+
+// Update existing response - preserve generated_text
+await supabase
+  .from("responses")
+  .update({
+    edited_text: wasEdited ? responseText : null,
+    final_text: responseText,
+    status: "published",
+    published_at: now,
+  })
+  .eq("id", existingResponse.id);
+```
+
+### Consequences
+
+- **Positive:**
+  - Complete audit trail of AI suggestions vs user edits
+  - Enables future features (revert, diff views, analytics)
+  - No data loss when users edit responses
+  - Clear separation of concerns (generated vs edited vs published)
+
+- **Negative:**
+  - Slightly more complex database schema (three text fields instead of one)
+  - Additional logic to determine if edits were made
+  - More storage required (though text is relatively small)
+  - Must handle null `edited_text` in queries and UI
+
+### Future Considerations
+
+- If we add "regenerate response" feature, we may want to track multiple generations (e.g., `generated_text_v1`, `generated_text_v2`)
+- For now, single `generated_text` is sufficient; we can extend the schema later if needed
+- Consider adding a `edited_at` timestamp if we want to track when edits were made (currently only `published_at` is tracked)
 
 ---
 

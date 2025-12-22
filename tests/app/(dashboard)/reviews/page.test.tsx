@@ -99,18 +99,24 @@ function createMockSupabaseClient(options: MockClientOptions = {}) {
           data: reviews,
           error: reviewsError,
         });
-        // Create an object with chainable query builder methods
-        const mockQuery = {
+        // Create chainable query builder methods
+        const chainableMethods = {
           in: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
           range: vi.fn().mockReturnThis(),
         };
-        // Attach Promise methods that delegate to the underlying Promise
-        Object.assign(mockQuery, {
-          then: promise.then.bind(promise),
-          catch: promise.catch.bind(promise),
-          finally: promise.finally.bind(promise),
+        // Create a Proxy that makes the object thenable without explicitly adding 'then'
+        // This satisfies Biome's noThenProperty rule while maintaining Promise compatibility
+        const mockQuery = new Proxy(chainableMethods, {
+          get(target, prop) {
+            // Forward Promise methods to the underlying promise
+            if (prop === "then" || prop === "catch" || prop === "finally") {
+              return promise[prop].bind(promise);
+            }
+            // Return chainable methods or other properties
+            return target[prop as keyof typeof target];
+          },
         });
         return {
           select: vi.fn().mockReturnValue(mockQuery),
