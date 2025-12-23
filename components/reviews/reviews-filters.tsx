@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 interface ReviewsFiltersProps {
   currentStatus?: string | null | undefined;
@@ -27,6 +27,14 @@ export function ReviewsFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const latestParamsRef = useRef<string | null>(null);
+
+  // Keep an up-to-date snapshot of the current query string so that consecutive
+  // filter changes compose correctly (including in tests where router.push doesn't
+  // update useSearchParams()).
+  useEffect(() => {
+    latestParamsRef.current = searchParams.toString();
+  }, [searchParams]);
 
   // Derive base path: prop > pathname > fallback
   // Remove query string, trim trailing slashes, ensure it starts with /
@@ -41,7 +49,8 @@ export function ReviewsFilters({
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const baseQuery = latestParamsRef.current ?? searchParams.toString();
+      const params = new URLSearchParams(baseQuery);
 
       // Remove param if "all" option selected, otherwise set the value
       if (value === "all" || value === "") {
@@ -57,6 +66,7 @@ export function ReviewsFilters({
       const url = queryString
         ? `${derivedBasePath}?${queryString}`
         : derivedBasePath;
+      latestParamsRef.current = params.toString();
       router.push(url);
     },
     [router, searchParams, derivedBasePath],

@@ -9,6 +9,8 @@
 
 -- Create backup of rows to be deleted (timestamped for safety)
 -- This backup contains all duplicate responses that will be removed
+-- NOTE: Only responses with non-null review_id are considered for deduplication.
+-- Orphaned responses (review_id IS NULL) are preserved and not included in backup.
 DO $$
 DECLARE
     backup_table_name TEXT;
@@ -17,16 +19,18 @@ BEGIN
     backup_table_name := 'responses_duplicates_backup_' || to_char(now(), 'YYYY_MM_DD_HH24_MI_SS');
 
     -- Create backup table with rows that will be deleted
+    -- Only includes duplicate responses with non-null review_id
     EXECUTE format('
         CREATE TABLE %I AS
         SELECT *
         FROM responses
-        WHERE id NOT IN (
+        WHERE review_id IS NOT NULL
+          AND id NOT IN (
             SELECT DISTINCT ON (review_id) id
             FROM responses
             WHERE review_id IS NOT NULL
             ORDER BY review_id, created_at DESC
-        )', backup_table_name);
+          )', backup_table_name);
 
     -- Log backup creation (visible in migration logs)
     RAISE NOTICE 'Backup created: %. Review this table before dropping after migration verification.', backup_table_name;
@@ -35,13 +39,16 @@ END $$;
 -- First, handle any existing duplicates by keeping only the most recent response per review
 -- This is a safety measure in case duplicates already exist
 -- NOTE: This DELETE is destructive. The backup above preserves deleted rows for recovery if needed.
+-- NOTE: Only deletes duplicate responses with non-null review_id. Orphaned responses
+-- (review_id IS NULL) are preserved and not affected by this migration.
 DELETE FROM responses
-WHERE id NOT IN (
+WHERE review_id IS NOT NULL
+  AND id NOT IN (
     SELECT DISTINCT ON (review_id) id
     FROM responses
     WHERE review_id IS NOT NULL
     ORDER BY review_id, created_at DESC
-);
+  );
 
 -- Add UNIQUE constraint on review_id
 -- This will prevent concurrent inserts from creating duplicate responses

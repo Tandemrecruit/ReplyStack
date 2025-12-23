@@ -380,7 +380,7 @@ export function ToneQuiz({ onComplete, onClose }: ToneQuizProps) {
         <button
           type="button"
           onClick={handleNext}
-          disabled={isGenerating || selectedAnswerIds.length === 0}
+          disabled={isGenerating}
           className="px-4 py-2 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ml-auto"
         >
           {currentQuestionIndex === QUIZ_QUESTIONS.length - 1

@@ -337,7 +337,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(`Tone quiz generation error [requestId: ${requestId}]:`, error);
+    console.error(
+      `Tone quiz generation error [requestId: ${requestId}]:`,
+      error,
+    );
     return NextResponse.json(
       { error: "Failed to generate custom tone" },
       { status: 500 },

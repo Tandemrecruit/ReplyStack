@@ -92,9 +92,9 @@ const TIER_CONFIG = {
  * - Handles clock skew and delayed executions gracefully
  * - Acceptable duplicate processing is safe due to idempotent review upserts
  *
- * - 'agency' (highest tier): processes every ~5 minutes
- * - 'growth' (mid tier): processes every ~10 minutes
- * - 'starter' (low tier): processes every ~15 minutes
+ * - 'agency' (highest tier): approximately every 5 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ * - 'growth' (mid tier): approximately every 10 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ * - 'starter' (low tier): approximately every 15 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
  *
  * @param planTier - The organization's plan tier ('agency', 'growth', 'starter', or null for starter)
  * @param currentTime - Current timestamp (for testing)
@@ -156,9 +156,9 @@ function shouldProcessForTier(
  * This handler is intended to run as a cron job (configured to run every 5 minutes) and will:
  * - verify an optional cron secret for authorization,
  * - fetch active locations and filter them based on organization plan tier:
- *   - 'agency' tier: processes every run (every 5 minutes)
- *   - 'growth' tier: processes every 2nd run (every 10 minutes)
- *   - 'starter' tier: processes every 3rd run (every 15 minutes)
+ *   - 'agency' tier: approximately every 5 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ *   - 'growth' tier: approximately every 10 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ *   - 'starter' tier: approximately every 15 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
  * - fetch associated users with Google refresh tokens for filtered locations,
  * - refresh access tokens per user and fetch reviews for each of their locations,
  * - upsert retrieved reviews (deduplicated by external_review_id) and infer sentiment from rating,

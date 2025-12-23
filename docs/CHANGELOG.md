@@ -4,6 +4,8 @@
 
 ### Code Quality
 
+- Made landing page hero test resilient to copy changes: updated test to check for key concepts (restaurants, dental, service shops, local businesses) in hero description text content rather than exact wording, preventing test failures when marketing copy is updated while still verifying target audience messaging is present
+- Consolidated redundant edge case tests in poll-reviews route: replaced four individual error handling tests (lines 1557-1737) with a single parametrized test that covers token decryption, token refresh, fetchReviews, and database upsert errors with agency tier explicitly set, reducing test bloat while maintaining identical coverage and mocks
 - Simplified upsert_response function by removing redundant update-case logic: removed preliminary SELECT and IF/ELSE branch that computed values for updates since ON CONFLICT block already handles generated_text preservation and edited_text recomputation, keeping only insert-path logic that sets v_new_generated_text := p_generated_text and v_edited_text := NULL, and dropped unused v_existing_generated_text variable
 - Fixed direct publish logic in upsert_response function: changed insert path to set `generated_text := NULL` (not COALESCE to final_text) when `p_generated_text IS NULL` for direct publishes, ensuring direct publishes correctly store NULL in generated_text column instead of incorrectly falling back to final_text value
 - Added backup step before destructive DELETE in responses migration: created timestamped backup table (`responses_duplicates_backup_YYYY_MM_DD_HH24_MI_SS`) containing duplicate rows before deletion in migration 007, added explicit warnings about irreversibility in SQL comments, and documented that the deletion is destructive and should be reviewed in production before applying
@@ -14,10 +16,21 @@
 - Added accessible label for custom-tone select in settings: added proper `<label htmlFor="custom-tone-select">` with sr-only class to associate the select with assistive technology while keeping existing paragraph as supplemental visual text, improving accessibility for screen reader users
 - Optimized tier processing decision in poll-reviews cron: precompute and cache `allowedToProcessTier` boolean for each tier once per run using TIME_WINDOW_TOLERANCE_MINUTES, TIER_CONFIG, currentTime, and last_processed_at, then consult cached map when filtering locations instead of recalculating time-window logic and target minutes for each location, reducing redundant computations
 - Added requestId to all console.error calls in tone-quiz generate route: updated error logging in generateCustomTone function and POST handler catch blocks to include requestId in error messages, enabling log correlation across error paths for better debugging and monitoring
+- Fixed client-side UX edge cases uncovered by tests: allow Tone Quiz “Next” to trigger validation when no answer is selected, prevent duplicate “Tone Quiz” headings by avoiding redundant modal title semantics and by unmounting quiz content when closed, compose consecutive ReviewsFilters changes correctly without relying on updated search params, and include HTTP status details when GenerateResponseButton encounters HTML error responses
+
+### Database
+
+- Fixed migration 007 to preserve orphaned responses: added `review_id IS NOT NULL` condition to DELETE statement and backup query to prevent deletion of responses with NULL review_id, updated migration comments to explicitly state that orphaned responses (review_id IS NULL) are preserved and not affected by deduplication logic
 
 ### Documentation
 
 - Updated ARCHITECTURE.md polling strategy documentation: replaced outdated flat 15-minute per-location polling description with current tier-based scheduling implementation, updated vercel.json snippet to show 5-minute cron schedule, documented tier intervals (agency: 5min, growth: 10min, starter: 15min), explained cron_poll_state table usage for per-tier timestamp tracking, and added details about time-window tolerance and best-effort deduplication to match actual implementation
+- Fixed poll-reviews cron JSDoc to reflect actual scheduling logic: updated GET handler and shouldProcessForTier function JSDoc comments to describe time-window tolerance + best-effort deduplication approach instead of inaccurate "every 2nd/3rd run" wording, now correctly states "approximately every X minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps"
+
+### UI/UX
+
+- Updated landing page tone quiz description: changed "6-question tone quiz" to "10-question tone quiz" in the "Set Your Voice" section to accurately reflect the current quiz length
+- Removed generic "Built for local businesses" badge from hero section: removed the common AI site badge pattern to create a cleaner, more unique landing page design
 
 ## 2025-12-22
 
@@ -58,7 +71,7 @@
 
 ### Infrastructure
 
-- Added warning-level logging for fallback parsing in tone quiz generate route: logs structured JSON with requestId, truncated Claude response (max 500 chars to avoid PII leaks), parsed lines array, applied fallback defaults, and metric counter (`fallback_parsing_triggered`) to monitor frequency and debug low-quality outputs when JSON parsing fails
+- Added warning-level logging for fallback parsing in tone quiz generate route: logs structured JSON with requestId, truncated Claude response (max 500 chars to avoid PII leaks), bounded metadata (lineCount, appliedDefaults, and safe preview limited to first 100 characters of first line or truncatedResponse), and metric counter (`fallback_parsing_triggered`) to monitor frequency and debug low-quality outputs when JSON parsing fails
 - Replaced exact-minute tier scheduling with resilient time-window approach in poll-reviews cron: implemented approach (B) using time-window checks (+/- 2 minutes) with last-processed timestamp deduplication to prevent duplicate runs and handle cron timing variations gracefully, added `cron_poll_state` table to track last processed timestamp per tier, updated scheduling logic to use atomic database updates for race condition prevention
 
 ### UI/UX

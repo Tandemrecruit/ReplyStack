@@ -38,8 +38,13 @@ describe("app/page (Landing Page)", () => {
     expect(
       screen.getByRole("heading", { name: /respond to every review/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Owner-quality replies/i)).toBeInTheDocument();
-    expect(screen.getByText(/built for local businesses/i)).toBeInTheDocument();
+    const heroDescription = screen.getByText(/Owner-quality replies/i);
+    expect(heroDescription).toBeInTheDocument();
+    // Verify target audience is mentioned in hero description (flexible to copy changes)
+    const descriptionText = heroDescription.textContent || "";
+    expect(descriptionText).toMatch(
+      /(restaurants|dental|service shops|local businesses)/i,
+    );
 
     // Key CTAs
     const trialLinks = screen.getAllByRole("link", {

@@ -74,11 +74,14 @@ export function GenerateResponseButton({
             errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
           }
         } else {
+          const isHtml = contentType?.includes("text/html");
           // Not JSON (e.g., HTML error page), try to read as text
           try {
             const errorText = await response.text();
-            // Only use text if it's short and seems meaningful
+            // For HTML responses, always include status (tests + real-world debugging).
+            // For other text responses, only use body if it's short and meaningful.
             if (
+              !isHtml &&
               errorText.length > 0 &&
               errorText.length < 200 &&
               !errorText.startsWith("<")

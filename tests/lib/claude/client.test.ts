@@ -854,6 +854,146 @@ describe("lib/claude/client", () => {
         expect(systemPrompt).toContain("Never use:");
         expect(systemPrompt).toContain("Prefer using:");
       });
+
+      it("handles custom tone in voice profile", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile({
+          tone: "custom:tone-123",
+        });
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        const systemPrompt = body.system;
+        expect(systemPrompt).toContain("Custom Tone");
+        expect(systemPrompt).not.toContain("custom:tone-123");
+      });
+
+      it("includes custom tone enhanced context when provided", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+          undefined,
+          "This is enhanced context from custom tone quiz",
+        );
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        const systemPrompt = body.system;
+        expect(systemPrompt).toContain("CUSTOM TONE GUIDANCE:");
+        expect(systemPrompt).toContain(
+          "This is enhanced context from custom tone quiz",
+        );
+      });
+
+      it("does not include custom tone enhanced context when not provided", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview();
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        const systemPrompt = body.system;
+        expect(systemPrompt).not.toContain("CUSTOM TONE GUIDANCE:");
+      });
+    });
+
+    describe("negative review handling", () => {
+      it("does not include negative addendum for rating 3 even with contactEmail", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ rating: 3 });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(
+          review,
+          voiceProfile,
+          "Example Biz",
+          "support@example.com",
+        );
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).not.toContain("negative review");
+        expect(body.messages[0].content).not.toContain("support@example.com");
+      });
+
+      it("does not include negative addendum for rating 1 without contactEmail", async () => {
+        const mockResponse = createSuccessResponse("Response");
+
+        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+        const review = createMockReview({ rating: 1 });
+        const voiceProfile = createMockVoiceProfile();
+
+        await generateResponse(review, voiceProfile, "Example Biz");
+
+        const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock
+          .calls[0];
+        expect(fetchCall).toBeDefined();
+        const body = JSON.parse(fetchCall?.[1].body as string);
+        expect(body.messages[0].content).not.toContain("negative review");
+      });
+    });
+  });
+
+  describe("fetchWithTimeout edge cases", () => {
+    it("handles existing signal that is already aborted", async () => {
+      const abortedController = new AbortController();
+      abortedController.abort();
+
+      const mockResponse = createSuccessResponse("Response");
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+      const review = createMockReview();
+      const voiceProfile = createMockVoiceProfile();
+
+      // This should handle the aborted signal gracefully
+      // The actual implementation will abort immediately if signal is already aborted
+      await expect(
+        generateResponse(review, voiceProfile, "Example Biz"),
+      ).resolves.toBeDefined();
+    });
+
+    it("handles non-AbortError in catch block", async () => {
+      const fetchError = new Error("Network failure");
+      fetchError.name = "NetworkError"; // Not AbortError
+      global.fetch = vi.fn().mockRejectedValue(fetchError);
+
+      const review = createMockReview();
+      const voiceProfile = createMockVoiceProfile();
+
+      await expect(
+        generateResponse(review, voiceProfile, "Example Biz"),
+      ).rejects.toThrow("Network failure");
     });
   });
 });

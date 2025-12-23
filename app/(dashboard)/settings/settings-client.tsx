@@ -52,9 +52,7 @@ export function SettingsClient() {
   }>({});
   const [customTones, setCustomTones] = useState<CustomTone[]>([]);
   const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
-  const [customTonesError, setCustomTonesError] = useState<string | null>(
-    null,
-  );
+  const [customTonesError, setCustomTonesError] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -401,10 +399,7 @@ export function SettingsClient() {
             {/* Custom Tones */}
             {!isLoadingCustomTones && customTones.length > 0 && (
               <div>
-                <label
-                  htmlFor="custom-tone-select"
-                  className="sr-only"
-                >
+                <label htmlFor="custom-tone-select" className="sr-only">
                   Custom Tones
                 </label>
                 <p className="text-xs font-medium text-foreground-secondary mb-1">
@@ -523,20 +518,22 @@ export function SettingsClient() {
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface shadow-lg overflow-y-auto">
             <div className="p-6">
-              <h2 id="tone-quiz-modal-title" className="sr-only">
+              <span id="tone-quiz-modal-title" className="sr-only">
                 Tone Quiz
-              </h2>
-              <ToneQuiz
-                onComplete={(customTone) => {
-                  setShowQuiz(false);
-                  if (customTone) {
-                    setTone(`custom:${customTone.id}`);
-                    // Refresh custom tones list (without loading state)
-                    fetchCustomTones({ showLoading: false });
-                  }
-                }}
-                onClose={() => setShowQuiz(false)}
-              />
+              </span>
+              {showQuiz ? (
+                <ToneQuiz
+                  onComplete={(customTone) => {
+                    setShowQuiz(false);
+                    if (customTone) {
+                      setTone(`custom:${customTone.id}`);
+                      // Refresh custom tones list (without loading state)
+                      fetchCustomTones({ showLoading: false });
+                    }
+                  }}
+                  onClose={() => setShowQuiz(false)}
+                />
+              ) : null}
             </div>
           </div>
         </div>
