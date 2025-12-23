@@ -1900,6 +1900,18 @@ describe("GET /api/cron/poll-reviews", () => {
             }),
           };
         }
+        if (table === "cron_poll_state") {
+          return {
+            select: vi.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+            upsert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          };
+        }
         return {};
       });
 

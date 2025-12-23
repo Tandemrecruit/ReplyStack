@@ -1174,13 +1174,15 @@ When users edit AI-generated responses before publishing, we need to track both 
 ### Decision
 
 Store three separate text fields in the `responses` table:
-- `generated_text`: The original AI-generated response (never overwritten)
+- `generated_text`: The original AI-generated response (nullable: null for direct publishes, contains AI text for AI-generated responses, never overwritten once set)
 - `edited_text`: The user's edited version (only set if user made changes, null otherwise)
 - `final_text`: The text that was actually published to Google (always set on publish)
 
 When publishing a response:
-- If a response record already exists: preserve `generated_text`, set `edited_text` only if the published text differs from `generated_text`, set `final_text` to the published content
-- If no response record exists: set both `generated_text` and `final_text` to the published content (edge case: direct publish without generation)
+- If a response record already exists: preserve `generated_text` (never overwrite), set `edited_text` only if the published text differs from `generated_text`, set `final_text` to the published content
+- If no response record exists (new publish):
+  - If response was AI-generated: set `generated_text` to the AI text, set `final_text` to published content
+  - If response was direct publish (no AI): set `generated_text` to null, set `final_text` to published content
 
 ### Rationale
 
@@ -1254,6 +1256,207 @@ await supabase
 - If we add "regenerate response" feature, we may want to track multiple generations (e.g., `generated_text_v1`, `generated_text_v2`)
 - For now, single `generated_text` is sufficient; we can extend the schema later if needed
 - Consider adding a `edited_at` timestamp if we want to track when edits were made (currently only `published_at` is tracked)
+
+### Update (Dec 2025)
+
+The `generated_text` field was made nullable to distinguish between AI-generated responses and direct publishes (user-written responses without AI generation). This enables accurate analytics and reporting on response origin. Direct publishes have `generated_text = null`, while AI-generated responses preserve the generated text.
+
+---
+
+## ADR-029: Custom Tones Architecture
+
+**Status:** Accepted
+
+### Context
+
+Users need personalized communication tones beyond the standard options (Warm, Direct, Professional, Friendly, Casual). An interactive quiz can help users discover their ideal tone, and AI can generate custom tones based on quiz responses that better match their business personality.
+
+### Decision
+
+Implement a custom tones system with:
+- **Tone Quiz:** 10-question interactive quiz (single-select and multi-select) that captures user preferences
+- **AI Generation:** Use Claude AI to generate personalized tone name, description, and enhanced context from quiz responses
+- **Database Storage:** Store custom tones in `custom_tones` table with `organization_id`, `name`, `description`, `enhanced_context`, and `quiz_responses` (JSONB)
+- **Tone Selection:** Custom tones appear in tone selectors with format `custom:{uuid}` and are displayed as `{name} - {description}`
+- **Integration:** Custom tone `enhanced_context` is included in AI prompts when generating review responses
+
+### Rationale
+
+- **Personalization:** Standard tones may not match every business's unique voice; custom tones provide flexibility
+- **Discovery:** Interactive quiz helps users identify their communication style preferences
+- **AI Enhancement:** Claude-generated enhanced context provides richer guidance for response generation than standard tones
+- **Organization-scoped:** Custom tones belong to organizations, allowing team members to share the same voice
+- **Backward Compatible:** Standard tones remain available; custom tones extend rather than replace existing options
+
+### Alternatives Considered
+
+1. **User-defined tone names only**
+   - Pros: Simpler, no AI generation needed
+   - Cons: No enhanced context for AI prompts, less personalized
+
+2. **Pre-defined industry tones**
+   - Pros: Faster to implement, no quiz needed
+   - Cons: Less personalized, doesn't capture individual business nuances
+
+3. **Free-text tone description**
+   - Pros: Maximum flexibility
+   - Cons: Inconsistent quality, harder to use in AI prompts, no structured data
+
+4. **Multiple custom tones per organization**
+   - Pros: More flexibility (e.g., one tone per location)
+   - Cons: Adds complexity, not needed for MVP (single voice per organization)
+
+### Implementation Details
+
+- **Quiz Component:** `components/voice-profile/tone-quiz.tsx` - React component with progress tracking, question navigation, and result display
+- **API Endpoint:** `POST /api/tone-quiz/generate` - Validates quiz answers, calls Claude AI, saves custom tone to database
+- **Shared Questions:** `lib/quiz/questions.ts` - Centralized quiz questions and answer definitions
+- **Database:** `custom_tones` table with organization foreign key, JSONB for quiz responses
+- **Tone Format:** Custom tones use `custom:{uuid}` format to distinguish from standard tones (e.g., `custom:123e4567-e89b-12d3-a456-426614174000`)
+
+### Consequences
+
+- **Positive:**
+  - More personalized response generation
+  - Better user experience with interactive discovery
+  - Extensible system (can add more quiz questions or generation logic)
+  - Enhanced context improves AI response quality
+
+- **Negative:**
+  - Additional database table and API endpoint
+  - AI generation cost per custom tone creation (~$0.001 per tone)
+  - More complex tone selection UI (standard vs custom sections)
+  - Requires validation of custom tone UUID format in voice profile constraints
+
+---
+
+## ADR-030: Tier-Based Cron Polling with Time-Window Approach
+
+**Status:** Accepted
+
+### Context
+
+Different subscription tiers should receive different review polling frequencies (higher tiers = more frequent polling). Cron jobs may run slightly early or late due to timing variations, and we need to prevent duplicate processing while handling these variations gracefully.
+
+### Decision
+
+Implement tier-based polling with a resilient time-window approach:
+- **Tier Intervals:** Starter (15 min), Growth (10 min), Agency (5 min)
+- **Time-Window Tolerance:** Accept runs within +/- 2 minutes of target interval
+- **Deduplication:** Track `last_processed_at` timestamp per tier in `cron_poll_state` table
+- **Best-Effort Deduplication:** Use timestamp checks to minimize duplicates, but accept that overlapping runs may process the same tier (safe because review upserts are idempotent)
+- **Atomic Updates:** Use database atomic updates for `last_processed_at` to prevent race conditions
+
+### Rationale
+
+- **Tier Differentiation:** Provides value differentiation between subscription tiers
+- **Resilient to Timing Variations:** Time-window approach handles cron timing variations (early/late runs) gracefully
+- **Idempotent Operations:** Review upserts by `external_review_id` are idempotent, making occasional duplicate processing safe
+- **Best-Effort Deduplication:** Simpler than strict locking mechanisms, sufficient for our scale
+- **Atomic Updates:** Database-level atomicity prevents race conditions in timestamp updates
+
+### Alternatives Considered
+
+1. **Exact minute alignment**
+   - Pros: Simpler logic, no timestamp tracking needed
+   - Cons: Fails if cron runs early/late, brittle to timing variations
+
+2. **Distributed locking (Redis, etc.)**
+   - Pros: Strict single-run guarantees
+   - Cons: Additional infrastructure, complexity, overkill for current scale
+
+3. **Single polling interval for all tiers**
+   - Pros: Simpler implementation
+   - Cons: No tier differentiation, can't provide value to higher tiers
+
+4. **Separate cron jobs per tier**
+   - Pros: Clear separation, easier to monitor
+   - Cons: More cron jobs to manage, harder to coordinate
+
+### Implementation Details
+
+- **Database Table:** `cron_poll_state` with `tier` (PRIMARY KEY), `last_processed_at`, `updated_at`
+- **Scheduling Logic:** `shouldProcessForTier()` function checks time window and minimum interval since last processing
+- **Cron Schedule:** Single cron job runs every 5 minutes, filters locations by tier and processes eligible tiers
+- **Atomic Updates:** Database `UPDATE ... WHERE` with timestamp check ensures only one run updates per tier
+
+### Consequences
+
+- **Positive:**
+  - Provides tier differentiation value
+  - Resilient to cron timing variations
+  - Simple implementation without external dependencies
+  - Acceptable duplicate processing is safe due to idempotent operations
+
+- **Negative:**
+  - Not strictly single-run (overlapping runs may both process same tier)
+  - Requires `cron_poll_state` table maintenance
+  - More complex scheduling logic than fixed intervals
+  - Time-window tolerance may allow slightly more frequent processing than intended
+
+---
+
+## ADR-031: Atomic Upsert for Response Publishing
+
+**Status:** Accepted
+
+### Context
+
+Multiple concurrent publish requests for the same review can create race conditions, resulting in duplicate response records or lost data. We need to ensure only one response exists per review at the database level, even when multiple requests arrive simultaneously.
+
+### Decision
+
+Implement atomic upsert for response publishing using:
+- **UNIQUE Constraint:** `UNIQUE(review_id)` on `responses` table ensures database-level uniqueness
+- **Database Function:** `upsert_response()` PostgreSQL function with `ON CONFLICT` handling
+- **Atomic Operation:** Single database call handles both insert and update cases atomically
+- **Data Preservation:** Function preserves `generated_text` on update, sets `edited_text` appropriately, and handles both new and existing responses
+
+### Rationale
+
+- **Database-Level Guarantee:** UNIQUE constraint prevents duplicates at the database level, not just application level
+- **Atomic Operation:** Database function ensures single atomic transaction, preventing race conditions
+- **Simpler Application Logic:** Application code doesn't need to handle "check then insert/update" race conditions
+- **Data Integrity:** Preserves `generated_text` correctly in all scenarios (new response, update existing, direct publish)
+- **Idempotent:** Multiple concurrent requests result in same final state
+
+### Alternatives Considered
+
+1. **Application-level check-then-insert/update**
+   - Pros: Simpler database schema
+   - Cons: Race conditions possible, requires transaction handling, more complex application code
+
+2. **Optimistic locking (version numbers)**
+   - Pros: Detects conflicts
+   - Cons: Requires retry logic, more complex, doesn't prevent duplicates
+
+3. **Distributed locking (Redis, etc.)**
+   - Pros: Strict single-operation guarantee
+   - Cons: Additional infrastructure, complexity, overkill for current scale
+
+4. **Separate insert and update endpoints**
+   - Pros: Clear separation of concerns
+   - Cons: Application must determine which to call, race conditions still possible
+
+### Implementation Details
+
+- **Database Function:** `upsert_response(p_review_id, p_generated_text, p_final_text, p_status, p_published_at)` with `ON CONFLICT (review_id) DO UPDATE`
+- **Conflict Handling:** On conflict, preserves existing `generated_text`, updates `edited_text` only if `final_text` differs from `generated_text`, updates `final_text` and `status`
+- **Direct Publish Support:** Handles both AI-generated responses (with `generated_text`) and direct publishes (with `generated_text = null`)
+- **API Integration:** `POST /api/reviews/[reviewId]/publish` calls `supabase.rpc('upsert_response', ...)` instead of separate insert/update logic
+
+### Consequences
+
+- **Positive:**
+  - Prevents duplicate response records at database level
+  - Eliminates race conditions in concurrent publish scenarios
+  - Simpler application code (single database call)
+  - Guaranteed data integrity and consistency
+
+- **Negative:**
+  - Requires database function maintenance
+  - Less flexible than application-level logic (changes require migration)
+  - Database-specific (PostgreSQL) solution (not portable to other databases)
 
 ---
 

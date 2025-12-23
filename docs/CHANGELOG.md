@@ -2,36 +2,62 @@
 
 ## 2025-12-22
 
+### Documentation
+
+- Updated API.md with missing endpoints: added comprehensive documentation for GET/POST /api/locations, GET /api/custom-tones, POST /api/tone-quiz/generate, GET/PUT /api/notifications, and PUT /api/voice-profile endpoints with request/response formats and error codes
+- Updated ARCHITECTURE.md database schema: added custom_tones, notification_preferences, and cron_poll_state tables to schema documentation, updated responses table to show generated_text as nullable, added indexes for custom_tones table, and updated implementation status to reflect latest features
+- Created FEATURES.md: comprehensive feature documentation covering tone quiz, response editing modal, custom tones, notification preferences, location management, voice profile management, review polling, response generation, and response publishing with technical details, user flows, API endpoints, and database schemas
+- Updated SPEC.md: enhanced user flows to include response editing modal details, added detailed information about tone quiz features and custom tone generation, expanded response workflow documentation with accessibility features and error handling details
+- Updated README.md: added reference to new FEATURES.md documentation file in documentation section
+- Updated SETUP.md: updated status to reflect completion of custom tones, tone quiz, response editing modal, and notification preferences features
+- Updated DECISIONS.md: updated ADR-028 to reflect that generated_text is nullable (for direct publishes), added ADR-029 for custom tones architecture, added ADR-030 for tier-based cron polling with time-window approach, and added ADR-031 for atomic upsert for response publishing
+
+## 2025-12-22
+
+### Security
+
+- Fixed PII exposure in tone quiz generate route fallback logging: removed `parsedLines` array (containing untruncated Claude response) from fallback log output, replaced with bounded metadata only (lineCount, appliedDefaults, and safe preview limited to first 100 characters of first line or truncatedResponse), ensuring no full or raw lines are emitted to logs to honor PII mitigation
+- Fixed concurrent publish race condition in `/api/reviews/[reviewId]/publish`: added UNIQUE constraint on `responses.review_id` and implemented atomic upsert using database function `upsert_response` with `ON CONFLICT` handling to prevent duplicate response records when multiple publish requests arrive simultaneously for the same review, ensuring one response per review at the database level
+
 ### Database
 
+- Fixed incorrect comment and added auto-update trigger for `cron_poll_state` table: corrected `tier` column comment to remove incorrect "or null" reference (tier is PRIMARY KEY and cannot be null) and list only valid values ('agency', 'growth', 'starter'), and added `update_cron_poll_state_updated_at` trigger that uses the existing `update_updated_at_column()` function to automatically maintain `updated_at` timestamp on row modifications
+- Made `organization_id` NOT NULL in `custom_tones` table: added NOT NULL constraint to prevent orphaned rows and ensure RLS policies work correctly, included pre-migration cleanup step to delete any existing rows with NULL organization_id before applying the constraint, and added defensive check to handle cases where table might exist from previous partial migrations
+- Added `updated_at` column and auto-update trigger to `custom_tones` table: added `updated_at TIMESTAMPTZ DEFAULT now()` column and created `update_custom_tones_updated_at` trigger that uses the existing `update_updated_at_column()` function to automatically maintain `updated_at` timestamp whenever a row is modified
+- Made `generated_text` nullable in `responses` table to distinguish AI-generated vs user-written responses: direct publishes (user-written) now have `generated_text` set to null, while AI-generated responses preserve the generated text, enabling accurate analytics and reporting on response origin
 - Enhanced custom tone validation in voice_profiles constraint: updated tone constraint to validate UUID format for custom tones (e.g., `custom:{uuid}`), ensuring the UUID portion matches standard format (8-4-4-4-12 hex digits with dashes) and total length is exactly 43 characters, preventing invalid values like `custom:abc` from being stored
 
 ### Code Quality
 
+- Preserved ClaudeAPIError type in tone quiz generate route: updated error handling to re-throw `ClaudeAPIError` instances instead of replacing them with generic `Error`, enabling downstream callers to access specific error status codes and type information for better error tracking and handling
+- Fixed CustomTone type to match nullable database column: updated `enhancedContext` field in `CustomTone` type from `string` to `string | null` to match the nullable `enhanced_context` database column, and updated `/api/custom-tones` and `/api/tone-quiz/generate` endpoints to explicitly preserve nulls in mapping (using `?? null` for clarity)
+- Clarified atomicity guarantees in poll-reviews cron route: updated doc comments to reflect "best-effort deduplication" rather than strict single-run guarantees, noting that overlapping cron invocations may both process the same tier if they read the same old last_processed_at before either completes, which is acceptable because review upserts are idempotent by external_review_id
+- Fixed dialog event handlers and focus management in settings tone quiz modal: changed dialog to always render (removed conditional rendering) and control visibility with `showModal()`/`close()`, consolidated event handlers and focus management into single effect that depends on `showQuiz`, ensuring ESC key and backdrop click handlers are properly attached and focus restoration works reliably
 - Fixed malformed tone display for custom tones in Claude client: changed logic to return "Custom Tone" label when tone starts with "custom:" prefix instead of replacing prefix and leaving ID suffix (e.g., "Custom Toneabc123"), ensuring proper nil-safe access and correct display in system prompts
-
 - Extracted shared CustomTone type definition: created `lib/types/custom-tone.ts` with consistent camelCase field names (`enhancedContext`, `createdAt`) matching API response format, updated `tone-quiz.tsx`, `settings-client.tsx`, and `voice-editor.tsx` to import and use the shared type, and updated `/api/tone-quiz/generate` to return `createdAt` for consistency with `/api/custom-tones` endpoint
-
 - Added convenience type aliases for frequently used database tables: added `User`, `Organization`, `OrganizationInsert`, `Response`, `ResponseInsert`, `LocationInsert`, and `VoiceProfileInsert` type aliases in `lib/supabase/types.ts` following existing pattern to improve type ergonomics across the codebase
-
-### Infrastructure
-
-- Added warning-level logging for fallback parsing in tone quiz generate route: logs structured JSON with requestId, truncated Claude response (max 500 chars to avoid PII leaks), parsed lines array, applied fallback defaults, and metric counter (`fallback_parsing_triggered`) to monitor frequency and debug low-quality outputs when JSON parsing fails
-
-### Code Quality
-
+- Added response validation in tone quiz component: added defensive checks to validate API response structure and required fields (id, name, description, enhancedContext, createdAt) with correct types before calling setGeneratedTone, sets user-friendly error messages and returns early if validation fails, ensuring UI remains stable when API returns malformed JSON or unexpected shapes without throwing errors
+- Added duplicate questionId validation in tone quiz generate route: added uniqueness check using Set to detect duplicate questionId values in answers array, returns 400 error with message "Duplicate answers for a question detected" when duplicates are found, ensuring each questionId appears at most once in the request
 - Enhanced input validation in tone quiz generate route: added comprehensive validation function that checks each answer object for valid questionId (matches QUIZ_QUESTIONS), ensures answerIds is a non-empty array, and validates all answerIds exist in the matched question's answers, with descriptive error messages (e.g., "Invalid question ID: X", "Missing answers for question X", "Invalid answer ID Y for question X") and short-circuit behavior on first invalid item
-
-### Code Quality
-
 - Fixed silent failure in publish route: added error handling for existing response query to properly handle Supabase query errors instead of treating them as "no existing response", preventing incorrect inserts and ensuring flow aborts on query failure
 - Extracted QUIZ_QUESTIONS array to shared module: moved duplicated quiz questions constant from `app/api/tone-quiz/generate/route.ts` and `components/voice-profile/tone-quiz.tsx` to `lib/quiz/questions.ts`, exported Question and QuizAnswer types, and updated both files to import from the shared module
 - Refactored tone quiz generate route to use shared Claude client: exported `callClaudeWithRetry` from `lib/claude/client.ts`, replaced duplicated `callClaudeForTone` function in `app/api/tone-quiz/generate/route.ts` with call to `callClaudeWithRetry`, and removed duplicated constants, timeout handling, fetch logic, and error parsing code to centralize retry behavior and error handling in the client module
 - Improved JSON extraction robustness in tone quiz generate route: replaced greedy regex `/\{[\s\S]*\}/` with brace-balancing extractor that correctly handles nested objects and finds the first complete JSON object, added error handling for parse failures, and updated Claude prompts to explicitly require only JSON output with no surrounding text to reduce parsing fragility
+- Extracted `fetchCustomTones` function to component scope: moved function from inside useEffect to component scope to eliminate code duplication, consolidated JSON parsing, Array.isArray check, setCustomTones, and error handling into single reusable function, replaced inline fetch chain in ToneQuiz onComplete callback with call to extracted function, added optional `showLoading` parameter to control loading state display
+- Improved error handling for custom tones loading: updated `fetchCustomTones` to display user-facing error messages via status UI, reset custom tones to empty array on failure to avoid stale data, and handle both network errors and non-OK HTTP responses; also improved error handling in ToneQuiz onComplete callback for consistency
+- Normalized custom tone naming convention: updated `/api/custom-tones` to return `enhancedContext` (camelCase) instead of `enhanced_context` (snake_case) at API boundary, and updated `CustomTone` types in `settings-client.tsx` and `voice-editor.tsx` to use `enhancedContext` for consistency with `ToneQuiz` component
+- Completed custom tone API normalization: normalized `created_at` to `createdAt` in `/api/custom-tones` response and updated `CustomTone` types in `settings-client.tsx` and `voice-editor.tsx` to use `createdAt` for full camelCase consistency across all custom tone endpoints
+- Fixed TypeScript errors: added missing type exports (Review, ReviewInsert, VoiceProfile, Location, UserInsert) and custom_tones table definition to Database type, fixed currentQuestion undefined issues in tone-quiz component, and corrected Json type casting in tone-quiz generate route
 
 ### Infrastructure
 
+- Added warning-level logging for fallback parsing in tone quiz generate route: logs structured JSON with requestId, truncated Claude response (max 500 chars to avoid PII leaks), parsed lines array, applied fallback defaults, and metric counter (`fallback_parsing_triggered`) to monitor frequency and debug low-quality outputs when JSON parsing fails
 - Replaced exact-minute tier scheduling with resilient time-window approach in poll-reviews cron: implemented approach (B) using time-window checks (+/- 2 minutes) with last-processed timestamp deduplication to prevent duplicate runs and handle cron timing variations gracefully, added `cron_poll_state` table to track last processed timestamp per tier, updated scheduling logic to use atomic database updates for race condition prevention
+
+### UI/UX
+
+- Improved clarity of tone quiz question 2 answer 3: updated text from "Thank for feedback and invite private discussion" to "Thank them for the feedback and invite private discussion" for better readability
+- Added loading indicator for custom tones section in voice editor: renders skeleton placeholder grid (2-column layout matching button size) with animated pulse effect when isLoadingCustomTones is true, provides visual feedback during loading, and displays empty-state message when loading completes and no custom tones are available
 
 ### Accessibility
 
@@ -39,28 +65,9 @@
 - Fixed tone quiz modal to fully comply with ADR-027 pattern: removed redundant `role="dialog"` and `aria-modal="true"` attributes (implicit with native `<dialog>`), added `aria-labelledby` reference to hidden dialog title for proper accessibility, and added ADR-027 comment reference
 - Enhanced tone quiz answer button accessibility: added ARIA roles (`role="checkbox"` for multi-select, `role="radio"` for single-select), `aria-checked` attributes to expose selection state to screen readers, `aria-labelledby` references to answer text spans for accessible names, and marked decorative SVG icons as `aria-hidden="true"` to remove duplicate state announcements
 
-### Code Quality
-
-- Extracted `fetchCustomTones` function to component scope: moved function from inside useEffect to component scope to eliminate code duplication, consolidated JSON parsing, Array.isArray check, setCustomTones, and error handling into single reusable function, replaced inline fetch chain in ToneQuiz onComplete callback with call to extracted function, added optional `showLoading` parameter to control loading state display
-- Improved error handling for custom tones loading: updated `fetchCustomTones` to display user-facing error messages via status UI, reset custom tones to empty array on failure to avoid stale data, and handle both network errors and non-OK HTTP responses; also improved error handling in ToneQuiz onComplete callback for consistency
-
 ### Testing
 
 - Added tests for update path when response already exists in publish route: tests verify that when maybeSingle() returns an existing response, the update path is taken (preserving generated_text, setting edited_text when content differs, and setting edited_text to null when content matches)
-
-### Documentation
-
-- Updated ADR-020 to reflect actual implementation: corrected encryption utility location (`lib/crypto/encryption.ts`), IV storage format (embedded in payload vs separate column), environment variable name (`TOKEN_ENCRYPTION_KEY`), and plaintext column retention for backward compatibility
-- Updated documentation to reflect current implementation status: marked response editing modal and character/word count as complete in ROADMAP.md, updated SPEC.md to include word count and tone quiz features, updated README.md development status, and updated ARCHITECTURE.md implementation status section
-
-### Code Quality
-
-- Normalized custom tone naming convention: updated `/api/custom-tones` to return `enhancedContext` (camelCase) instead of `enhanced_context` (snake_case) at API boundary, and updated `CustomTone` types in `settings-client.tsx` and `voice-editor.tsx` to use `enhancedContext` for consistency with `ToneQuiz` component
-- Completed custom tone API normalization: normalized `created_at` to `createdAt` in `/api/custom-tones` response and updated `CustomTone` types in `settings-client.tsx` and `voice-editor.tsx` to use `createdAt` for full camelCase consistency across all custom tone endpoints
-- Fixed TypeScript errors: added missing type exports (Review, ReviewInsert, VoiceProfile, Location, UserInsert) and custom_tones table definition to Database type, fixed currentQuestion undefined issues in tone-quiz component, and corrected Json type casting in tone-quiz generate route
-
-### Testing
-
 - Added custom tone enhanced context tests for responses API route: tests verify that custom tones (e.g., `tone: "custom:uuid"`) properly fetch and pass enhanced_context value to generateResponse, including edge cases where custom tone has no enhanced_context or doesn't exist (both pass undefined)
 - Added tier-specific processing tests for poll-reviews cron route: tests verify starter tier (processes every 15 minutes), growth tier (processes every 10 minutes), and agency tier (processes every run) behavior using fake timers to control current minute
 - Fixed settings client test error message handling: improved JSON parsing error handling to properly check response.ok before showing error messages
@@ -68,9 +75,10 @@
 - Fixed cron poll-reviews route tests: added organizations table mock to test helper to support tier-based filtering logic, and added check to skip locations without id field to prevent errors
 - Fixed remaining 10 failing tests: updated all settings client tests to mock both /api/notifications and /api/custom-tones fetch calls that occur on component mount, and added organizations table mock to edge case test for locations without id field
 
-### Accessibility
+### Documentation
 
-- Fixed SVG accessibility issue in tone quiz component: added aria-label to checkmark icon for screen reader support
+- Updated ADR-020 to reflect actual implementation: corrected encryption utility location (`lib/crypto/encryption.ts`), IV storage format (embedded in payload vs separate column), environment variable name (`TOKEN_ENCRYPTION_KEY`), and plaintext column retention for backward compatibility
+- Updated documentation to reflect current implementation status: marked response editing modal and character/word count as complete in ROADMAP.md, updated SPEC.md to include word count and tone quiz features, updated README.md development status, and updated ARCHITECTURE.md implementation status section
 
 ### Features
 

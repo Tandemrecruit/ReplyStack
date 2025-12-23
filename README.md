@@ -105,6 +105,7 @@ ReplyStack/
 
 - [Architecture](./docs/ARCHITECTURE.md) - Technical architecture and database schema
 - [Specification](./docs/SPEC.md) - Product specification and user flows
+- [Features](./docs/FEATURES.md) - Detailed feature documentation (tone quiz, response editing, custom tones, etc.)
 - [Roadmap](./docs/ROADMAP.md) - Development roadmap and feature planning
 - [Prompts](./docs/PROMPTS.md) - AI prompt templates
 - [Decisions](./docs/DECISIONS.md) - Architecture decision records

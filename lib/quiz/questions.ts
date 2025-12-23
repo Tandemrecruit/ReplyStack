@@ -33,7 +33,10 @@ export const QUIZ_QUESTIONS: Question[] = [
     answers: [
       { id: 1, text: "Acknowledge concerns with empathy and offer solutions" },
       { id: 2, text: "Address issues directly and professionally" },
-      { id: 3, text: "Thank for feedback and invite private discussion" },
+      {
+        id: 3,
+        text: "Thank them for the feedback and invite private discussion",
+      },
       { id: 4, text: "Show understanding while maintaining brand voice" },
       { id: 5, text: "Keep it brief and move conversation offline" },
     ],

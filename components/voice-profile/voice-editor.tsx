@@ -218,6 +218,24 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
         </div>
 
         {/* Custom Tones */}
+        {isLoadingCustomTones && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-lg border border-border animate-pulse"
+                >
+                  <div className="h-5 bg-foreground-muted rounded mb-2 w-3/4" />
+                  <div className="h-4 bg-foreground-muted rounded w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {!isLoadingCustomTones && customTones.length > 0 && (
           <div>
             <p className="text-sm font-medium text-foreground-secondary mb-2">
@@ -253,6 +271,16 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
                 );
               })}
             </div>
+          </div>
+        )}
+        {!isLoadingCustomTones && customTones.length === 0 && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <p className="text-sm text-foreground-muted">
+              No custom tones available. Create one using the tone quiz.
+            </p>
           </div>
         )}
       </div>

@@ -8,6 +8,6 @@ export type CustomTone = {
   id: string;
   name: string;
   description: string;
-  enhancedContext: string;
+  enhancedContext: string | null;
   createdAt: string;
 };

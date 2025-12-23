@@ -187,7 +187,7 @@ export function SettingsClient() {
     fetchCustomTones();
   }, [fetchCustomTones]);
 
-  // Handle dialog open/close with focus management
+  // Handle dialog open/close, event handlers, and focus management
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -210,21 +210,17 @@ export function SettingsClient() {
         firstFocusable?.focus();
       });
     } else {
-      dialog.close();
-      // Restore focus to trigger element
+      // Restore focus to trigger element before closing
       if (triggerRef.current instanceof HTMLElement) {
-        requestAnimationFrame(() => {
-          triggerRef.current?.focus();
-        });
+        triggerRef.current.focus();
+      }
+      // Only close if the method exists (may not be available in test environment)
+      if (typeof dialog.close === "function") {
+        dialog.close();
       }
     }
-  }, [showQuiz]);
 
-  // Handle ESC key and backdrop click
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
+    // Attach event handlers for ESC key and backdrop click
     const handleCancel = (e: Event) => {
       e.preventDefault();
       setShowQuiz(false);
@@ -244,7 +240,7 @@ export function SettingsClient() {
       dialog.removeEventListener("cancel", handleCancel);
       dialog.removeEventListener("click", handleClick);
     };
-  }, []);
+  }, [showQuiz]);
 
   // Mark background content as aria-hidden when modal is open
   useEffect(() => {
@@ -499,35 +495,33 @@ export function SettingsClient() {
       </section>
 
       {/* Tone Quiz Modal - See ADR-027 for native dialog pattern */}
-      {showQuiz && (
-        <dialog
-          ref={dialogRef}
-          className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/50"
-          aria-labelledby="tone-quiz-modal-title"
-        >
-          {/* Centered content container */}
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface shadow-lg overflow-y-auto">
-              <div className="p-6">
-                <h2 id="tone-quiz-modal-title" className="sr-only">
-                  Tone Quiz
-                </h2>
-                <ToneQuiz
-                  onComplete={(customTone) => {
-                    setShowQuiz(false);
-                    if (customTone) {
-                      setTone(`custom:${customTone.id}`);
-                      // Refresh custom tones list (without loading state)
-                      fetchCustomTones({ showLoading: false });
-                    }
-                  }}
-                  onClose={() => setShowQuiz(false)}
-                />
-              </div>
+      <dialog
+        ref={dialogRef}
+        className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/50"
+        aria-labelledby="tone-quiz-modal-title"
+      >
+        {/* Centered content container */}
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-surface shadow-lg overflow-y-auto">
+            <div className="p-6">
+              <h2 id="tone-quiz-modal-title" className="sr-only">
+                Tone Quiz
+              </h2>
+              <ToneQuiz
+                onComplete={(customTone) => {
+                  setShowQuiz(false);
+                  if (customTone) {
+                    setTone(`custom:${customTone.id}`);
+                    // Refresh custom tones list (without loading state)
+                    fetchCustomTones({ showLoading: false });
+                  }
+                }}
+                onClose={() => setShowQuiz(false)}
+              />
             </div>
           </div>
-        </dialog>
-      )}
+        </div>
+      </dialog>
 
       {/* Notifications */}
       <section className="p-6 bg-surface rounded-lg border border-border">

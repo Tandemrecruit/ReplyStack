@@ -120,12 +120,38 @@ export function ToneQuiz({ onComplete, onClose }: ToneQuizProps) {
         throw new Error(data?.error ?? "Failed to generate custom tone");
       }
 
+      // Validate response structure and required fields
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !data.customTone ||
+        typeof data.customTone !== "object"
+      ) {
+        setError("Invalid response from server. Please try again.");
+        return;
+      }
+
+      const { customTone } = data;
+
+      // Validate required fields and their types
+      if (
+        typeof customTone.id !== "string" ||
+        typeof customTone.name !== "string" ||
+        typeof customTone.description !== "string" ||
+        (customTone.enhancedContext !== null &&
+          typeof customTone.enhancedContext !== "string") ||
+        typeof customTone.createdAt !== "string"
+      ) {
+        setError("Invalid response format. Please try again.");
+        return;
+      }
+
       setGeneratedTone({
-        id: data.customTone.id,
-        name: data.customTone.name,
-        description: data.customTone.description,
-        enhancedContext: data.customTone.enhancedContext,
-        createdAt: data.customTone.createdAt,
+        id: customTone.id,
+        name: customTone.name,
+        description: customTone.description,
+        enhancedContext: customTone.enhancedContext,
+        createdAt: customTone.createdAt,
       });
     } catch (err) {
       console.error("Error generating custom tone:", err);
@@ -254,6 +280,7 @@ export function ToneQuiz({ onComplete, onClose }: ToneQuizProps) {
               // Note: aria-checked is valid here because role="checkbox" or role="radio"
               // changes the semantic meaning of the button element. Biome's linter
               // doesn't recognize this pattern and will show a false positive warning.
+              // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is valid when role="checkbox" or role="radio" is set
               <button
                 key={answer.id}
                 type="button"

@@ -18,9 +18,9 @@
 
 ## Implementation Status (Dec 2025)
 
-- Implemented: project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features), dashboard UI with data integration (reviews page with functional filters and generate response button), tone quiz with custom tone generation.
-- Partially implemented: Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending), voice profile UI (example responses and words to use/avoid fields missing).
-- Not implemented: Stripe checkout/portal, email sending (Resend integration), review management features (ignore, search, date filters), regenerate response button, optimistic UI updates.
+- **Implemented:** project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation and custom tone generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features), dashboard UI with data integration (reviews page with functional filters and generate response button), tone quiz with custom tone generation (10-question interactive quiz), custom tones API and UI integration, notification preferences API and UI, location management API.
+- **Partially implemented:** Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending), voice profile UI (example responses and words to use/avoid fields missing in UI, API supports them).
+- **Not implemented:** Stripe checkout/portal, email sending (Resend integration), review management features (ignore, search, date filters), regenerate response button, optimistic UI updates.
 
 ---
 
@@ -99,13 +99,41 @@ CREATE TABLE reviews (
 CREATE TABLE responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
-    generated_text TEXT NOT NULL,
+    generated_text TEXT, -- Nullable: null for direct publishes, contains AI-generated text for AI responses
     edited_text TEXT,
     final_text TEXT, -- What was actually published
     status TEXT DEFAULT 'draft', -- draft, published, failed
     published_at TIMESTAMP,
     tokens_used INTEGER,
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMP DEFAULT now(),
+    UNIQUE(review_id) -- One response per review
+);
+
+-- Custom Tones (AI-generated personalized tones from tone quiz)
+CREATE TABLE custom_tones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    enhanced_context TEXT, -- Additional context from quiz for AI prompts
+    quiz_responses JSONB, -- Store quiz answers for reference/regeneration
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Notification Preferences (user-level email notification settings)
+CREATE TABLE notification_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    email_enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Cron Poll State (tracks last processed timestamp per tier for review polling)
+CREATE TABLE cron_poll_state (
+    tier TEXT PRIMARY KEY CHECK (tier IN ('starter', 'growth', 'agency')),
+    last_processed_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Indexes for common queries
@@ -113,6 +141,7 @@ CREATE INDEX idx_reviews_location_status ON reviews(location_id, status);
 CREATE INDEX idx_reviews_location_date ON reviews(location_id, review_date DESC);
 CREATE INDEX idx_responses_review ON responses(review_id);
 CREATE INDEX idx_locations_org ON locations(organization_id);
+CREATE INDEX idx_custom_tones_org ON custom_tones(organization_id);
 ```
 
 ---

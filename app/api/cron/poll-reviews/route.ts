@@ -74,19 +74,23 @@ const TIER_CONFIG = {
 } as const;
 
 /**
- * Determines if a tier should be processed using resilient time-window checks with deduplication.
+ * Determines if a tier should be processed using resilient time-window checks with best-effort deduplication.
  *
  * APPROACH (B): Time-window check with last-processed timestamp deduplication
  *
  * This approach replaces exact minute alignment with:
  * 1. Time window check: Accepts runs within +/- TIME_WINDOW_TOLERANCE_MINUTES of target minutes
- * 2. Last-processed timestamp: Prevents duplicate processing by checking when tier was last processed
- * 3. Atomic updates: Uses database transactions to prevent race conditions
+ * 2. Last-processed timestamp: Reduces duplicate processing by checking when tier was last processed
+ * 3. Best-effort deduplication: Uses timestamp checks to minimize duplicate runs, but does not provide
+ *    strict single-run guarantees. Two overlapping cron invocations may both process the same tier if
+ *    they read the same old last_processed_at value before either completes. This is acceptable because
+ *    review upserts are idempotent by external_review_id.
  *
  * Benefits over exact-minute approach:
  * - Resilient to cron timing variations (early/late runs)
- * - Prevents duplicate processing via timestamp tracking
+ * - Reduces duplicate processing via timestamp tracking
  * - Handles clock skew and delayed executions gracefully
+ * - Acceptable duplicate processing is safe due to idempotent review upserts
  *
  * - 'agency' (highest tier): processes every ~5 minutes
  * - 'growth' (mid tier): processes every ~10 minutes
@@ -530,8 +534,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Atomically update last_processed_at timestamps for tiers that were processed
-    // Use upsert to handle initial state and updates atomically
+    // Update last_processed_at timestamps for tiers that were processed in this run.
+    // Note: The upsert operation itself is atomic, but the decision phase (reading state and
+    // deciding which tiers to process) is not serialized. Overlapping cron invocations may both
+    // process the same tier if they read the same old last_processed_at before either completes.
+    // This is acceptable because review upserts are idempotent by external_review_id.
+    // Use upsert to handle initial state and updates atomically.
     if (tiersToUpdate.size > 0) {
       const now = new Date().toISOString();
       for (const tier of tiersToUpdate) {

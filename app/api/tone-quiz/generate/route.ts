@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { callClaudeWithRetry } from "@/lib/claude/client";
+import { ClaudeAPIError, callClaudeWithRetry } from "@/lib/claude/client";
 import { QUIZ_QUESTIONS, type QuizAnswer } from "@/lib/quiz/questions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
@@ -180,6 +180,12 @@ Return ONLY a valid JSON object in this exact format (no other text):
     const truncatedResponse =
       text.length > 500 ? `${text.slice(0, 500)}...` : text;
 
+    // Create safe preview: first 100 chars of first line, or truncatedResponse
+    const safePreview =
+      lines[0] && lines[0].length > 0
+        ? lines[0].slice(0, 100)
+        : truncatedResponse.slice(0, 100);
+
     // Warning-level log with structured data for monitoring
     console.warn(
       JSON.stringify({
@@ -189,8 +195,7 @@ Return ONLY a valid JSON object in this exact format (no other text):
         requestId: requestId ?? "unknown",
         message: "Fallback line-based parsing used for Claude response",
         data: {
-          truncatedResponse,
-          parsedLines: lines,
+          safePreview,
           appliedDefaults:
             appliedDefaults.length > 0 ? appliedDefaults : "none",
           lineCount: lines.length,
@@ -205,6 +210,10 @@ Return ONLY a valid JSON object in this exact format (no other text):
     };
   } catch (error) {
     console.error("Error generating custom tone with Claude:", error);
+    // Preserve ClaudeAPIError type for better error tracking downstream
+    if (error instanceof ClaudeAPIError) {
+      throw error;
+    }
     throw new Error("Failed to generate custom tone");
   }
 }
@@ -271,6 +280,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for duplicate questionId values
+    const questionIds = new Set(answers.map((a) => a.questionId));
+    if (questionIds.size !== answers.length) {
+      return NextResponse.json(
+        { error: "Duplicate answers for a question detected" },
+        { status: 400 },
+      );
+    }
+
     // Validate each answer object structure and content
     const validationError = validateQuizAnswers(answers);
     if (validationError) {
@@ -308,7 +326,7 @@ export async function POST(request: NextRequest) {
         id: insertedTone.id,
         name: insertedTone.name,
         description: insertedTone.description,
-        enhancedContext: insertedTone.enhanced_context,
+        enhancedContext: insertedTone.enhanced_context ?? null,
         createdAt: insertedTone.created_at ?? new Date().toISOString(),
       },
     });

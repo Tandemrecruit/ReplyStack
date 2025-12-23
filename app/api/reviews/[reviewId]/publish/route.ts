@@ -216,58 +216,33 @@ export async function POST(
       );
     }
 
-    // Check for existing response to preserve generated_text
-    const { data: existingResponse, error: existingResponseError } =
-      await supabase
-        .from("responses")
-        .select("id, generated_text")
-        .eq("review_id", reviewId)
-        .maybeSingle();
-
-    if (existingResponseError) {
-      console.error(
-        "Failed to check for existing response:",
-        existingResponseError.message,
-      );
-      return NextResponse.json(
-        { error: "Failed to check for existing response" },
-        { status: 500 },
-      );
-    }
-
     const now = new Date().toISOString();
 
-    // Determine if text was edited (only set edited_text if different from generated)
-    const wasEdited = existingResponse
-      ? responseText !== existingResponse.generated_text
-      : false;
+    // Check for existing response to determine if this is a direct publish or publishing an AI-generated response
+    const { data: existingResponse } = await supabase
+      .from("responses")
+      .select("generated_text")
+      .eq("review_id", reviewId)
+      .maybeSingle();
 
-    // Update existing response or insert new one
-    const { data: responseRecord, error: responseError } = existingResponse
-      ? // Update existing response - preserve generated_text
-        await supabase
-          .from("responses")
-          .update({
-            edited_text: wasEdited ? responseText : null,
-            final_text: responseText,
-            status: "published",
-            published_at: now,
-          })
-          .eq("id", existingResponse.id)
-          .select()
-          .single()
-      : // Insert new response (edge case: direct publish without generate)
-        await supabase
-          .from("responses")
-          .insert({
-            review_id: reviewId,
-            generated_text: responseText,
-            final_text: responseText,
-            status: "published",
-            published_at: now,
-          })
-          .select()
-          .single();
+    // Atomically upsert response using database function to prevent race conditions
+    // This handles concurrent publish requests by using ON CONFLICT at the database level
+    // The function preserves generated_text on update and sets edited_text appropriately
+    // For direct publishes (no existing response), pass null for generated_text to distinguish from AI-generated
+    const { data: responseRecords, error: responseError } = await supabase.rpc(
+      "upsert_response",
+      {
+        p_review_id: reviewId,
+        // If no existing response, this is a direct publish - set generated_text to null
+        // If existing response exists, pass its generated_text to preserve it
+        p_generated_text: existingResponse?.generated_text ?? null,
+        p_final_text: responseText,
+        p_status: "published",
+        p_published_at: now,
+      },
+    );
+
+    const responseRecord = responseRecords?.[0] ?? null;
 
     if (responseError) {
       console.error("Failed to save response record:", responseError.message);

@@ -1,6 +1,6 @@
 # API Overview
 
-Status: Core features implemented. Auth flows, Google Business Profile integration, review polling, and AI response generation are complete. Stripe webhooks are still pending.
+Status: Core features implemented. Auth flows, Google Business Profile integration, review polling, AI response generation, custom tones, tone quiz, voice profile management, and notification preferences are complete. Stripe webhooks are still pending.
 
 ## Auth Model
 
@@ -59,6 +59,95 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Updates existing reviews if they've changed.
 - Returns: `{ success: boolean, reviewsProcessed: number, newReviews: number, errors: string[] }`.
 
+### GET /api/locations
+
+- Auth: Required (Supabase session).
+- Fetches all Google Business Profile locations for the authenticated user's connected accounts.
+- Returns: `{ locations: LocationWithStatus[] }` where each location includes:
+  - `id?`: Database ID if location is synced
+  - `google_account_id`: Google account ID
+  - `google_location_id`: Google location ID
+  - `name`: Location name
+  - `address`: Location address
+  - `account_name`: Name of the Google account
+  - `is_synced`: Boolean indicating if location is saved in database
+- Error responses:
+  - `401`: Unauthorized, Google authentication expired or corrupted (requires reconnection)
+  - `500`: Database error, Google API error, general server error
+
+### POST /api/locations
+
+- Auth: Required (Supabase session).
+- Body: `{ locations: Array<{ google_account_id: string, google_location_id: string, name: string, address?: string }> }`.
+- Saves selected locations to the user's organization. Creates organization if user doesn't have one.
+- Returns: `{ saved: number, locations: Location[] }`.
+- Error responses:
+  - `400`: Invalid request body, missing required fields
+  - `401`: Unauthorized
+  - `404`: User not found
+  - `500`: Database error, Google API error, general server error
+
+### GET /api/custom-tones
+
+- Auth: Required (Supabase session).
+- Fetches all custom tones for the authenticated user's organization.
+- Returns: `Array<{ id: string, name: string, description: string, enhancedContext: string | null, createdAt: string }>`.
+- Custom tones are returned in camelCase format (normalized from database snake_case).
+- Error responses:
+  - `401`: Unauthorized
+  - `404`: User not found, organization not found
+  - `500`: Database error, general server error
+
+### POST /api/tone-quiz/generate
+
+- Auth: Required (Supabase session).
+- Body: `{ answers: Array<{ questionId: number, answerIds: number[] }> }`.
+- Generates a custom tone based on quiz responses using Claude AI.
+- Validates quiz answers structure and content before processing.
+- Returns: `{ customTone: { id: string, name: string, description: string, enhancedContext: string | null, createdAt: string } }`.
+- Error responses:
+  - `400`: Invalid request body, missing answers, duplicate question IDs, invalid question/answer IDs
+  - `401`: Unauthorized
+  - `404`: User not found, organization not found
+  - `429`: Rate limit exceeded (Claude API)
+  - `500`: Database error, Claude API error, general server error
+  - `502`: AI service unavailable
+  - `504`: AI response generation timed out
+
+### GET /api/notifications
+
+- Auth: Required (Supabase session).
+- Fetches email notification preference for the authenticated user.
+- Returns: `{ emailNotifications: boolean }` (defaults to `true` if no preference set).
+- Error responses:
+  - `401`: Unauthorized
+  - `500`: Database error, general server error
+
+### PUT /api/notifications
+
+- Auth: Required (Supabase session).
+- Body: `{ emailNotifications: boolean }`.
+- Updates email notification preference for the authenticated user.
+- Creates preference record if it doesn't exist (upsert).
+- Returns: `{ success: boolean }`.
+- Error responses:
+  - `400`: Invalid request body, emailNotifications must be boolean
+  - `401`: Unauthorized
+  - `500`: Database error, general server error
+
+### PUT /api/voice-profile
+
+- Auth: Required (Supabase session).
+- Body: `{ tone?: string, personality_notes?: string, sign_off_style?: string, max_length?: number, words_to_use?: string[], words_to_avoid?: string[], example_responses?: string[] }`.
+- Updates the voice profile for the authenticated user's organization. Creates one if it doesn't exist.
+- All fields are optional; only provided fields are updated.
+- Returns: `{ id: string, organization_id: string, name: string, tone: string, personality_notes: string | null, sign_off_style: string | null, max_length: number, words_to_use: string[] | null, words_to_avoid: string[] | null, example_responses: string[] | null, created_at: string }`.
+- Error responses:
+  - `400`: Invalid request body, validation errors
+  - `401`: Unauthorized
+  - `404`: User not found, organization not found
+  - `500`: Database error, general server error
+
 ### POST /api/webhooks/stripe
 
 - Auth: Stripe signature header `stripe-signature` (verification not implemented).
@@ -67,7 +156,7 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 
 ## External Clients
 
-- `lib/claude/client.ts`: Implements Claude API integration for AI response generation. Includes retry logic, timeout handling, and error management.
+- `lib/claude/client.ts`: Implements Claude API integration for AI response generation. Includes retry logic, timeout handling, and error management. Also used for custom tone generation via tone quiz.
 - `lib/google/client.ts`: Implements Google Business Profile API integration. Handles OAuth token refresh, account/location fetching, review retrieval, and response publishing.
 - `lib/stripe/client.ts`: Placeholder; would create checkout/portal sessions, read subscription status, verify webhooks.
 

@@ -610,27 +610,10 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
         }
         if (table === "responses") {
           return {
-            // For checking existing response
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({
-                  data: null, // No existing response
-                  error: null,
-                }),
-              }),
-            }),
-            // For inserting new response (when no existing)
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "resp-1",
-                    review_id: "review-1",
-                    generated_text: "Thank you!",
-                    final_text: "Thank you!",
-                    status: "published",
-                    published_at: "2025-01-15T10:00:00Z",
-                  },
+                  data: null, // No existing response - direct publish
                   error: null,
                 }),
               }),
@@ -638,6 +621,22 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
           };
         }
         return {};
+      }),
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "resp-1",
+            review_id: "review-1",
+            generated_text: null, // Null for direct publishes
+            edited_text: null,
+            final_text: "Thank you!",
+            status: "published",
+            published_at: "2025-01-15T10:00:00Z",
+            tokens_used: null,
+            created_at: "2025-01-15T10:00:00Z",
+          },
+        ],
+        error: null,
       }),
     };
 
@@ -676,6 +675,15 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
       "ext-1",
       "Thank you!",
     );
+
+    // Verify rpc was called with null generated_text for direct publish
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("upsert_response", {
+      p_review_id: "review-1",
+      p_generated_text: null, // Null for direct publishes
+      p_final_text: "Thank you!",
+      p_status: "published",
+      p_published_at: expect.any(String),
+    });
   });
 
   it("updates existing response when response already exists", async () => {
@@ -684,10 +692,6 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
 
     const existingResponseId = "resp-existing-1";
     const existingGeneratedText = "Thank you for your feedback!";
-
-    // Create mock functions that we can verify later
-    const mockUpdate = vi.fn();
-    const mockInsert = vi.fn();
 
     const mockSupabase = {
       auth: {
@@ -739,49 +743,36 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
           };
         }
         if (table === "responses") {
-          const updateChain = {
-            eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: existingResponseId,
-                    review_id: "review-1",
-                    generated_text: existingGeneratedText,
-                    edited_text:
-                      "Thank you for your feedback! We appreciate it.",
-                    final_text:
-                      "Thank you for your feedback! We appreciate it.",
-                    status: "published",
-                    published_at: "2025-01-15T10:00:00Z",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-
-          mockUpdate.mockReturnValue(updateChain);
-
           return {
-            // For checking existing response
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: {
-                    id: existingResponseId,
-                    generated_text: existingGeneratedText,
+                    generated_text: existingGeneratedText, // Existing AI-generated response
                   },
                   error: null,
                 }),
               }),
             }),
-            // For updating existing response
-            update: mockUpdate,
-            // For inserting (should not be called)
-            insert: mockInsert,
           };
         }
         return {};
+      }),
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: existingResponseId,
+            review_id: "review-1",
+            generated_text: existingGeneratedText, // Preserved from existing
+            edited_text: "Thank you for your feedback! We appreciate it.",
+            final_text: "Thank you for your feedback! We appreciate it.",
+            status: "published",
+            published_at: "2025-01-15T10:00:00Z",
+            tokens_used: null,
+            created_at: "2025-01-15T09:00:00Z",
+          },
+        ],
+        error: null,
       }),
     };
 
@@ -815,14 +806,15 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
       published_at: "2025-01-15T10:00:00Z",
     });
 
-    // Verify update was called (not insert)
-    expect(mockUpdate).toHaveBeenCalledWith({
-      edited_text: editedResponseText, // Should set edited_text when content differs
-      final_text: editedResponseText,
-      status: "published",
-      published_at: expect.any(String),
+    // Verify rpc was called with correct parameters
+    // Should pass existing generated_text to preserve it
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("upsert_response", {
+      p_review_id: "review-1",
+      p_generated_text: existingGeneratedText, // Preserve existing generated_text
+      p_final_text: editedResponseText,
+      p_status: "published",
+      p_published_at: expect.any(String),
     });
-    expect(mockInsert).not.toHaveBeenCalled();
 
     // Verify Google API was called with edited text
     expect(publishResponse).toHaveBeenCalledWith(
@@ -840,10 +832,6 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
 
     const existingResponseId = "resp-existing-2";
     const existingGeneratedText = "Thank you for your feedback!";
-
-    // Create mock functions that we can verify later
-    const mockUpdate = vi.fn();
-    const mockInsert = vi.fn();
 
     const mockSupabase = {
       auth: {
@@ -895,47 +883,36 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
           };
         }
         if (table === "responses") {
-          const updateChain = {
-            eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: existingResponseId,
-                    review_id: "review-1",
-                    generated_text: existingGeneratedText,
-                    edited_text: null, // Should be null when content matches
-                    final_text: existingGeneratedText,
-                    status: "published",
-                    published_at: "2025-01-15T10:00:00Z",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-
-          mockUpdate.mockReturnValue(updateChain);
-
           return {
-            // For checking existing response
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({
                   data: {
-                    id: existingResponseId,
-                    generated_text: existingGeneratedText,
+                    generated_text: existingGeneratedText, // Existing AI-generated response
                   },
                   error: null,
                 }),
               }),
             }),
-            // For updating existing response
-            update: mockUpdate,
-            // For inserting (should not be called)
-            insert: mockInsert,
           };
         }
         return {};
+      }),
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: existingResponseId,
+            review_id: "review-1",
+            generated_text: existingGeneratedText, // Preserved from existing
+            edited_text: null, // Should be null when content matches
+            final_text: existingGeneratedText,
+            status: "published",
+            published_at: "2025-01-15T10:00:00Z",
+            tokens_used: null,
+            created_at: "2025-01-15T09:00:00Z",
+          },
+        ],
+        error: null,
       }),
     };
 
@@ -968,14 +945,15 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
       published_at: "2025-01-15T10:00:00Z",
     });
 
-    // Verify update was called with edited_text: null (content matches generated)
-    expect(mockUpdate).toHaveBeenCalledWith({
-      edited_text: null, // Should be null when content matches generated_text
-      final_text: existingGeneratedText,
-      status: "published",
-      published_at: expect.any(String),
+    // Verify rpc was called with correct parameters
+    // Should pass existing generated_text to preserve it
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("upsert_response", {
+      p_review_id: "review-1",
+      p_generated_text: existingGeneratedText, // Preserve existing generated_text
+      p_final_text: existingGeneratedText,
+      p_status: "published",
+      p_published_at: expect.any(String),
     });
-    expect(mockInsert).not.toHaveBeenCalled();
 
     // Verify Google API was called
     expect(publishResponse).toHaveBeenCalledWith(

@@ -60,7 +60,7 @@ export async function GET() {
       id: tone.id,
       name: tone.name,
       description: tone.description,
-      enhancedContext: tone.enhanced_context,
+      enhancedContext: tone.enhanced_context ?? null,
       createdAt: tone.created_at,
     }));
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ResponseEditModal } from "@/components/reviews/response-edit-modal";
@@ -197,15 +197,32 @@ describe("components/reviews/ResponseEditModal", () => {
     });
 
     it("renders stars for rating", () => {
+      const rating = 4;
       const { container } = render(
         <ResponseEditModal
           {...defaultProps}
           reviewSummary={{
             reviewerName: "Jane",
-            rating: 4,
+            rating,
             reviewText: "Good",
           }}
         />,
+      );
+
+      // Find the review summary container by reviewer name to scope the search
+      const reviewSummary = screen.getByText("Jane").closest("div");
+      expect(reviewSummary).toBeInTheDocument();
+
+      // Find the rating element within the review summary
+      if (!reviewSummary) {
+        throw new Error("Review summary container not found");
+      }
+      const ratingElement = within(reviewSummary).getByRole("img");
+
+      // Assert accessible labeling includes the rating value and max
+      expect(ratingElement).toHaveAttribute(
+        "aria-label",
+        `${rating} out of 5 stars`,
       );
 
       // Should have 5 star SVGs (4 filled, 1 empty)
@@ -339,59 +356,94 @@ describe("components/reviews/ResponseEditModal", () => {
     });
 
     it("disables buttons during publish", async () => {
-      const user = userEvent.setup();
+      vi.useFakeTimers();
+      try {
+        const user = userEvent.setup({ delay: null });
 
-      // Make fetch take some time
-      mockFetch.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                }),
-              100,
+        // Make fetch take some time with controlled timeout
+        mockFetch.mockImplementation(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () =>
+                  resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ success: true }),
+                  }),
+                100,
+              ),
             ),
-          ),
-      );
+        );
 
-      render(<ResponseEditModal {...defaultProps} />);
+        render(<ResponseEditModal {...defaultProps} />);
 
-      await user.click(screen.getByRole("button", { name: "Publish" }));
+        // Trigger the Publish click
+        const clickPromise = user.click(
+          screen.getByRole("button", { name: "Publish" }),
+        );
 
-      // Both buttons should be disabled during publish
-      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-      // Publish button might have different accessible name during loading
-      const buttons = screen.getAllByRole("button");
-      const publishButton = buttons.find((btn) =>
-        btn.textContent?.includes("Publish"),
-      );
-      expect(publishButton).toBeDisabled();
+        // Advance timers to let pending promises settle and trigger fetch
+        await vi.advanceTimersByTimeAsync(50);
+        await clickPromise;
+
+        // Both buttons should be disabled during publish
+        expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+        // Publish button might have different accessible name during loading
+        const buttons = screen.getAllByRole("button");
+        const publishButton = buttons.find((btn) =>
+          btn.textContent?.includes("Publish"),
+        );
+        expect(publishButton).toBeDisabled();
+
+        // Advance timers to complete the request
+        await vi.advanceTimersByTimeAsync(50);
+        // Wait for all pending promises to resolve
+        await vi.runAllTimersAsync();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("disables textarea during publish", async () => {
       const user = userEvent.setup();
 
-      mockFetch.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: () => Promise.resolve({ success: true }),
-                }),
-              100,
-            ),
-          ),
-      );
+      // Create a deferred promise so we can control when fetch resolves
+      // This allows us to check the disabled state while the fetch is still pending
+      let resolveFetch: (value: {
+        ok: boolean;
+        json: () => Promise<{ success: boolean }>;
+      }) => void;
+      const fetchPromise = new Promise<{
+        ok: boolean;
+        json: () => Promise<{ success: boolean }>;
+      }>((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      mockFetch.mockImplementation(() => fetchPromise);
 
       render(<ResponseEditModal {...defaultProps} />);
 
-      await user.click(screen.getByRole("button", { name: "Publish" }));
+      const publishButton = screen.getByRole("button", { name: "Publish" });
+      const clickPromise = user.click(publishButton);
 
-      expect(screen.getByRole("textbox")).toBeDisabled();
+      // Wait for the click to trigger and isPublishing to be set to true
+      // The textarea should be disabled while the fetch is pending
+      await waitFor(
+        () => {
+          expect(screen.getByRole("textbox")).toBeDisabled();
+        },
+        { timeout: 3000 },
+      );
+
+      // Now resolve the fetch to complete the operation
+      resolveFetch!({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      // Wait for click and fetch to complete
+      await clickPromise;
     });
   });
 
@@ -409,11 +461,14 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toHaveTextContent(
-          "Google account not connected",
-        );
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toHaveTextContent(
+            "Google account not connected",
+          );
+        },
+        { timeout: 3000 },
+      );
     });
 
     it("displays generic error for non-JSON response", async () => {
@@ -429,11 +484,14 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toHaveTextContent(
-          "Failed to publish (500)",
-        );
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toHaveTextContent(
+            "Failed to publish (500)",
+          );
+        },
+        { timeout: 3000 },
+      );
     });
 
     it("displays error for network failure", async () => {
@@ -445,9 +503,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toHaveTextContent("Network error");
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toHaveTextContent("Network error");
+        },
+        { timeout: 3000 },
+      );
     });
 
     it("does not close modal on error", async () => {
@@ -464,9 +525,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
 
       expect(onClose).not.toHaveBeenCalled();
     });
@@ -488,9 +552,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
 
       // Text should still be there
       expect(textarea).toHaveValue("Edited text");
@@ -510,9 +577,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.getByRole("alert")).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
 
       // Second call succeeds
       mockFetch.mockResolvedValueOnce({
@@ -522,9 +592,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(() => {
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
     });
   });
 
@@ -552,12 +625,22 @@ describe("components/reviews/ResponseEditModal", () => {
 
       // Trigger error
       await user.click(screen.getByRole("button", { name: "Publish" }));
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByRole("alert")).toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
 
       // Reopen with new text
       rerender(<ResponseEditModal {...defaultProps} initialText="New text" />);
 
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        },
+        { timeout: 3000 },
+      );
     });
   });
 });

@@ -121,7 +121,7 @@ export type Database = {
           created_at: string | null;
           edited_text: string | null;
           final_text: string | null;
-          generated_text: string;
+          generated_text: string | null;
           id: string;
           published_at: string | null;
           review_id: string | null;
@@ -132,7 +132,7 @@ export type Database = {
           created_at?: string | null;
           edited_text?: string | null;
           final_text?: string | null;
-          generated_text: string;
+          generated_text?: string | null;
           id?: string;
           published_at?: string | null;
           review_id?: string | null;
@@ -365,7 +365,26 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      upsert_response: {
+        Args: {
+          p_review_id: string;
+          p_generated_text: string | null;
+          p_final_text: string;
+          p_status: string;
+          p_published_at: string;
+        };
+        Returns: Array<{
+          id: string;
+          review_id: string | null;
+          generated_text: string | null;
+          edited_text: string | null;
+          final_text: string | null;
+          status: string | null;
+          published_at: string | null;
+          tokens_used: number | null;
+          created_at: string | null;
+        }>;
+      };
     };
     Enums: {
       [_ in never]: never;
