@@ -1,16 +1,23 @@
 # Changelog
 
-## 2025-12-22
+## 2025-12-23
+
+### Code Quality
+
+- Simplified upsert_response function by removing redundant update-case logic: removed preliminary SELECT and IF/ELSE branch that computed values for updates since ON CONFLICT block already handles generated_text preservation and edited_text recomputation, keeping only insert-path logic that sets v_new_generated_text := p_generated_text and v_edited_text := NULL, and dropped unused v_existing_generated_text variable
+- Fixed direct publish logic in upsert_response function: changed insert path to set `generated_text := NULL` (not COALESCE to final_text) when `p_generated_text IS NULL` for direct publishes, ensuring direct publishes correctly store NULL in generated_text column instead of incorrectly falling back to final_text value
+- Added backup step before destructive DELETE in responses migration: created timestamped backup table (`responses_duplicates_backup_YYYY_MM_DD_HH24_MI_SS`) containing duplicate rows before deletion in migration 007, added explicit warnings about irreversibility in SQL comments, and documented that the deletion is destructive and should be reviewed in production before applying
+- Scoped information_schema queries in custom_tones migration to public schema: added `AND table_schema = 'public'` to both IF EXISTS checks (table and column detection) in migration 005 to prevent matching identically named objects in other schemas, ensuring cleanup and NOT NULL alterations only target public.custom_tones
+- Fixed Supabase type definitions to match database schema: updated `responses.Update.generated_text` to allow `string | null` (was `string`) to match nullable column, fixed `custom_tones` types to require `organization_id: string` (not nullable) and added missing `updated_at` field to Row/Insert/Update types, ensuring typed helpers accurately reflect the actual database schema
+- Separated status state for Voice Profile form and custom tones loader in settings page: introduced dedicated `customTonesError` state for custom tones fetch errors, updated `fetchCustomTones` to set custom-tone-specific error state instead of shared `status`, and added error message display for custom tones loading failures while keeping Voice Profile form bound to original `status` state to prevent message overwrites
+- Fixed focus stealing on page load in settings dialog effect: added `wasOpenRef` to track previous dialog state and guard close/restore logic so it only runs when dialog was previously open, preventing focus restoration and dialog.close() from executing on initial mount when dialog was never open
+- Added accessible label for custom-tone select in settings: added proper `<label htmlFor="custom-tone-select">` with sr-only class to associate the select with assistive technology while keeping existing paragraph as supplemental visual text, improving accessibility for screen reader users
+- Optimized tier processing decision in poll-reviews cron: precompute and cache `allowedToProcessTier` boolean for each tier once per run using TIME_WINDOW_TOLERANCE_MINUTES, TIER_CONFIG, currentTime, and last_processed_at, then consult cached map when filtering locations instead of recalculating time-window logic and target minutes for each location, reducing redundant computations
+- Added requestId to all console.error calls in tone-quiz generate route: updated error logging in generateCustomTone function and POST handler catch blocks to include requestId in error messages, enabling log correlation across error paths for better debugging and monitoring
 
 ### Documentation
 
-- Updated API.md with missing endpoints: added comprehensive documentation for GET/POST /api/locations, GET /api/custom-tones, POST /api/tone-quiz/generate, GET/PUT /api/notifications, and PUT /api/voice-profile endpoints with request/response formats and error codes
-- Updated ARCHITECTURE.md database schema: added custom_tones, notification_preferences, and cron_poll_state tables to schema documentation, updated responses table to show generated_text as nullable, added indexes for custom_tones table, and updated implementation status to reflect latest features
-- Created FEATURES.md: comprehensive feature documentation covering tone quiz, response editing modal, custom tones, notification preferences, location management, voice profile management, review polling, response generation, and response publishing with technical details, user flows, API endpoints, and database schemas
-- Updated SPEC.md: enhanced user flows to include response editing modal details, added detailed information about tone quiz features and custom tone generation, expanded response workflow documentation with accessibility features and error handling details
-- Updated README.md: added reference to new FEATURES.md documentation file in documentation section
-- Updated SETUP.md: updated status to reflect completion of custom tones, tone quiz, response editing modal, and notification preferences features
-- Updated DECISIONS.md: updated ADR-028 to reflect that generated_text is nullable (for direct publishes), added ADR-029 for custom tones architecture, added ADR-030 for tier-based cron polling with time-window approach, and added ADR-031 for atomic upsert for response publishing
+- Updated ARCHITECTURE.md polling strategy documentation: replaced outdated flat 15-minute per-location polling description with current tier-based scheduling implementation, updated vercel.json snippet to show 5-minute cron schedule, documented tier intervals (agency: 5min, growth: 10min, starter: 15min), explained cron_poll_state table usage for per-tier timestamp tracking, and added details about time-window tolerance and best-effort deduplication to match actual implementation
 
 ## 2025-12-22
 
@@ -77,6 +84,13 @@
 
 ### Documentation
 
+- Updated API.md with missing endpoints: added comprehensive documentation for GET/POST /api/locations, GET /api/custom-tones, POST /api/tone-quiz/generate, GET/PUT /api/notifications, and PUT /api/voice-profile endpoints with request/response formats and error codes
+- Updated ARCHITECTURE.md database schema: added custom_tones, notification_preferences, and cron_poll_state tables to schema documentation, updated responses table to show generated_text as nullable, added indexes for custom_tones table, and updated implementation status to reflect latest features
+- Created FEATURES.md: comprehensive feature documentation covering tone quiz, response editing modal, custom tones, notification preferences, location management, voice profile management, review polling, response generation, and response publishing with technical details, user flows, API endpoints, and database schemas
+- Updated SPEC.md: enhanced user flows to include response editing modal details, added detailed information about tone quiz features and custom tone generation, expanded response workflow documentation with accessibility features and error handling details
+- Updated README.md: added reference to new FEATURES.md documentation file in documentation section
+- Updated SETUP.md: updated status to reflect completion of custom tones, tone quiz, response editing modal, and notification preferences features
+- Updated DECISIONS.md: updated ADR-028 to reflect that generated_text is nullable (for direct publishes), added ADR-029 for custom tones architecture, added ADR-030 for tier-based cron polling with time-window approach, and added ADR-031 for atomic upsert for response publishing
 - Updated ADR-020 to reflect actual implementation: corrected encryption utility location (`lib/crypto/encryption.ts`), IV storage format (embedded in payload vs separate column), environment variable name (`TOKEN_ENCRYPTION_KEY`), and plaintext column retention for backward compatibility
 - Updated documentation to reflect current implementation status: marked response editing modal and character/word count as complete in ROADMAP.md, updated SPEC.md to include word count and tone quiz features, updated README.md development status, and updated ARCHITECTURE.md implementation status section
 

@@ -12,6 +12,11 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+// Save original implementations before mocking
+const originalFetch = global.fetch;
+const originalShowModal = HTMLDialogElement.prototype.showModal;
+const originalClose = HTMLDialogElement.prototype.close;
+
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -34,6 +39,14 @@ describe("components/reviews/ResponseEditModal", () => {
     reviewId: "review-123",
     initialText: "Thank you for your feedback!",
   };
+
+  afterAll(() => {
+    // Restore original implementations to prevent leaks into other test suites
+    // This ensures mocks don't persist after this test suite completes
+    global.fetch = originalFetch;
+    HTMLDialogElement.prototype.showModal = originalShowModal;
+    HTMLDialogElement.prototype.close = originalClose;
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -10,6 +10,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.tables
         WHERE table_name = 'custom_tones'
+        AND table_schema = 'public'
     ) THEN
         DELETE FROM custom_tones WHERE organization_id IS NULL;
     END IF;
@@ -36,6 +37,7 @@ BEGIN
         WHERE table_name = 'custom_tones'
         AND column_name = 'organization_id'
         AND is_nullable = 'YES'
+        AND table_schema = 'public'
     ) THEN
         -- Delete any remaining NULL values before adding constraint
         DELETE FROM custom_tones WHERE organization_id IS NULL;

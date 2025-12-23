@@ -18,7 +18,7 @@
 
 ## Implementation Status (Dec 2025)
 
-- **Implemented:** project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation and custom tone generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features), dashboard UI with data integration (reviews page with functional filters and generate response button), tone quiz with custom tone generation (10-question interactive quiz), custom tones API and UI integration, notification preferences API and UI, location management API.
+- **Implemented:** project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, tier-based review polling), Claude AI integration (response generation and custom tone generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page, response editing modal (with review context, character/word counts, accessibility features), dashboard UI with data integration (reviews page with functional filters and generate response button), tone quiz with custom tone generation (10-question interactive quiz), custom tones API and UI integration, notification preferences API and UI, location management API.
 - **Partially implemented:** Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending), voice profile UI (example responses and words to use/avoid fields missing in UI, API supports them).
 - **Not implemented:** Stripe checkout/portal, email sending (Resend integration), review management features (ignore, search, date filters), regenerate response button, optimistic UI updates.
 
@@ -166,9 +166,13 @@ CREATE INDEX idx_custom_tones_org ON custom_tones(organization_id);
 
 **Polling Strategy:**
 - No webhook available from Google for new reviews
-- Poll every 15 minutes per active location
-- Use Vercel Cron for scheduled polling
-- Store `lastFetchedAt` per location to fetch only new reviews
+- Tier-based scheduling: Cron runs every 5 minutes, but processes locations based on organization plan tier
+  - **Agency tier:** Processes every 5 minutes (every cron run)
+  - **Growth tier:** Processes every 10 minutes (every 2nd cron run)
+  - **Starter tier:** Processes every 15 minutes (every 3rd cron run)
+- Uses `cron_poll_state` table to track `last_processed_at` timestamp per tier (not per location)
+- Time-window tolerance: Accepts runs within ±2 minutes of target intervals to handle cron timing variations
+- Best-effort deduplication: Prevents duplicate processing via timestamp checks, but allows concurrent runs (safe due to idempotent review upserts by `external_review_id`)
 - Rate limit: Max 60 requests/minute across all users
 
 **Error Handling:**
@@ -269,20 +273,29 @@ Google refresh tokens are encrypted at the application layer before database sto
 
 ### 3. Background Jobs via Vercel Cron
 
-Review polling runs on schedule:
+Review polling runs every 5 minutes, with tier-based processing intervals:
 ```
 # vercel.json
 {
   "crons": [{
     "path": "/api/cron/poll-reviews",
-    "schedule": "*/15 * * * *"
+    "schedule": "*/5 * * * *"
   }]
 }
 ```
 
+**Tier-based Scheduling:**
+- Cron executes every 5 minutes
+- Locations are filtered based on organization `plan_tier`:
+  - **Agency:** Processes every run (5-minute interval)
+  - **Growth:** Processes every 2nd run (10-minute interval)
+  - **Starter:** Processes every 3rd run (15-minute interval)
+- Uses `cron_poll_state` table to track `last_processed_at` per tier for deduplication
+- Time-window tolerance (±2 minutes) handles cron timing variations gracefully
+
 Considerations:
 - Max 60-second execution time on Vercel
-- Batch locations if many users
+- Batch locations if many users (max 50 locations per run)
 - Use queue for scale (future: Inngest or similar)
 
 ### 4. Optimistic UI Updates

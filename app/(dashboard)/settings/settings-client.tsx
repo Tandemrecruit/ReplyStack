@@ -52,9 +52,13 @@ export function SettingsClient() {
   }>({});
   const [customTones, setCustomTones] = useState<CustomTone[]>([]);
   const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
+  const [customTonesError, setCustomTonesError] = useState<string | null>(
+    null,
+  );
   const [showQuiz, setShowQuiz] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const wasOpenRef = useRef<boolean>(false);
 
   const handleSaveVoiceProfile = async () => {
     const errors: Record<string, string> = {};
@@ -134,6 +138,7 @@ export function SettingsClient() {
       if (showLoading) {
         setIsLoadingCustomTones(true);
       }
+      setCustomTonesError(null);
 
       try {
         const response = await fetch("/api/custom-tones");
@@ -147,15 +152,14 @@ export function SettingsClient() {
         } else {
           setCustomTones([]);
         }
+        setCustomTonesError(null);
       } catch (error) {
         console.error("Error fetching custom tones:", error);
-        setStatus({
-          type: "error",
-          message:
-            error instanceof Error
-              ? `Unable to load custom tones: ${error.message}`
-              : "Unable to load custom tones. Please try again.",
-        });
+        setCustomTonesError(
+          error instanceof Error
+            ? `Unable to load custom tones: ${error.message}`
+            : "Unable to load custom tones. Please try again.",
+        );
         setCustomTones([]);
       } finally {
         if (showLoading) {
@@ -210,15 +214,21 @@ export function SettingsClient() {
         firstFocusable?.focus();
       });
     } else {
-      // Restore focus to trigger element before closing
-      if (triggerRef.current instanceof HTMLElement) {
-        triggerRef.current.focus();
-      }
-      // Only close if the method exists (may not be available in test environment)
-      if (typeof dialog.close === "function") {
-        dialog.close();
+      // Only restore focus and close if dialog was previously open
+      if (wasOpenRef.current) {
+        // Restore focus to trigger element before closing
+        if (triggerRef.current instanceof HTMLElement) {
+          triggerRef.current.focus();
+        }
+        // Only close if the method exists (may not be available in test environment)
+        if (typeof dialog.close === "function") {
+          dialog.close();
+        }
       }
     }
+
+    // Update ref to track current state for next render
+    wasOpenRef.current = showQuiz;
 
     // Attach event handlers for ESC key and backdrop click
     const handleCancel = (e: Event) => {
@@ -391,6 +401,12 @@ export function SettingsClient() {
             {/* Custom Tones */}
             {!isLoadingCustomTones && customTones.length > 0 && (
               <div>
+                <label
+                  htmlFor="custom-tone-select"
+                  className="sr-only"
+                >
+                  Custom Tones
+                </label>
                 <p className="text-xs font-medium text-foreground-secondary mb-1">
                   Custom Tones
                 </p>
@@ -415,6 +431,9 @@ export function SettingsClient() {
                   ))}
                 </select>
               </div>
+            )}
+            {customTonesError && (
+              <p className="mt-1 text-sm text-red-600">{customTonesError}</p>
             )}
 
             {fieldErrors.tone ? (

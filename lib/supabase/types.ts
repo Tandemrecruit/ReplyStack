@@ -143,7 +143,7 @@ export type Database = {
           created_at?: string | null;
           edited_text?: string | null;
           final_text?: string | null;
-          generated_text?: string;
+          generated_text?: string | null;
           id?: string;
           published_at?: string | null;
           review_id?: string | null;
@@ -307,30 +307,33 @@ export type Database = {
       custom_tones: {
         Row: {
           id: string;
-          organization_id: string | null;
+          organization_id: string;
           name: string;
           description: string;
           enhanced_context: string | null;
           quiz_responses: Json | null;
           created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
-          organization_id?: string | null;
+          organization_id: string;
           name: string;
           description: string;
           enhanced_context?: string | null;
           quiz_responses?: Json | null;
           created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
-          organization_id?: string | null;
+          organization_id?: string;
           name?: string;
           description?: string;
           enhanced_context?: string | null;
           quiz_responses?: Json | null;
           created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [
           {

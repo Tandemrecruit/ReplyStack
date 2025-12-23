@@ -26,32 +26,13 @@ CREATE OR REPLACE FUNCTION upsert_response(
     created_at TIMESTAMPTZ
 ) AS $$
 DECLARE
-    v_existing_generated_text TEXT;
     v_new_generated_text TEXT;
     v_edited_text TEXT;
 BEGIN
-    -- Get existing generated_text if response exists (for update case)
-    SELECT generated_text INTO v_existing_generated_text
-    FROM responses
-    WHERE review_id = p_review_id;
-
-    -- Determine generated_text: preserve existing or use new
-    IF v_existing_generated_text IS NOT NULL THEN
-        -- Update case: preserve existing generated_text
-        v_new_generated_text := v_existing_generated_text;
-        -- Determine if text was edited (only set edited_text if different from generated)
-        IF p_final_text <> v_existing_generated_text THEN
-            v_edited_text := p_final_text;
-        ELSE
-            v_edited_text := NULL;
-        END IF;
-    ELSE
-        -- Insert case: use provided generated_text (can be null for direct publishes)
-        -- If p_generated_text is explicitly NULL, set generated_text to NULL (direct publish)
-        -- If p_generated_text is provided, use it (AI-generated)
-        v_new_generated_text := p_generated_text;
-        v_edited_text := NULL;
-    END IF;
+    -- Set values for insert case only
+    -- For updates, ON CONFLICT block handles generated_text preservation and edited_text computation
+    v_new_generated_text := p_generated_text; -- Can be null for direct publishes
+    v_edited_text := NULL; -- Always NULL for inserts
 
     -- Upsert with ON CONFLICT to handle race conditions atomically
     INSERT INTO responses (

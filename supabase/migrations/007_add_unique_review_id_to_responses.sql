@@ -3,8 +3,38 @@
 --
 -- UP MIGRATION: Add UNIQUE constraint on review_id and create upsert function
 
+-- WARNING: The following DELETE operation is DESTRUCTIVE and IRREVERSIBLE.
+-- It permanently removes duplicate responses, keeping only the most recent per review.
+-- Review this migration carefully in production before applying.
+
+-- Create backup of rows to be deleted (timestamped for safety)
+-- This backup contains all duplicate responses that will be removed
+DO $$
+DECLARE
+    backup_table_name TEXT;
+BEGIN
+    -- Generate timestamped backup table name
+    backup_table_name := 'responses_duplicates_backup_' || to_char(now(), 'YYYY_MM_DD_HH24_MI_SS');
+
+    -- Create backup table with rows that will be deleted
+    EXECUTE format('
+        CREATE TABLE %I AS
+        SELECT *
+        FROM responses
+        WHERE id NOT IN (
+            SELECT DISTINCT ON (review_id) id
+            FROM responses
+            WHERE review_id IS NOT NULL
+            ORDER BY review_id, created_at DESC
+        )', backup_table_name);
+
+    -- Log backup creation (visible in migration logs)
+    RAISE NOTICE 'Backup created: %. Review this table before dropping after migration verification.', backup_table_name;
+END $$;
+
 -- First, handle any existing duplicates by keeping only the most recent response per review
 -- This is a safety measure in case duplicates already exist
+-- NOTE: This DELETE is destructive. The backup above preserves deleted rows for recovery if needed.
 DELETE FROM responses
 WHERE id NOT IN (
     SELECT DISTINCT ON (review_id) id
@@ -58,8 +88,9 @@ BEGIN
             v_edited_text := NULL;
         END IF;
     ELSE
-        -- Insert case: use provided generated_text (or final_text as fallback)
-        v_new_generated_text := COALESCE(p_generated_text, p_final_text);
+        -- Insert case: use provided generated_text (NULL for direct publishes)
+        -- For direct publishes (p_generated_text IS NULL), generated_text should be NULL
+        v_new_generated_text := p_generated_text;
         v_edited_text := NULL;
     END IF;
 

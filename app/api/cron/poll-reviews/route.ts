@@ -279,14 +279,25 @@ export async function GET(request: NextRequest) {
 
     const currentTime = new Date();
 
+    // Precompute and cache tier processing decisions once per run to avoid recomputing per location
+    const allowedToProcessTier = new Map<string, boolean>();
+    for (const tier of ["agency", "growth", "starter"] as const) {
+      const lastProcessedAt = tierLastProcessedMap.get(tier) ?? null;
+      // Use the tier directly (not planTier) since we're computing per tier
+      const planTier = tier === "starter" ? null : tier;
+      allowedToProcessTier.set(
+        tier,
+        shouldProcessForTier(planTier, currentTime, lastProcessedAt),
+      );
+    }
+
     // Filter locations based on tier-based polling schedule with resilient time-window checks
     const locationsToProcess = typedLocations.filter((location) => {
       if (!location.organization_id) return false;
       const planTier = orgTierMap.get(location.organization_id) ?? null;
       const tier =
         planTier === "agency" || planTier === "growth" ? planTier : "starter";
-      const lastProcessedAt = tierLastProcessedMap.get(tier) ?? null;
-      return shouldProcessForTier(planTier, currentTime, lastProcessedAt);
+      return allowedToProcessTier.get(tier) ?? false;
     });
 
     // Track which tiers we're processing in this run for atomic timestamp updates

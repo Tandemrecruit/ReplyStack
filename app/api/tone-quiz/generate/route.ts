@@ -209,7 +209,10 @@ Return ONLY a valid JSON object in this exact format (no other text):
       enhancedContext,
     };
   } catch (error) {
-    console.error("Error generating custom tone with Claude:", error);
+    console.error(
+      `Error generating custom tone with Claude [requestId: ${requestId ?? "unknown"}]:`,
+      error,
+    );
     // Preserve ClaudeAPIError type for better error tracking downstream
     if (error instanceof ClaudeAPIError) {
       throw error;
@@ -313,7 +316,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError || !insertedTone) {
-      console.error("Error saving custom tone:", insertError);
+      console.error(
+        `Error saving custom tone [requestId: ${requestId}]:`,
+        insertError,
+      );
       return NextResponse.json(
         { error: "Failed to save custom tone" },
         { status: 500 },
@@ -331,7 +337,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Tone quiz generation error:", error);
+    console.error(`Tone quiz generation error [requestId: ${requestId}]:`, error);
     return NextResponse.json(
       { error: "Failed to generate custom tone" },
       { status: 500 },
