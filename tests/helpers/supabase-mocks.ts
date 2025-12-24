@@ -54,32 +54,61 @@ interface MockSupabaseConfig {
   };
 }
 
+interface ChainConfig<T> extends TableConfig<T> {
+  /** Override for .single() terminal method */
+  singleData?: T | null;
+  singleError?: QueryError;
+  /** Override for .maybeSingle() terminal method */
+  maybeSingleData?: T | null;
+  maybeSingleError?: QueryError;
+}
+
 /**
  * Create a mock chain for Supabase query builders.
- * Supports: select, eq, in, not, single, maybeSingle, limit, insert, update, upsert
+ * Supports chain methods: select, eq, in, not, limit, order, insert, update, upsert
+ * Supports terminal methods: single, maybeSingle
+ *
+ * The returned chain is also a Promise that resolves to { data, error } for
+ * queries that don't use a terminal method.
  */
-function createMockChain<T>(config: TableConfig<T>) {
-  const result = {
+function createMockChain<T>(config: ChainConfig<T> = {}) {
+  const defaultResult = {
     data: config.data ?? null,
     error: config.error ?? null,
   };
 
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+  // Create the Promise-like chain first so methods can reference it
+  const resolvableChain = Object.assign(
+    Promise.resolve(defaultResult),
+    {} as Record<string, ReturnType<typeof vi.fn>>,
+  );
 
-  // Terminal methods that return the result
-  const terminalMethods = ["single", "maybeSingle"];
-  for (const method of terminalMethods) {
-    chain[method] = vi.fn().mockResolvedValue(result);
-  }
+  // Terminal methods with potential overrides
+  resolvableChain.single = vi.fn().mockResolvedValue({
+    data: config.singleData ?? config.data ?? null,
+    error: config.singleError ?? config.error ?? null,
+  });
 
-  // Chain methods that return the chain
-  const chainMethods = ["select", "eq", "in", "not", "limit", "order"];
+  resolvableChain.maybeSingle = vi.fn().mockResolvedValue({
+    data: config.maybeSingleData ?? config.data ?? null,
+    error: config.maybeSingleError ?? config.error ?? null,
+  });
+
+  // Chain methods that return the resolvable chain (not a bare object)
+  const chainMethods = [
+    "select",
+    "eq",
+    "in",
+    "not",
+    "limit",
+    "order",
+    "insert",
+    "update",
+    "upsert",
+  ];
   for (const method of chainMethods) {
-    chain[method] = vi.fn().mockReturnValue(chain);
+    resolvableChain[method] = vi.fn().mockReturnValue(resolvableChain);
   }
-
-  // Also make the chain itself resolvable for queries that end without terminal method
-  const resolvableChain = Object.assign(Promise.resolve(result), chain);
 
   return resolvableChain;
 }
@@ -95,136 +124,104 @@ export function createMockServerSupabaseClient(
   const mockFrom = vi.fn((table: string) => {
     if (table === "users" && tables.users) {
       const usersConfig = tables.users;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: usersConfig.single?.data ?? usersConfig.data ?? null,
-              error: usersConfig.single?.error ?? usersConfig.error ?? null,
-            }),
-          }),
-          in: vi.fn().mockReturnValue({
-            not: vi.fn().mockResolvedValue({
-              data: Array.isArray(usersConfig.data) ? usersConfig.data : [],
-              error: usersConfig.error ?? null,
-            }),
-          }),
-        }),
-      };
+      // Chain resolves to array data for .in().not() queries
+      const chain = createMockChain({
+        data: Array.isArray(usersConfig.data) ? usersConfig.data : [],
+        error: usersConfig.error ?? null,
+        singleData: usersConfig.single?.data ?? usersConfig.data ?? null,
+        singleError: usersConfig.single?.error ?? usersConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "reviews" && tables.reviews) {
       const reviewsConfig = tables.reviews;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: reviewsConfig.single?.data ?? reviewsConfig.data ?? null,
-              error: reviewsConfig.single?.error ?? reviewsConfig.error ?? null,
-            }),
-          }),
-        }),
-      };
+      const chain = createMockChain({
+        data: reviewsConfig.data ?? null,
+        error: reviewsConfig.error ?? null,
+        singleData: reviewsConfig.single?.data ?? reviewsConfig.data ?? null,
+        singleError: reviewsConfig.single?.error ?? reviewsConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "locations" && tables.locations) {
       const locationsConfig = tables.locations;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({
-              data: Array.isArray(locationsConfig.data)
-                ? locationsConfig.data
-                : [],
-              error: locationsConfig.error ?? null,
-            }),
-          }),
-        }),
-      };
+      // Chain resolves to array data for .eq().limit() queries
+      const chain = createMockChain({
+        data: Array.isArray(locationsConfig.data) ? locationsConfig.data : [],
+        error: locationsConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "organizations" && tables.organizations) {
       const orgsConfig = tables.organizations;
-      return {
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: Array.isArray(orgsConfig.data) ? orgsConfig.data : [],
-            error: orgsConfig.error ?? null,
-          }),
-        }),
-      };
+      // Chain resolves to array data for .in() queries
+      const chain = createMockChain({
+        data: Array.isArray(orgsConfig.data) ? orgsConfig.data : [],
+        error: orgsConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "voice_profiles" && tables.voice_profiles) {
       const vpConfig = tables.voice_profiles;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: vpConfig.single?.data ?? vpConfig.data ?? null,
-              error: vpConfig.single?.error ?? vpConfig.error ?? null,
-            }),
-            limit: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: vpConfig.maybeSingle?.data ?? vpConfig.data ?? null,
-                error: vpConfig.maybeSingle?.error ?? vpConfig.error ?? null,
-              }),
-            }),
-          }),
-        }),
-      };
+      const chain = createMockChain({
+        data: vpConfig.data ?? null,
+        error: vpConfig.error ?? null,
+        singleData: vpConfig.single?.data ?? vpConfig.data ?? null,
+        singleError: vpConfig.single?.error ?? vpConfig.error ?? null,
+        maybeSingleData: vpConfig.maybeSingle?.data ?? vpConfig.data ?? null,
+        maybeSingleError: vpConfig.maybeSingle?.error ?? vpConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "responses" && tables.responses) {
       const responsesConfig = tables.responses;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: responsesConfig.maybeSingle?.data ?? null,
-              error: responsesConfig.maybeSingle?.error ?? null,
-            }),
-          }),
-        }),
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: responsesConfig.insert?.data ?? { id: "resp-1" },
-              error: responsesConfig.insert?.error ?? null,
-            }),
-          }),
-        }),
-      };
+      // Main chain for select queries
+      const chain = createMockChain({
+        data: null,
+        error: null,
+        maybeSingleData: responsesConfig.maybeSingle?.data ?? null,
+        maybeSingleError: responsesConfig.maybeSingle?.error ?? null,
+      });
+
+      // Create separate chain for insert().select().single() path
+      const insertChain = createMockChain({
+        data: responsesConfig.insert?.data ?? { id: "resp-1" },
+        error: responsesConfig.insert?.error ?? null,
+        singleData: responsesConfig.insert?.data ?? { id: "resp-1" },
+        singleError: responsesConfig.insert?.error ?? null,
+      });
+
+      // Override insert to return the insert chain
+      chain.insert.mockReturnValue(insertChain);
+
+      return chain;
     }
 
     if (table === "custom_tones" && tables.custom_tones) {
       const ctConfig = tables.custom_tones;
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: ctConfig.data ?? null,
-                error: ctConfig.error ?? null,
-              }),
-            }),
-          }),
-        }),
-      };
+      // Chain supports eq().eq().maybeSingle() via chaining
+      const chain = createMockChain({
+        data: ctConfig.data ?? null,
+        error: ctConfig.error ?? null,
+        maybeSingleData: ctConfig.data ?? null,
+        maybeSingleError: ctConfig.error ?? null,
+      });
+      return chain;
     }
 
     if (table === "cron_poll_state" && tables.cron_poll_state) {
       const cronConfig = tables.cron_poll_state;
-      return {
-        select: vi.fn().mockResolvedValue({
-          data: Array.isArray(cronConfig.data) ? cronConfig.data : [],
-          error: cronConfig.error ?? null,
-        }),
-        upsert: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      };
+      // Chain resolves to array data and supports upsert
+      const chain = createMockChain({
+        data: Array.isArray(cronConfig.data) ? cronConfig.data : [],
+        error: cronConfig.error ?? null,
+      });
+      return chain;
     }
 
     // Default empty chain for unknown tables
@@ -268,29 +265,21 @@ export function createMockPollReviewsSupabaseClient(
 ) {
   const mockFrom = vi.fn((table: string) => {
     if (table === "locations") {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({
-              data: config.locationsData ?? [],
-              error: config.locationsError ?? null,
-            }),
-          }),
-        }),
-      };
+      // Chain resolves to array data for .eq().limit() queries
+      const chain = createMockChain({
+        data: config.locationsData ?? [],
+        error: config.locationsError ?? null,
+      });
+      return chain;
     }
 
     if (table === "users") {
-      return {
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockReturnValue({
-            not: vi.fn().mockResolvedValue({
-              data: config.usersData ?? [],
-              error: config.usersError ?? null,
-            }),
-          }),
-        }),
-      };
+      // Chain resolves to array data for .in().not() queries
+      const chain = createMockChain({
+        data: config.usersData ?? [],
+        error: config.usersError ?? null,
+      });
+      return chain;
     }
 
     if (table === "organizations") {
@@ -299,41 +288,26 @@ export function createMockPollReviewsSupabaseClient(
         config.organizationsData !== undefined
           ? config.organizationsData
           : [{ id: "org-1", plan_tier: "agency" }];
-      return {
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: defaultOrgs,
-            error: config.organizationsError ?? null,
-          }),
-        }),
-      };
+      const chain = createMockChain({
+        data: defaultOrgs,
+        error: config.organizationsError ?? null,
+      });
+      return chain;
     }
 
     if (table === "cron_poll_state") {
       // Default to empty array (no previous processing) to allow all tiers to process
       const defaultState =
         config.cronPollStateData !== undefined ? config.cronPollStateData : [];
-      return {
-        select: vi.fn().mockResolvedValue({
-          data: defaultState,
-          error: config.cronPollStateError ?? null,
-        }),
-        upsert: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      };
+      const chain = createMockChain({
+        data: defaultState,
+        error: config.cronPollStateError ?? null,
+      });
+      return chain;
     }
 
-    // Default empty return for unknown tables
-    return {
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
-          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }),
-    };
+    // Default empty chain for unknown tables
+    return createMockChain({ data: null, error: null });
   });
 
   return {

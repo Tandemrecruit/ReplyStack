@@ -49,6 +49,9 @@ describe("components/reviews/ResponseEditModal", () => {
   });
 
   beforeEach(() => {
+    // Safety: if a test fails/times out while using fake timers,
+    // ensure we don't leak them into subsequent tests.
+    vi.useRealTimers();
     vi.clearAllMocks();
     mockFetch.mockResolvedValue({
       ok: true,
@@ -369,52 +372,46 @@ describe("components/reviews/ResponseEditModal", () => {
     });
 
     it("disables buttons during publish", async () => {
-      vi.useFakeTimers();
-      try {
-        const user = userEvent.setup({ delay: null });
+      const user = userEvent.setup();
 
-        // Make fetch take some time with controlled timeout
-        mockFetch.mockImplementation(
-          () =>
-            new Promise((resolve) =>
-              setTimeout(
-                () =>
-                  resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ success: true }),
-                  }),
-                100,
-              ),
-            ),
-        );
+      // Deterministic "in-flight" fetch so we can assert disabled states
+      let resolveFetch:
+        | ((value: {
+            ok: boolean;
+            json: () => Promise<{ success: boolean }>;
+          }) => void)
+        | undefined;
 
-        render(<ResponseEditModal {...defaultProps} />);
+      const fetchPromise = new Promise<{
+        ok: boolean;
+        json: () => Promise<{ success: boolean }>;
+      }>((resolve) => {
+        resolveFetch = resolve;
+      });
 
-        // Trigger the Publish click
-        const clickPromise = user.click(
-          screen.getByRole("button", { name: "Publish" }),
-        );
+      mockFetch.mockImplementation(() => fetchPromise);
 
-        // Advance timers to let pending promises settle and trigger fetch
-        await vi.advanceTimersByTimeAsync(50);
-        await clickPromise;
+      render(<ResponseEditModal {...defaultProps} />);
 
-        // Both buttons should be disabled during publish
-        expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-        // Publish button might have different accessible name during loading
-        const buttons = screen.getAllByRole("button");
-        const publishButton = buttons.find((btn) =>
-          btn.textContent?.includes("Publish"),
-        );
-        expect(publishButton).toBeDisabled();
+      const publishButton = screen.getByRole("button", { name: "Publish" });
+      const cancelButton = screen.getByRole("button", { name: "Cancel" });
 
-        // Advance timers to complete the request
-        await vi.advanceTimersByTimeAsync(50);
-        // Wait for all pending promises to resolve
-        await vi.runAllTimersAsync();
-      } finally {
-        vi.useRealTimers();
-      }
+      const clickPromise = user.click(publishButton);
+
+      await waitFor(
+        () => {
+          expect(cancelButton).toBeDisabled();
+          expect(publishButton).toBeDisabled();
+        },
+        { timeout: 3000 },
+      );
+
+      resolveFetch?.({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await clickPromise;
     });
 
     it("disables textarea during publish", async () => {
@@ -422,10 +419,10 @@ describe("components/reviews/ResponseEditModal", () => {
 
       // Create a deferred promise so we can control when fetch resolves
       // This allows us to check the disabled state while the fetch is still pending
-      let resolveFetch: (value: {
+      let resolveFetch: ((value: {
         ok: boolean;
         json: () => Promise<{ success: boolean }>;
-      }) => void;
+      }) => void) | undefined;
       const fetchPromise = new Promise<{
         ok: boolean;
         json: () => Promise<{ success: boolean }>;
@@ -450,10 +447,12 @@ describe("components/reviews/ResponseEditModal", () => {
       );
 
       // Now resolve the fetch to complete the operation
-      resolveFetch!({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
+      if (resolveFetch) {
+        resolveFetch({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
 
       // Wait for click and fetch to complete
       await clickPromise;

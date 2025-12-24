@@ -19,12 +19,18 @@ vi.mock("@/components/reviews/response-edit-modal", () => ({
     reviewId,
     initialText,
     onPublished,
+    reviewSummary,
   }: {
     isOpen: boolean;
     onClose: () => void;
     reviewId: string;
     initialText: string;
     onPublished: () => void;
+    reviewSummary?: {
+      reviewerName?: string | null;
+      rating?: number | null;
+      reviewText?: string | null;
+    };
   }) => (
     <div data-testid="response-edit-modal">
       {isOpen && (
@@ -38,6 +44,23 @@ vi.mock("@/components/reviews/response-edit-modal", () => ({
           </button>
           <div>Review ID: {reviewId}</div>
           <div>Initial Text: {initialText}</div>
+          {reviewSummary && (
+            <>
+              <div data-testid="review-summary-reviewer-name">
+                {reviewSummary.reviewerName ?? "Anonymous"}
+              </div>
+              {reviewSummary.rating != null && (
+                <div data-testid="review-summary-rating">
+                  {reviewSummary.rating}
+                </div>
+              )}
+              {reviewSummary.reviewText && (
+                <div data-testid="review-summary-review-text">
+                  {reviewSummary.reviewText}
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
     </div>
@@ -205,6 +228,17 @@ describe("components/reviews/GenerateResponseButton", () => {
       await waitFor(() => {
         expect(screen.getByText("Modal Open")).toBeInTheDocument();
       });
+
+      // Assert reviewSummary fields are rendered in the modal
+      expect(
+        screen.getByTestId("review-summary-reviewer-name"),
+      ).toHaveTextContent("John Doe");
+      expect(screen.getByTestId("review-summary-rating")).toHaveTextContent(
+        "5",
+      );
+      expect(
+        screen.getByTestId("review-summary-review-text"),
+      ).toHaveTextContent("Great service!");
     });
   });
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { SettingsClient } from "@/app/(dashboard)/settings/settings-client";
@@ -14,6 +14,35 @@ vi.mock("@/components/settings/location-selector", () => ({
   LocationSelector: () => (
     <div data-testid="location-selector">LocationSelector</div>
   ),
+}));
+
+vi.mock("@/components/voice-profile/tone-quiz", () => ({
+  ToneQuiz: ({
+    onComplete,
+    onClose,
+  }: {
+    onComplete?: (customTone: unknown) => void;
+    onClose?: () => void;
+  }) => {
+    const customTone =
+      (window as { __testCustomTone?: unknown }).__testCustomTone ?? null;
+
+    return (
+      <div>
+        <h2>Tone Quiz</h2>
+        {onComplete ? (
+          <button type="button" onClick={() => onComplete(customTone)}>
+            Complete
+          </button>
+        ) : null}
+        {onClose ? (
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        ) : null}
+      </div>
+    );
+  },
 }));
 
 // Mock HTMLDialogElement methods
@@ -45,6 +74,34 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
   beforeEach(() => {
     mockFetch.mockReset();
+    // Default route-aware mocks for useEffect calls (notifications and custom-tones).
+    // Tests can override specific calls with mockResolvedValueOnce / mockRejectedValueOnce.
+    mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+
+      if (url === "/api/notifications") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ emailNotifications: true }),
+        };
+      }
+
+      if (url === "/api/custom-tones") {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+
+      if (url === "/api/voice-profile") {
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -52,14 +109,20 @@ describe("app/(dashboard)/settings/settings-client", () => {
     vi.restoreAllMocks();
   });
 
-  describe("Initial render", () => {
-    it("renders page header", () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-
+  // Helper to render component and handle async useEffect operations
+  const renderSettingsClient = async () => {
+    await act(async () => {
       render(<SettingsClient />);
+    });
+    // Wait for both fetch calls to be made (useEffect triggers both on mount)
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  };
+
+  describe("Initial render", () => {
+    it("renders page header", async () => {
+      await renderSettingsClient();
       expect(
         screen.getByRole("heading", { name: "Settings" }),
       ).toBeInTheDocument();
@@ -70,51 +133,31 @@ describe("app/(dashboard)/settings/settings-client", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders Google Business Profile section", () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-
-      render(<SettingsClient />);
+    it("renders Google Business Profile section", async () => {
+      await renderSettingsClient();
       expect(
         screen.getByRole("heading", { name: "Google Business Profile" }),
       ).toBeInTheDocument();
       expect(screen.getByTestId("google-connect-button")).toBeInTheDocument();
     });
 
-    it("renders Connected Locations section", () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-
-      render(<SettingsClient />);
+    it("renders Connected Locations section", async () => {
+      await renderSettingsClient();
       expect(
         screen.getByRole("heading", { name: "Connected Locations" }),
       ).toBeInTheDocument();
       expect(screen.getByTestId("location-selector")).toBeInTheDocument();
     });
 
-    it("renders Voice Profile section", () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-
-      render(<SettingsClient />);
+    it("renders Voice Profile section", async () => {
+      await renderSettingsClient();
       expect(
         screen.getByRole("heading", { name: "Voice Profile" }),
       ).toBeInTheDocument();
     });
 
-    it("renders Notifications section", () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-
-      render(<SettingsClient />);
+    it("renders Notifications section", async () => {
+      await renderSettingsClient();
       expect(
         screen.getByRole("heading", { name: "Notifications" }),
       ).toBeInTheDocument();
@@ -128,7 +171,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({ emailNotifications: false }),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith("/api/notifications");
@@ -143,7 +186,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
     it("handles notification preference fetch error gracefully", async () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(console.error).toHaveBeenCalledWith(
@@ -165,7 +208,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({ emailNotifications: "invalid" }),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
@@ -185,7 +228,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({ error: "Server error" }),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
@@ -216,7 +259,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ emailNotifications: false }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(screen.getByRole("switch")).toHaveAttribute(
@@ -257,7 +300,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ emailNotifications: true }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(screen.getByRole("switch")).toHaveAttribute(
@@ -290,12 +333,16 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ emailNotifications: true }),
         })
         .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
+        })
+        .mockResolvedValueOnce({
           ok: false,
           status: 500,
           json: async () => ({ error: "Update failed" }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(screen.getByRole("switch")).toHaveAttribute(
@@ -330,9 +377,13 @@ describe("app/(dashboard)/settings/settings-client", () => {
           ok: true,
           json: async () => ({ emailNotifications: true }),
         })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [],
+        })
         .mockRejectedValueOnce(new Error("Network error"));
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(screen.getByRole("switch")).toHaveAttribute(
@@ -373,7 +424,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockReturnValueOnce(updatePromise);
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(screen.getByRole("switch")).toHaveAttribute(
@@ -402,7 +453,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
       });
     });
 
-    it("disables toggle while loading initial preferences", () => {
+    it("disables toggle while loading initial preferences", async () => {
       mockFetch.mockImplementation(
         () =>
           new Promise(() => {
@@ -410,7 +461,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           }),
       );
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
       const toggle = screen.getByRole("switch", {
         name: "Email notifications",
       });
@@ -426,21 +477,21 @@ describe("app/(dashboard)/settings/settings-client", () => {
       });
     });
 
-    it("renders tone selector with default value", () => {
-      render(<SettingsClient />);
+    it("renders tone selector with default value", async () => {
+      await renderSettingsClient();
       const toneSelect = screen.getByLabelText("Tone");
       expect(toneSelect).toHaveValue("warm");
     });
 
-    it("renders personality notes textarea", () => {
-      render(<SettingsClient />);
+    it("renders personality notes textarea", async () => {
+      await renderSettingsClient();
       const notesTextarea = screen.getByLabelText("Personality Notes");
       expect(notesTextarea).toBeInTheDocument();
       expect(notesTextarea).toHaveValue("");
     });
 
-    it("renders sign-off input", () => {
-      render(<SettingsClient />);
+    it("renders sign-off input", async () => {
+      await renderSettingsClient();
       const signOffInput = screen.getByLabelText("Sign-off Style");
       expect(signOffInput).toBeInTheDocument();
       expect(signOffInput).toHaveValue("");
@@ -448,7 +499,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("updates tone when selected", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const toneSelect = screen.getByLabelText("Tone");
       await user.selectOptions(toneSelect, "professional");
@@ -458,7 +509,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("updates personality notes when typed", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family-owned since 1985");
@@ -468,7 +519,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("updates sign-off when typed", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const signOffInput = screen.getByLabelText("Sign-off Style");
       await user.type(signOffInput, "— John, Owner");
@@ -490,7 +541,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error when personality notes are empty", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
       await user.click(saveButton);
@@ -500,7 +551,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error when personality notes are only whitespace", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "   ");
@@ -513,7 +564,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error when sign-off is empty", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -526,7 +577,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows error when sign-off is only whitespace", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -542,7 +593,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("shows all validation errors at once", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
       await user.click(saveButton);
@@ -557,7 +608,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
     it("clears field errors when form is valid", async () => {
       const user = userEvent.setup();
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       // Trigger validation errors
       const saveButton = screen.getByRole("button", { name: "Save Changes" });
@@ -589,13 +640,6 @@ describe("app/(dashboard)/settings/settings-client", () => {
   });
 
   describe("Voice profile submission", () => {
-    beforeEach(() => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-    });
-
     it("saves voice profile successfully", async () => {
       const user = userEvent.setup();
       mockFetch.mockResolvedValueOnce({
@@ -603,7 +647,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({}),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -638,7 +682,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({}),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "  Family restaurant  ");
@@ -680,7 +724,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ error: "Database error" }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -714,7 +758,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({}),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -746,7 +790,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockRejectedValueOnce(new Error("Network error"));
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -789,7 +833,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           },
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -826,7 +870,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockReturnValueOnce(savePromise);
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -877,7 +921,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockReturnValueOnce(secondSavePromise);
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -926,8 +970,8 @@ describe("app/(dashboard)/settings/settings-client", () => {
       });
     });
 
-    it("renders all tone options", () => {
-      render(<SettingsClient />);
+    it("renders all tone options", async () => {
+      await renderSettingsClient();
       const _toneSelect = screen.getByLabelText("Tone");
 
       expect(
@@ -952,7 +996,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({}),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const toneSelect = screen.getByLabelText("Tone");
       await user.selectOptions(toneSelect, "professional");
@@ -1016,7 +1060,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => customTones,
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(
@@ -1040,7 +1084,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ error: "Server error" }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(
@@ -1057,7 +1101,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         })
         .mockRejectedValueOnce("String error");
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(
@@ -1077,7 +1121,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ notAnArray: true }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith("/api/custom-tones");
@@ -1102,7 +1146,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           },
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith("/api/custom-tones");
@@ -1135,7 +1179,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({}),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(
@@ -1168,7 +1212,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
       });
     });
 
-    it("does not show custom tones section when loading", () => {
+    it("does not show custom tones section when loading", async () => {
       mockFetch.mockImplementation(
         () =>
           new Promise(() => {
@@ -1176,7 +1220,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           }),
       );
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
       expect(screen.queryByText("Custom Tones")).not.toBeInTheDocument();
     });
 
@@ -1191,7 +1235,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => [],
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith("/api/custom-tones");
@@ -1202,13 +1246,6 @@ describe("app/(dashboard)/settings/settings-client", () => {
   });
 
   describe("Tone quiz modal", () => {
-    beforeEach(() => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-    });
-
     it("opens tone quiz modal when button clicked", async () => {
       const user = userEvent.setup();
       mockFetch
@@ -1221,7 +1258,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => [],
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
@@ -1247,7 +1284,10 @@ describe("app/(dashboard)/settings/settings-client", () => {
         createdAt: "2025-01-01T00:00:00.000Z",
       };
 
-      // Mock quiz generation
+      // Set custom tone in window for mocked ToneQuiz to access
+      (window as { __testCustomTone?: unknown }).__testCustomTone = customTone;
+
+      // Mock fetch calls: notifications, initial custom tones, and refresh after completion
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
@@ -1256,9 +1296,13 @@ describe("app/(dashboard)/settings/settings-client", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => [],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [customTone],
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
@@ -1267,14 +1311,39 @@ describe("app/(dashboard)/settings/settings-client", () => {
       const quizButton = screen.getByRole("button", { name: "Take Tone Quiz" });
       await user.click(quizButton);
 
+      // Wait for modal to open
       await waitFor(() => {
         expect(
           screen.getByRole("heading", { name: "Tone Quiz" }),
         ).toBeInTheDocument();
       });
 
-      // The quiz completion is complex and would require answering all questions
-      // This test verifies the modal opens correctly
+      // Complete the quiz (mocked ToneQuiz)
+      await user.click(screen.getByRole("button", { name: "Complete" }));
+
+      // Wait for modal to close after completion
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("heading", { name: "Tone Quiz" }),
+        ).not.toBeInTheDocument();
+      });
+
+      // Verify custom tones are refreshed after completion
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+      });
+
+      // Wait for custom tones to load and verify tone is set correctly
+      await waitFor(() => {
+        const customToneSelect = document.getElementById(
+          "custom-tone-select",
+        ) as HTMLSelectElement;
+        expect(customToneSelect).toBeInTheDocument();
+        expect(customToneSelect.value).toBe(`custom:${customTone.id}`);
+      });
+
+      // Cleanup
+      delete (window as { __testCustomTone?: unknown }).__testCustomTone;
     });
 
     it("closes tone quiz modal when quiz skipped", async () => {
@@ -1289,7 +1358,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => [],
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();
@@ -1304,27 +1373,16 @@ describe("app/(dashboard)/settings/settings-client", () => {
         ).toBeInTheDocument();
       });
 
-      // Close button should be available if onClose is provided
-      const closeButton = screen.queryByRole("button", { name: "Close" });
-      if (closeButton) {
-        await user.click(closeButton);
-        await waitFor(() => {
-          expect(
-            screen.queryByRole("heading", { name: "Tone Quiz" }),
-          ).not.toBeInTheDocument();
-        });
-      }
+      await user.click(screen.getByRole("button", { name: "Close" }));
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("heading", { name: "Tone Quiz" }),
+        ).not.toBeInTheDocument();
+      });
     });
   });
 
   describe("Status message colors", () => {
-    beforeEach(() => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ emailNotifications: true }),
-      });
-    });
-
     it("shows green text for success status", async () => {
       const user = userEvent.setup();
       mockFetch.mockResolvedValueOnce({
@@ -1332,7 +1390,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
         json: async () => ({}),
       });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");
@@ -1366,7 +1424,7 @@ describe("app/(dashboard)/settings/settings-client", () => {
           json: async () => ({ error: "Error" }),
         });
 
-      render(<SettingsClient />);
+      await renderSettingsClient();
 
       const notesTextarea = screen.getByLabelText("Personality Notes");
       await user.type(notesTextarea, "Family restaurant");

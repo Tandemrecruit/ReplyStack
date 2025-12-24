@@ -1,14 +1,40 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { VoiceEditor } from "@/components/voice-profile/voice-editor";
 
 describe("components/voice-profile/VoiceEditor", () => {
+  beforeEach(() => {
+    // Mock fetch for custom tones API call in useEffect
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => [],
+      } as Response),
+    ) as never;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Custom render that waits for async operations in useEffect
+  const renderVoiceEditor = async (
+    props: Parameters<typeof VoiceEditor>[0],
+  ) => {
+    await act(async () => {
+      render(<VoiceEditor {...props} />);
+    });
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+  };
+
   it("submits updated form data via onSave", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
 
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     await user.click(screen.getByRole("button", { name: /Professional/ }));
     await user.type(
@@ -30,13 +56,11 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 
-  it("renders provided max_length value", () => {
-    render(
-      <VoiceEditor
-        profile={{ tone: "professional", max_length: 200 }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("renders provided max_length value", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "professional", max_length: 200 },
+      onSave: vi.fn(),
+    });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -47,7 +71,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("saves updated max_length as a number", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -70,7 +94,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("shows validation error and prevents submission when max_length is empty", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -95,7 +119,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("accepts min boundary value for max_length", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -116,7 +140,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("accepts max boundary value for max_length", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -137,7 +161,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("shows validation error when max_length is below minimum", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -162,7 +186,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("shows validation error when max_length is above maximum", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -186,7 +210,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("validates max_length on input change", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -205,7 +229,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("clears validation error when max_length becomes valid", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -236,12 +260,10 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles null max_length value", async () => {
     const _user = userEvent.setup();
     const onSave = vi.fn();
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", max_length: null as never }}
-        onSave={onSave}
-      />,
-    );
+    await renderVoiceEditor({
+      profile: { tone: "friendly", max_length: null as never },
+      onSave,
+    });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -252,12 +274,10 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles undefined max_length value", async () => {
     const _user = userEvent.setup();
     const onSave = vi.fn();
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", max_length: null }}
-        onSave={onSave}
-      />,
-    );
+    await renderVoiceEditor({
+      profile: { tone: "friendly", max_length: null },
+      onSave,
+    });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -268,12 +288,10 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles NaN max_length value", async () => {
     const _user = userEvent.setup();
     const onSave = vi.fn();
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", max_length: NaN }}
-        onSave={onSave}
-      />,
-    );
+    await renderVoiceEditor({
+      profile: { tone: "friendly", max_length: NaN },
+      onSave,
+    });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -281,8 +299,8 @@ describe("components/voice-profile/VoiceEditor", () => {
     expect(maxInput.value).toBe(""); // Should show empty for NaN
   });
 
-  it("renders all tone options", () => {
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+  it("renders all tone options", async () => {
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     expect(
       screen.getByRole("button", { name: /Friendly/i }),
@@ -295,8 +313,11 @@ describe("components/voice-profile/VoiceEditor", () => {
     expect(screen.getByRole("button", { name: /Direct/i })).toBeInTheDocument();
   });
 
-  it("highlights selected tone option", () => {
-    render(<VoiceEditor profile={{ tone: "professional" }} onSave={vi.fn()} />);
+  it("highlights selected tone option", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "professional" },
+      onSave: vi.fn(),
+    });
 
     const professionalButton = screen.getByRole("button", {
       name: /Professional/i,
@@ -308,7 +329,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("updates tone when clicking different option", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     await user.click(screen.getByRole("button", { name: /Casual/i }));
 
@@ -326,18 +347,16 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 
-  it("renders with initial profile values", () => {
-    render(
-      <VoiceEditor
-        profile={{
-          tone: "professional",
-          personality_notes: "Initial notes",
-          sign_off_style: "— Initial",
-          max_length: 200,
-        }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("renders with initial profile values", async () => {
+    await renderVoiceEditor({
+      profile: {
+        tone: "professional",
+        personality_notes: "Initial notes",
+        sign_off_style: "— Initial",
+        max_length: 200,
+      },
+      onSave: vi.fn(),
+    });
 
     expect(
       (screen.getByLabelText("Personality Notes") as HTMLTextAreaElement).value,
@@ -351,15 +370,15 @@ describe("components/voice-profile/VoiceEditor", () => {
     ).toBe("200");
   });
 
-  it("uses default tone when profile tone is missing", () => {
-    render(<VoiceEditor profile={{}} onSave={vi.fn()} />);
+  it("uses default tone when profile tone is missing", async () => {
+    await renderVoiceEditor({ profile: {}, onSave: vi.fn() });
 
     const warmButton = screen.getByRole("button", { name: /Warm/i });
     expect(warmButton.className).toContain("border-primary-500");
   });
 
-  it("uses default max_length when profile max_length is missing", () => {
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+  it("uses default max_length when profile max_length is missing", async () => {
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -367,26 +386,22 @@ describe("components/voice-profile/VoiceEditor", () => {
     expect(maxInput.value).toBe("150");
   });
 
-  it("handles empty personality notes", () => {
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", personality_notes: "" }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("handles empty personality notes", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "friendly", personality_notes: "" },
+      onSave: vi.fn(),
+    });
 
     expect(
       (screen.getByLabelText("Personality Notes") as HTMLTextAreaElement).value,
     ).toBe("");
   });
 
-  it("handles empty sign-off style", () => {
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", sign_off_style: "" }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("handles empty sign-off style", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "friendly", sign_off_style: "" },
+      onSave: vi.fn(),
+    });
 
     expect(
       (screen.getByLabelText("Sign-off Style") as HTMLInputElement).value,
@@ -396,7 +411,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("prevents submission when max_length validation fails", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -415,7 +430,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("handles invalid number input for max_length", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -436,7 +451,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("handles empty string input for max_length", async () => {
     const user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -457,7 +472,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("converts string max_length to number on save", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -480,7 +495,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("sets aria-invalid when max_length has error", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -495,7 +510,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("sets aria-describedby when max_length has error", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -510,7 +525,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("removes aria-describedby when max_length error is cleared", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -531,7 +546,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("handles submission when onSave is undefined", async () => {
     const user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" } });
 
     await user.type(screen.getByLabelText("Personality Notes"), "Test notes");
     await user.type(screen.getByLabelText("Sign-off Style"), "— Test");
@@ -546,13 +561,11 @@ describe("components/voice-profile/VoiceEditor", () => {
     ).toBeInTheDocument();
   });
 
-  it("handles initial max_length with validation error", () => {
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", max_length: 30 }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("handles initial max_length with validation error", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "friendly", max_length: 30 },
+      onSave: vi.fn(),
+    });
 
     const errorMessages = screen.getAllByRole("alert");
     const visibleError = errorMessages.find(
@@ -564,13 +577,11 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 
-  it("handles initial max_length above maximum with validation error", () => {
-    render(
-      <VoiceEditor
-        profile={{ tone: "friendly", max_length: 600 }}
-        onSave={vi.fn()}
-      />,
-    );
+  it("handles initial max_length above maximum with validation error", async () => {
+    await renderVoiceEditor({
+      profile: { tone: "friendly", max_length: 600 },
+      onSave: vi.fn(),
+    });
 
     const errorMessages = screen.getAllByRole("alert");
     const visibleError = errorMessages.find(
@@ -584,7 +595,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("validates max_length with null value", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -604,7 +615,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("validates max_length with undefined value", async () => {
     const user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -624,7 +635,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("renders ARIA live region with maxLengthError", async () => {
     const _user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -646,7 +657,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("clears errors state on form submission", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     // First submit with invalid max_length
     const maxInput = screen.getByLabelText(
@@ -681,7 +692,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles form submission with string max_length value", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",
@@ -704,8 +715,8 @@ describe("components/voice-profile/VoiceEditor", () => {
     );
   });
 
-  it("handles all tone option descriptions", () => {
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+  it("handles all tone option descriptions", async () => {
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     expect(screen.getByText("Warm and approachable")).toBeInTheDocument();
     expect(
@@ -721,7 +732,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles form submission with all fields filled", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     await user.click(screen.getByRole("button", { name: /Professional/i }));
     await user.type(
@@ -748,7 +759,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("handles input change for personality notes", async () => {
     const user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const personalityInput = screen.getByLabelText(
       "Personality Notes",
@@ -761,7 +772,7 @@ describe("components/voice-profile/VoiceEditor", () => {
 
   it("handles input change for sign-off style", async () => {
     const user = userEvent.setup();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={vi.fn()} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave: vi.fn() });
 
     const signOffInput = screen.getByLabelText(
       "Sign-off Style",
@@ -775,7 +786,7 @@ describe("components/voice-profile/VoiceEditor", () => {
   it("handles max_length input with empty string then valid value", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<VoiceEditor profile={{ tone: "friendly" }} onSave={onSave} />);
+    await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
 
     const maxInput = screen.getByLabelText(
       "Maximum Response Length",

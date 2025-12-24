@@ -19,9 +19,19 @@ describe("lib/claude/client", () => {
 
   // Local helper to get parsed body from fetch mock
   function getRequestBody<T>(): T {
+    if (mockFetch.mock.calls.length === 0) {
+      throw new Error(
+        "getRequestBody: no fetch calls recorded. Ensure the function under test has been called and mockFetch has been invoked.",
+      );
+    }
     const call = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
     const options = call?.[1] as RequestInit | undefined;
-    return JSON.parse(options?.body as string) as T;
+    if (!options?.body) {
+      throw new Error(
+        "getRequestBody: fetch call exists but request body is missing or undefined.",
+      );
+    }
+    return JSON.parse(options.body as string) as T;
   }
 
   // Helper to create a successful Claude response

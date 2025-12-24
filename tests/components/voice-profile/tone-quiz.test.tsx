@@ -50,12 +50,32 @@ describe("components/voice-profile/ToneQuiz", () => {
       }
     });
 
-    it("shows 'Select all that apply' for multi-select questions", () => {
-      // Find a multi-select question (question 9 or 10)
+    it("shows 'Select all that apply' for multi-select questions", async () => {
+      const user = userEvent.setup();
+      // Find a multi-select question
       const multiSelectIndex = QUIZ_QUESTIONS.findIndex((q) => q.allowMultiple);
-      if (multiSelectIndex === -1) return;
+      if (multiSelectIndex === -1) {
+        throw new Error("No multi-select question found in QUIZ_QUESTIONS");
+      }
 
-      // We can't easily jump to a specific question, so we'll test this in navigation tests
+      render(<ToneQuiz />);
+
+      // Navigate to the multi-select question by answering previous questions
+      for (let i = 0; i < multiSelectIndex; i++) {
+        const answer = screen.getByText(
+          QUIZ_QUESTIONS[i]?.answers[0]?.text ?? "",
+        );
+        await user.click(answer);
+        await user.click(screen.getByRole("button", { name: "Next" }));
+        await waitFor(() => {
+          expect(
+            screen.queryByText(QUIZ_QUESTIONS[i]?.text ?? ""),
+          ).not.toBeInTheDocument();
+        });
+      }
+
+      // Assert "Select all that apply" text is visible for multi-select question
+      expect(screen.getByText("Select all that apply")).toBeInTheDocument();
     });
 
     it("renders Back button only when not on first question", () => {
@@ -181,6 +201,18 @@ describe("components/voice-profile/ToneQuiz", () => {
         "aria-checked",
         "true",
       );
+    });
+
+    it("calls onClose when Close clicked during quiz screen", async () => {
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+
+      render(<ToneQuiz onClose={onClose} />);
+
+      const closeButton = screen.getByRole("button", { name: "Close" });
+      await user.click(closeButton);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -630,32 +662,38 @@ describe("components/voice-profile/ToneQuiz", () => {
       });
       expect(screen.getByText("1 of 10")).toBeInTheDocument();
     });
-
-    it("calls onClose when Close clicked from results screen", async () => {
-      const user = userEvent.setup();
-      const onClose = vi.fn();
-
-      render(<ToneQuiz onClose={onClose} />);
-      await completeQuiz(user);
-
-      // Close button should be available in results screen
-      const closeButton = screen.queryByRole("button", { name: "Close" });
-      if (closeButton) {
-        await user.click(closeButton);
-        expect(onClose).toHaveBeenCalled();
-      } else {
-        // If Close button is not in results screen, test Skip instead
-        const skipButton = screen.getByRole("button", { name: "Skip" });
-        await user.click(skipButton);
-        // Skip calls onComplete, not onClose, so this test may need adjustment
-      }
-    });
   });
 
   describe("Error handling", () => {
-    it("handles invalid question index gracefully", () => {
-      // This is a guard case that shouldn't happen in normal flow
-      // We can't easily test this without mocking QUIZ_QUESTIONS
+    it("handles invalid question index gracefully", async () => {
+      // Reset modules to allow re-importing with mocked QUIZ_QUESTIONS
+      vi.resetModules();
+
+      // Mock QUIZ_QUESTIONS to be empty array to trigger guard case
+      vi.doMock("@/lib/quiz/questions", () => ({
+        QUIZ_QUESTIONS: [],
+      }));
+
+      // Re-import component after mock
+      const { ToneQuiz: ToneQuizMocked } = await import(
+        "@/components/voice-profile/tone-quiz"
+      );
+
+      const onClose = vi.fn();
+      render(<ToneQuizMocked onClose={onClose} />);
+
+      // Should show error message
+      expect(
+        screen.getByText("Error: Invalid question index"),
+      ).toBeInTheDocument();
+
+      // Should show Close button when onClose provided
+      const closeButton = screen.getByRole("button", { name: "Close" });
+      expect(closeButton).toBeInTheDocument();
+
+      // Clean up mock and restore modules
+      vi.doUnmock("@/lib/quiz/questions");
+      vi.resetModules();
     });
 
     it("validates tone response structure", async () => {

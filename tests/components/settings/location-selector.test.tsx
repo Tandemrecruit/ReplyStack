@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { LocationSelector } from "@/components/settings/location-selector";
@@ -12,7 +12,18 @@ describe("components/settings/LocationSelector", () => {
     mockFetch.mockReset();
   });
 
-  it("shows loading state initially", () => {
+  // Helper to render component and handle async useEffect operations
+  const renderLocationSelector = async () => {
+    await act(async () => {
+      render(<LocationSelector />);
+    });
+    // Wait for fetch to be called (useEffect triggers fetch on mount)
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  };
+
+  it("shows loading state initially", async () => {
     mockFetch.mockImplementation(
       () =>
         new Promise(() => {
@@ -20,7 +31,9 @@ describe("components/settings/LocationSelector", () => {
         }),
     );
 
-    render(<LocationSelector />);
+    await act(async () => {
+      render(<LocationSelector />);
+    });
 
     expect(screen.getByText("Loading locations...")).toBeInTheDocument();
   });
@@ -58,7 +71,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Account 1")).toBeInTheDocument();
@@ -98,7 +111,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -127,7 +140,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Synced")).toBeInTheDocument();
@@ -153,7 +166,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -203,7 +216,7 @@ describe("components/settings/LocationSelector", () => {
         }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -256,7 +269,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(
@@ -277,7 +290,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(
@@ -297,7 +310,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Failed to fetch locations")).toBeInTheDocument();
@@ -335,7 +348,7 @@ describe("components/settings/LocationSelector", () => {
         }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Failed to fetch locations")).toBeInTheDocument();
@@ -376,7 +389,7 @@ describe("components/settings/LocationSelector", () => {
         }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -410,7 +423,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("No changes to save")).toBeInTheDocument();
@@ -428,7 +441,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(
@@ -473,7 +486,7 @@ describe("components/settings/LocationSelector", () => {
           }),
       );
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -506,7 +519,7 @@ describe("components/settings/LocationSelector", () => {
       }),
     });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -554,7 +567,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ saved: 1 }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -620,7 +633,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ success: true }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -667,7 +680,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ saved: 1 }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -745,7 +758,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ success: true }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -792,7 +805,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ saved: 1 }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -839,7 +852,7 @@ describe("components/settings/LocationSelector", () => {
       })
       .mockRejectedValueOnce(new Error("Network error"));
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();
@@ -881,7 +894,7 @@ describe("components/settings/LocationSelector", () => {
         json: async () => ({ saved: 1 }),
       });
 
-    render(<LocationSelector />);
+    await renderLocationSelector();
 
     await waitFor(() => {
       expect(screen.getByText("Location 1")).toBeInTheDocument();

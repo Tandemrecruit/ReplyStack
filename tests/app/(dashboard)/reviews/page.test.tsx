@@ -351,6 +351,10 @@ describe("app/(dashboard)/reviews/page", () => {
     });
 
     it("handles locations fetch failure", async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       vi.mocked(createServerSupabaseClient).mockResolvedValue(
         createMockSupabaseClient({
           locationsError: new Error("Failed to fetch locations"),
@@ -362,9 +366,18 @@ describe("app/(dashboard)/reviews/page", () => {
       expect(
         screen.getByText("Failed to load locations. Please try again later."),
       ).toBeInTheDocument();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to fetch locations:",
+        "Failed to fetch locations",
+      );
     });
 
     it("handles reviews fetch failure", async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       vi.mocked(createServerSupabaseClient).mockResolvedValue(
         createMockSupabaseClient({
           locations: [{ id: "loc-1" }],
@@ -377,6 +390,11 @@ describe("app/(dashboard)/reviews/page", () => {
       expect(
         screen.getByText("Failed to load reviews. Please try again later."),
       ).toBeInTheDocument();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to fetch reviews:",
+        "Failed to fetch reviews",
+      );
     });
   });
 

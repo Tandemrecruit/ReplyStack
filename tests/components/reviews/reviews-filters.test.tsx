@@ -308,9 +308,6 @@ describe("components/reviews/ReviewsFilters", () => {
   describe("Filter options", () => {
     it("renders all rating options", () => {
       render(<ReviewsFilters />);
-      const ratingSelect = screen.getByRole("combobox", {
-        name: "Filter by rating",
-      });
 
       expect(
         screen.getByRole("option", { name: "All Ratings" }),
@@ -334,9 +331,6 @@ describe("components/reviews/ReviewsFilters", () => {
 
     it("renders all status options", () => {
       render(<ReviewsFilters />);
-      const statusSelect = screen.getByRole("combobox", {
-        name: "Filter by status",
-      });
 
       expect(
         screen.getByRole("option", { name: "All Status" }),
