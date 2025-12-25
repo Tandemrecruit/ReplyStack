@@ -562,15 +562,37 @@ Organizations need to configure AI response personality (tone, word preferences,
 
 ### Decision
 
-Implement a single-voice-profile-per-organization pattern with `GET /api/voice-profile` and `PUT /api/voice-profile` endpoints. GET returns the existing profile or `null` if none exists. PUT performs upsert: if a profile exists for the organization, update it; otherwise, create a new one with `name: "Default"`. Validate request body with Zod schema, filtering out `undefined` values to support partial updates.
+Implement a single-voice-profile-per-organization pattern with `GET /api/voice-profile` and `PUT /api/voice-profile` endpoints. GET returns the existing profile or `null` if none exists. PUT performs upsert: if a profile exists for the organization, update it; otherwise, create a new one with `name: "Default"`. Validate request body with Zod schema using `safeParse()`, filtering out `undefined` values to support partial updates.
+
+### Implementation Details
+
+```typescript
+// Zod schema for PUT request validation
+const updateVoiceProfileSchema = z.object({
+  tone: z.string().optional(),
+  personality_notes: z.string().optional(),
+  sign_off_style: z.string().optional(),
+  max_length: z.number().int().positive().optional(),
+  words_to_use: z.array(z.string()).optional(),
+  words_to_avoid: z.array(z.string()).optional(),
+  example_responses: z.array(z.string()).optional(),
+});
+
+// Use safeParse for graceful error handling
+const parseResult = updateVoiceProfileSchema.safeParse(rawBody);
+if (!parseResult.success) {
+  return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+}
+```
 
 ### Rationale
 
 - Single profile per organization simplifies the mental model (one voice per business)
 - Upsert pattern in PUT eliminates the need for separate POST endpoint
 - Partial updates allow clients to modify only changed fields without sending full profile
-- Zod validation provides type-safe request parsing and clear error messages
+- Zod `safeParse()` provides type-safe validation without throwing, enabling graceful error responses
 - `maybeSingle()` query pattern handles the "no profile exists" case gracefully
+- Type inference via `z.infer<typeof schema>` ensures request body types match schema
 
 ### Consequences
 
@@ -1457,6 +1479,75 @@ Implement atomic upsert for response publishing using:
   - Requires database function maintenance
   - Less flexible than application-level logic (changes require migration)
   - Database-specific (PostgreSQL) solution (not portable to other databases)
+
+---
+
+## ADR-032: Public API Endpoints with Anonymous RLS
+
+**Status:** Accepted
+
+### Context
+
+Pre-launch features like waitlist signups require public API endpoints that don't require authentication. These endpoints need to balance accessibility with security, preventing abuse while allowing unauthenticated access.
+
+### Decision
+
+Implement public API endpoints using Supabase Row Level Security (RLS) policies that allow anonymous (`anon`) role access for specific operations:
+
+1. **Database layer:** Create RLS policies explicitly allowing `anon` role for INSERT only, blocking SELECT/UPDATE/DELETE
+2. **API layer:** Skip authentication checks but validate all input rigorously
+3. **Privacy protection:** Return success even on duplicate attempts to prevent email enumeration attacks
+4. **Constraint enforcement:** Use database CHECK constraints for validation (email format, enum values) as defense-in-depth
+5. **Case normalization:** Use `LOWER(email)` for unique indexes to prevent case-variant duplicates
+
+Implementation pattern (waitlist example):
+- `POST /api/waitlist` - Public endpoint, no auth required
+- RLS policy: `FOR INSERT TO anon WITH CHECK (true)`
+- Unique index: `ON waitlist (LOWER(email))`
+- Duplicate handling: Return `{ success: true }` on constraint violation (code `23505`)
+
+### Rationale
+
+- **RLS as primary defense:** Database-level policies enforce access control even if API code has bugs
+- **INSERT-only access:** Prevents data exfiltration while allowing signups
+- **Email enumeration protection:** Silent success on duplicates prevents attackers from discovering registered emails
+- **Case-insensitive uniqueness:** Prevents "user@example.com" and "User@Example.com" being treated as different
+- **Defense-in-depth:** Both API validation and database constraints catch invalid input
+- **Service role for admin access:** Admin operations (reading waitlist, analytics) use service role key to bypass RLS
+
+### Alternatives Considered
+
+1. **Rate limiting only (no RLS)**
+   - Pros: Simpler implementation
+   - Cons: Relies entirely on application code, vulnerable to bypass
+
+2. **Captcha for public endpoints**
+   - Pros: Prevents automated abuse
+   - Cons: Friction for legitimate users, accessibility concerns, complexity
+
+3. **Email verification before adding to waitlist**
+   - Pros: Ensures valid emails
+   - Cons: Adds friction, delays confirmation, requires email infrastructure
+
+### Consequences
+
+- **Positive:**
+  - Secure public endpoints without complex authentication
+  - Database-level protection against unauthorized access
+  - Privacy-preserving error handling
+  - Simple implementation using existing Supabase features
+
+- **Negative:**
+  - Admin access requires service role key (more powerful than needed)
+  - No built-in rate limiting (may need to add for high-traffic scenarios)
+  - Cannot track submission attempts for analytics (privacy trade-off)
+  - Duplicate submissions silently succeed (users may be confused about status)
+
+### Future Considerations
+
+- Add rate limiting if abuse becomes an issue
+- Consider honeypot fields for bot detection
+- May need admin UI to view/manage waitlist entries via service role
 
 ---
 
