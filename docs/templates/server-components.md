@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Page Title | ReplyStack",
+  title: "Page Title | Replily",
   description: "Page description",
 };
 

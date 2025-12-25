@@ -8,7 +8,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Review } from "@/lib/supabase/types";
 
 export const metadata: Metadata = {
-  title: "Reviews | ReplyStack",
+  title: "Reviews | Replily",
   description: "View and respond to your Google Business reviews",
 };
 

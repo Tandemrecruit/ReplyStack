@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* Logo */}
               <Link href="/dashboard" className="flex items-center gap-2">
                 <span className="text-xl font-bold text-primary-600">
-                  ReplyStack
+                  Replily
                 </span>
               </Link>
 

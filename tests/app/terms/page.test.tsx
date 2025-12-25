@@ -4,7 +4,7 @@ import TermsPage, { metadata } from "@/app/terms/page";
 
 describe("app/terms/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Terms of Service | ReplyStack");
+    expect(metadata.title).toBe("Terms of Service | Replily");
     expect(metadata.description).toContain("Terms and conditions");
   });
 
@@ -81,9 +81,9 @@ describe("app/terms/page", () => {
   it("renders contact email link", () => {
     render(<TermsPage />);
     const emailLink = screen.getByRole("link", {
-      name: "support@replystack.com",
+      name: "support@replily.com",
     });
-    expect(emailLink).toHaveAttribute("href", "mailto:support@replystack.com");
+    expect(emailLink).toHaveAttribute("href", "mailto:support@replily.com");
   });
 
   it("uses semantic article element", () => {

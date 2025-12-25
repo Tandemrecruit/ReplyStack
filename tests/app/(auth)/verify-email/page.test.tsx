@@ -4,7 +4,7 @@ import VerifyEmailPage, { metadata } from "@/app/(auth)/verify-email/page";
 
 describe("app/(auth)/verify-email/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Verify Email | ReplyStack");
+    expect(metadata.title).toBe("Verify Email | Replily");
     expect(metadata.description).toBe(
       "Check your email to verify your account",
     );

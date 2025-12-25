@@ -148,7 +148,7 @@ describe("app/(dashboard)/reviews/page", () => {
   });
 
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Reviews | ReplyStack");
+    expect(metadata.title).toBe("Reviews | Replily");
     expect(metadata.description).toBe(
       "View and respond to your Google Business reviews",
     );

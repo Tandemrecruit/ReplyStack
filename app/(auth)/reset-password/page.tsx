@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export const metadata: Metadata = {
-  title: "Reset Password | ReplyStack",
-  description: "Reset your ReplyStack password",
+  title: "Reset Password | Replily",
+  description: "Reset your Replily password",
 };
 
 /**

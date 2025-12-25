@@ -13,7 +13,7 @@ vi.mock("@/components/auth/update-password-form", () => ({
 
 describe("app/(auth)/update-password/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Update Password | ReplyStack");
+    expect(metadata.title).toBe("Update Password | Replily");
     expect(metadata.description).toBe("Set your new password");
   });
 

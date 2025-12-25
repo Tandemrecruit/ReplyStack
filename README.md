@@ -1,4 +1,4 @@
-# ReplyStack
+# Replily
 
 AI-powered Google Business review response tool for local businesses. Respond to every review within 15 minutes with AI that sounds like you.
 
@@ -33,8 +33,8 @@ AI-powered Google Business review response tool for local businesses. Respond to
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/replystack.git
-   cd replystack
+   git clone https://github.com/your-username/replily.git
+   cd replily
    ```
 
 2. Install dependencies:
@@ -61,7 +61,7 @@ For detailed environment setup, troubleshooting, and local cron/webhook notes, s
 ## Project Structure
 
 ```
-ReplyStack/
+Replily/
 ├── app/
 │   ├── (auth)/           # Auth routes (login, signup, callback)
 │   ├── (dashboard)/      # Protected dashboard routes

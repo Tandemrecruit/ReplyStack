@@ -4,7 +4,7 @@ import DashboardPage, { metadata } from "@/app/(dashboard)/dashboard/page";
 
 describe("app/(dashboard)/dashboard/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Dashboard | ReplyStack");
+    expect(metadata.title).toBe("Dashboard | Replily");
     expect(metadata.description).toBe("Manage your Google Business reviews");
   });
 
@@ -19,7 +19,7 @@ describe("app/(dashboard)/dashboard/page", () => {
     render(<DashboardPage />);
     expect(
       screen.getByText(
-        /Welcome to ReplyStack. Get started by connecting your Google Business Profile/i,
+        /Welcome to Replily. Get started by connecting your Google Business Profile/i,
       ),
     ).toBeInTheDocument();
   });

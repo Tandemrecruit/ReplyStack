@@ -233,7 +233,7 @@
 - [ ] **White-label option**
   - [ ] Custom domain support
   - [ ] Branding customization
-  - [ ] Remove ReplyStack branding
+  - [ ] Remove Replily branding
   - [ ] Agency-specific pricing
 
 - [ ] **API access**

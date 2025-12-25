@@ -19,8 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "ReplyStack | AI-Powered Review Responses",
-    template: "%s | ReplyStack",
+    default: "Replily | AI-Powered Review Responses",
+    template: "%s | Replily",
   },
   description:
     "Respond to every Google Business review in 30 seconds with AI that sounds like you. Built for local businesses.",
@@ -31,20 +31,20 @@ export const metadata: Metadata = {
     "local business",
     "reputation management",
   ],
-  authors: [{ name: "ReplyStack" }],
-  creator: "ReplyStack",
+  authors: [{ name: "Replily" }],
+  creator: "Replily",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://replystack.com",
-    siteName: "ReplyStack",
-    title: "ReplyStack | AI-Powered Review Responses",
+    url: "https://replily.com",
+    siteName: "Replily",
+    title: "Replily | AI-Powered Review Responses",
     description:
       "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ReplyStack | AI-Powered Review Responses",
+    title: "Replily | AI-Powered Review Responses",
     description:
       "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
   },

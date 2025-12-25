@@ -23,12 +23,12 @@
 
 ### Positioning
 
-ReplyStack is:
+Replily is:
 - **Simple** — Connect, configure, respond. No training required.
 - **Affordable** — $29-79/month, not enterprise pricing
 - **AI-native** — Built around AI from day one, not bolted on
 
-ReplyStack is NOT:
+Replily is NOT:
 - A bloated "reputation management suite"
 - An enterprise platform with 100 features you'll never use
 - A social media management tool
