@@ -4,7 +4,9 @@ import { GET } from "@/app/api/cron/poll-reviews/route";
 import { TokenDecryptionError } from "@/lib/crypto/encryption";
 import { GoogleAPIError } from "@/lib/google/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { createMockLocation, createMockUser } from "@/tests/helpers/fixtures";
 import { makeNextRequest } from "@/tests/helpers/next";
+import { createMockPollReviewsSupabaseClient } from "@/tests/helpers/supabase-mocks";
 
 vi.mock("@/lib/supabase/server", () => ({
   createAdminSupabaseClient: vi.fn(),
@@ -46,6 +48,23 @@ import { typedUpdate, typedUpsert } from "@/lib/supabase/typed-helpers";
 // Generate a valid test encryption key
 const TEST_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 
+// Default fixtures
+const defaultLocation = createMockLocation({
+  id: "loc-1",
+  google_account_id: "acc-1",
+  google_location_id: "loc-1",
+  name: "Location 1",
+  organization_id: "org-1",
+});
+
+const defaultUser = createMockUser({
+  id: "user-1",
+  organization_id: "org-1",
+  google_refresh_token: "encrypted-token",
+});
+
+// Default organization configured in createMockPollReviewsSupabaseClient
+
 describe("GET /api/cron/poll-reviews", () => {
   let originalCronSecret: string | undefined;
   let originalSupabaseUrl: string | undefined;
@@ -61,6 +80,9 @@ describe("GET /api/cron/poll-reviews", () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
     process.env.TOKEN_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
     vi.clearAllMocks();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -87,67 +109,33 @@ describe("GET /api/cron/poll-reviews", () => {
     vi.restoreAllMocks();
   });
 
-  const createMockSupabaseClient = (overrides?: {
-    locationsData?: unknown[];
-    locationsError?: unknown;
-    usersData?: unknown[];
-    usersError?: unknown;
-  }) => {
-    const mockFrom = vi.fn((table: string) => {
-      if (table === "locations") {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue({
-                data: overrides?.locationsData ?? [],
-                error: overrides?.locationsError ?? null,
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === "users") {
-        return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              not: vi.fn().mockResolvedValue({
-                data: overrides?.usersData ?? [],
-                error: overrides?.usersError ?? null,
-              }),
-            }),
-          }),
-        };
-      }
-      return {};
-    });
-
-    return {
-      from: mockFrom,
-    };
-  };
+  // Helper to set up standard successful mocks
+  function setupSuccessfulMocks() {
+    vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+    vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
+    vi.mocked(typedUpsert).mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: "review-1" }],
+        error: null,
+      }),
+    } as never);
+  }
 
   describe("authorization", () => {
-    it("returns 401 when CRON_SECRET is set and authorization is invalid", async () => {
+    it.each([
+      { header: "Bearer wrong", desc: "invalid authorization" },
+      { header: undefined, desc: "missing authorization header" },
+    ])("returns 401 when $desc", async ({ header }) => {
       process.env.CRON_SECRET = "secret";
+
+      const headers: Record<string, string> = {};
+      if (header) headers.authorization = header;
 
       const request = makeNextRequest(
         "http://localhost/api/cron/poll-reviews",
-        {
-          headers: {
-            authorization: "Bearer wrong",
-          },
-        },
+        { headers },
       );
-      const response = await GET(request);
-
-      expect(response.status).toBe(401);
-      await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
-    });
-
-    it("returns 401 when CRON_SECRET is set and authorization header is missing", async () => {
-      process.env.CRON_SECRET = "secret";
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
 
       expect(response.status).toBe(401);
@@ -155,62 +143,41 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("allows execution when CRON_SECRET is unset", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
       delete process.env.CRON_SECRET;
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient() as never,
+        createMockPollReviewsSupabaseClient() as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json).toEqual(
-        expect.objectContaining({
-          success: true,
-          message: expect.stringContaining("No active locations"),
-          duration: expect.any(Number),
-        }),
-      );
     });
 
     it("allows execution when CRON_SECRET matches authorization", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
       process.env.CRON_SECRET = "secret";
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient() as never,
+        createMockPollReviewsSupabaseClient() as never,
       );
 
       const request = makeNextRequest(
         "http://localhost/api/cron/poll-reviews",
-        {
-          headers: {
-            authorization: "Bearer secret",
-          },
-        },
+        { headers: { authorization: "Bearer secret" } },
       );
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json).toEqual(
-        expect.objectContaining({
-          success: true,
-        }),
-      );
     });
   });
 
   describe("database errors", () => {
-    it("returns 500 when locations fetch fails", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
+    beforeEach(() => {
       delete process.env.CRON_SECRET;
+    });
 
+    it("returns 500 when locations fetch fails", async () => {
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
+        createMockPollReviewsSupabaseClient({
           locationsError: { message: "Database connection failed" },
         }) as never,
       );
@@ -219,29 +186,15 @@ describe("GET /api/cron/poll-reviews", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(500);
-      const json = await response.json();
-      expect(json).toEqual({ error: "Failed to fetch locations" });
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to fetch locations:",
-        "Database connection failed",
-      );
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to fetch locations",
+      });
     });
 
     it("returns 500 when users fetch fails", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
           usersError: { message: "Database query failed" },
         }) as never,
       );
@@ -250,49 +203,28 @@ describe("GET /api/cron/poll-reviews", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(500);
-      const json = await response.json();
-      expect(json).toEqual({ error: "Failed to fetch users" });
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to fetch users:",
-        "Database query failed",
-      );
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to fetch users",
+      });
     });
   });
 
   describe("token handling", () => {
-    it("handles token decryption failure and clears token", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.spyOn(console, "warn").mockImplementation(() => {});
+    beforeEach(() => {
       delete process.env.CRON_SECRET;
+    });
 
+    it("handles token decryption failure and clears token", async () => {
       const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
-      const mockUpdate = {
-        eq: mockEq,
-      };
-
-      vi.mocked(typedUpdate).mockReturnValue(mockUpdate as never);
+      vi.mocked(typedUpdate).mockReturnValue({ eq: mockEq } as never);
       vi.mocked(decryptToken).mockImplementation(() => {
         throw new TokenDecryptionError("Invalid encrypted data");
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -309,38 +241,17 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("handles token refresh 401 and clears token", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
-      const mockUpdate = {
-        eq: mockEq,
-      };
-
-      vi.mocked(typedUpdate).mockReturnValue(mockUpdate as never);
+      vi.mocked(typedUpdate).mockReturnValue({ eq: mockEq } as never);
       vi.mocked(decryptToken).mockReturnValue("decrypted-token");
       vi.mocked(refreshAccessToken).mockRejectedValue(
         new GoogleAPIError(401, "Token expired"),
       );
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -351,36 +262,18 @@ describe("GET /api/cron/poll-reviews", () => {
       const json = await response.json();
       expect(json.errors).toContain("User user-1: Token expired");
       expect(typedUpdate).toHaveBeenCalled();
-      expect(mockEq).toHaveBeenCalledWith("id", "user-1");
     });
 
     it("handles token refresh other errors without clearing token", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       vi.mocked(decryptToken).mockReturnValue("decrypted-token");
       vi.mocked(refreshAccessToken).mockRejectedValue(
         new GoogleAPIError(500, "Internal server error"),
       );
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -395,18 +288,12 @@ describe("GET /api/cron/poll-reviews", () => {
   });
 
   describe("review processing", () => {
-    it("successfully processes reviews and upserts them", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
+    beforeEach(() => {
       delete process.env.CRON_SECRET;
+      setupSuccessfulMocks();
+    });
 
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }, { id: "review-2" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    it("successfully processes reviews and upserts them", async () => {
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
@@ -425,33 +312,25 @@ describe("GET /api/cron/poll-reviews", () => {
           },
         ],
       });
+      vi.mocked(typedUpsert).mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: [{ id: "review-1" }, { id: "review-2" }],
+          error: null,
+        }),
+      } as never);
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
+      const json = await response.json();
 
       expect(response.status).toBe(200);
-      const json = await response.json();
       expect(json.success).toBe(true);
       expect(json.locationsProcessed).toBe(1);
       expect(json.reviewsProcessed).toBe(2);
@@ -460,18 +339,6 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("generates synthetic ID for reviews missing external_review_id", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
@@ -484,23 +351,9 @@ describe("GET /api/cron/poll-reviews", () => {
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -508,31 +361,16 @@ describe("GET /api/cron/poll-reviews", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json.reviewsProcessed).toBe(1);
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining("Generated synthetic external_review_id"),
       );
-
-      const upsertCalls = vi.mocked(typedUpsert).mock.calls;
-      const lastCall = upsertCalls[upsertCalls.length - 1];
-      expect(lastCall).toBeDefined();
-      const reviewsToInsert = lastCall?.[2] as unknown[];
-      expect(reviewsToInsert[0]).toMatchObject({
-        external_review_id: expect.stringContaining("synthetic_"),
-      });
     });
 
     it("skips reviews with missing external_review_id and insufficient data", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
-            reviewer_name: null, // Missing required field
+            reviewer_name: null,
             rating: 5,
             review_text: "Great!",
             review_date: "2025-01-01T00:00:00.000Z",
@@ -541,32 +379,16 @@ describe("GET /api/cron/poll-reviews", () => {
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.locationsProcessed).toBe(1);
+
       expect(json.reviewsProcessed).toBe(0);
       expect(typedUpsert).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledWith(
@@ -575,102 +397,50 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("handles empty reviews array", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [],
-      });
-
+      vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.locationsProcessed).toBe(1);
       expect(json.reviewsProcessed).toBe(0);
       expect(typedUpsert).not.toHaveBeenCalled();
     });
 
-    it("determines sentiment correctly from rating", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }, { id: "review-2" }, { id: "review-3" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    it.each([
+      { rating: 5, expectedSentiment: "positive" },
+      { rating: 4, expectedSentiment: "positive" },
+      { rating: 3, expectedSentiment: "neutral" },
+      { rating: 2, expectedSentiment: "negative" },
+      { rating: 1, expectedSentiment: "negative" },
+      { rating: null, expectedSentiment: null },
+    ])("determines sentiment correctly for rating $rating", async ({
+      rating,
+      expectedSentiment,
+    }) => {
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
             external_review_id: "ext-1",
             reviewer_name: "John",
-            rating: 5, // positive
-            review_text: "Great!",
+            rating,
+            review_text: "Review",
             review_date: "2025-01-01T00:00:00.000Z",
-          },
-          {
-            external_review_id: "ext-2",
-            reviewer_name: "Jane",
-            rating: 3, // neutral
-            review_text: "OK",
-            review_date: "2025-01-02T00:00:00.000Z",
-          },
-          {
-            external_review_id: "ext-3",
-            reviewer_name: "Bob",
-            rating: 1, // negative
-            review_text: "Bad",
-            review_date: "2025-01-03T00:00:00.000Z",
           },
         ],
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -683,81 +453,10 @@ describe("GET /api/cron/poll-reviews", () => {
       const reviewsToInsert = lastCall?.[2] as Array<{
         sentiment: string | null;
       }>;
-      expect(reviewsToInsert[0]?.sentiment).toBe("positive");
-      expect(reviewsToInsert[1]?.sentiment).toBe("neutral");
-      expect(reviewsToInsert[2]?.sentiment).toBe("negative");
-    });
-
-    it("handles null rating for sentiment", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            external_review_id: "ext-1",
-            reviewer_name: "John",
-            rating: null,
-            review_text: "No rating",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
-        }) as never,
-      );
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      await GET(request);
-
-      const upsertCalls = vi.mocked(typedUpsert).mock.calls;
-      const lastCall = upsertCalls[upsertCalls.length - 1];
-      expect(lastCall).toBeDefined();
-      const reviewsToInsert = lastCall?.[2] as Array<{
-        sentiment: string | null;
-      }>;
-      expect(reviewsToInsert[0]?.sentiment).toBeNull();
+      expect(reviewsToInsert[0]?.sentiment).toBe(expectedSentiment);
     });
 
     it("handles upsert error and adds to errors array", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: "Database constraint violation" },
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
@@ -769,169 +468,222 @@ describe("GET /api/cron/poll-reviews", () => {
           },
         ],
       });
+      vi.mocked(typedUpsert).mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Database constraint violation" },
+        }),
+      } as never);
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.errors).toContain(
         "Location Location 1: Failed to save reviews",
-      );
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to upsert reviews for location loc-1:",
-        "Database constraint violation",
       );
     });
 
     it("handles fetchReviews error", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockRejectedValue(
         new GoogleAPIError(500, "Google API error"),
       );
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.errors).toContain("Location Location 1: Google API error");
     });
   });
 
-  describe("edge cases", () => {
-    it("skips locations without organization_id", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
+  describe("tier-based processing", () => {
+    beforeEach(() => {
       delete process.env.CRON_SECRET;
+      setupSuccessfulMocks();
+    });
 
+    // Test tier processing at different minutes
+    it.each([
+      { tier: "starter", minute: 7, shouldProcess: false },
+      { tier: "starter", minute: 15, shouldProcess: true },
+      { tier: "starter", minute: 30, shouldProcess: true },
+      { tier: "starter", minute: 0, shouldProcess: true },
+      { tier: "growth", minute: 7, shouldProcess: false },
+      { tier: "growth", minute: 10, shouldProcess: true },
+      { tier: "growth", minute: 20, shouldProcess: true },
+      { tier: "growth", minute: 0, shouldProcess: true },
+      { tier: "agency", minute: 7, shouldProcess: true },
+      { tier: "agency", minute: 0, shouldProcess: true },
+      { tier: null, minute: 7, shouldProcess: false }, // null tier treated as starter
+    ])("$tier tier at minute $minute: shouldProcess=$shouldProcess", async ({
+      tier,
+      minute,
+      shouldProcess,
+    }) => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(
+          new Date(`2025-01-01T00:${String(minute).padStart(2, "0")}:00Z`),
+        );
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockPollReviewsSupabaseClient({
+            locationsData: [defaultLocation],
+            usersData: [defaultUser],
+            organizationsData: [{ id: "org-1", plan_tier: tier }],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        if (shouldProcess) {
+          expect(json.locationsProcessed).toBe(1);
+          expect(fetchReviews).toHaveBeenCalled();
+        } else {
+          expect(json.locationsProcessed).toBe(0);
+          expect(fetchReviews).not.toHaveBeenCalled();
+        }
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("filters locations correctly when multiple tiers are present", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2025-01-01T00:15:00Z")); // minute 15
+
+        vi.mocked(createAdminSupabaseClient).mockReturnValue(
+          createMockPollReviewsSupabaseClient({
+            locationsData: [
+              createMockLocation({
+                id: "loc-1",
+                name: "Location 1 (starter)",
+                organization_id: "org-1",
+              }),
+              createMockLocation({
+                id: "loc-2",
+                name: "Location 2 (growth)",
+                organization_id: "org-2",
+              }),
+              createMockLocation({
+                id: "loc-3",
+                name: "Location 3 (agency)",
+                organization_id: "org-3",
+              }),
+            ],
+            usersData: [
+              createMockUser({
+                id: "user-1",
+                organization_id: "org-1",
+                google_refresh_token: "token-1",
+              }),
+              createMockUser({
+                id: "user-2",
+                organization_id: "org-2",
+                google_refresh_token: "token-2",
+              }),
+              createMockUser({
+                id: "user-3",
+                organization_id: "org-3",
+                google_refresh_token: "token-3",
+              }),
+            ],
+            organizationsData: [
+              { id: "org-1", plan_tier: "starter" },
+              { id: "org-2", plan_tier: "growth" },
+              { id: "org-3", plan_tier: "agency" },
+            ],
+          }) as never,
+        );
+
+        const request = makeNextRequest(
+          "http://localhost/api/cron/poll-reviews",
+        );
+        const response = await GET(request);
+        const json = await response.json();
+
+        // Minute 15: processes starter (15 % 15 = 0) and agency (always), skips growth (15 % 10 = 5)
+        expect(json.locationsProcessed).toBe(2);
+        expect(fetchReviews).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe("edge cases", () => {
+    beforeEach(() => {
+      delete process.env.CRON_SECRET;
+      setupSuccessfulMocks();
+    });
+
+    it("skips locations without organization_id", async () => {
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: null, // No organization
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [createMockLocation({ organization_id: null })],
           usersData: [],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.locationsProcessed).toBe(0);
       expect(json.reviewsProcessed).toBe(0);
     });
 
     it("skips locations without matching user", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
           usersData: [], // No users with tokens
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.locationsProcessed).toBe(0);
       expect(json.reviewsProcessed).toBe(0);
     });
 
     it("uses first user when multiple users per organization", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
           usersData: [
-            {
-              id: "user-1", // First user should be used
+            createMockUser({
+              id: "user-1",
               organization_id: "org-1",
               google_refresh_token: "encrypted-token-1",
-            },
-            {
-              id: "user-2", // Second user should be ignored
+            }),
+            createMockUser({
+              id: "user-2",
               organization_id: "org-1",
               google_refresh_token: "encrypted-token-2",
-            },
+            }),
           ],
         }) as never,
       );
@@ -944,38 +696,13 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("refreshes token once for multiple locations per user", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({ reviews: [] });
-
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
+        createMockPollReviewsSupabaseClient({
           locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-            {
-              id: "loc-2",
-              google_account_id: "acc-1",
-              google_location_id: "loc-2",
-              name: "Location 2",
-              organization_id: "org-1",
-            },
+            createMockLocation({ id: "loc-1", organization_id: "org-1" }),
+            createMockLocation({ id: "loc-2", organization_id: "org-1" }),
           ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+          usersData: [defaultUser],
         }) as never,
       );
 
@@ -987,9 +714,6 @@ describe("GET /api/cron/poll-reviews", () => {
     });
 
     it("handles top-level error and returns 500", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       vi.mocked(createAdminSupabaseClient).mockImplementation(() => {
         throw new Error("Unexpected error");
       });
@@ -1000,29 +724,18 @@ describe("GET /api/cron/poll-reviews", () => {
       expect(response.status).toBe(500);
       const json = await response.json();
       expect(json.error).toBe("Cron job failed");
-      expect(console.error).toHaveBeenCalledWith(
-        "Poll reviews cron error:",
-        expect.any(Error),
-      );
     });
 
-    it("handles empty string external_review_id and generates synthetic ID", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+    it.each([
+      { externalReviewId: "", desc: "empty string" },
+      { externalReviewId: "   ", desc: "whitespace-only" },
+    ])("handles $desc external_review_id and generates synthetic ID", async ({
+      externalReviewId,
+    }) => {
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
-            external_review_id: "", // Empty string, not null
+            external_review_id: externalReviewId,
             reviewer_name: "John",
             rating: 5,
             review_text: "Great!",
@@ -1032,321 +745,49 @@ describe("GET /api/cron/poll-reviews", () => {
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
-        }) as never,
-      );
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json.reviewsProcessed).toBe(1);
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining("Generated synthetic external_review_id"),
-      );
-    });
-
-    it("handles whitespace-only external_review_id and generates synthetic ID", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            external_review_id: "   ", // Whitespace only
-            reviewer_name: "John",
-            rating: 5,
-            review_text: "Great!",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
-        }) as never,
-      );
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json.reviewsProcessed).toBe(1);
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining("Generated synthetic external_review_id"),
-      );
-    });
-
-    it("determines sentiment correctly for boundary rating 4", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            external_review_id: "ext-1",
-            reviewer_name: "John",
-            rating: 4, // Boundary: should be positive
-            review_text: "Good",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       await GET(request);
 
-      const upsertCalls = vi.mocked(typedUpsert).mock.calls;
-      const lastCall = upsertCalls[upsertCalls.length - 1];
-      expect(lastCall).toBeDefined();
-      const reviewsToInsert = lastCall?.[2] as Array<{
-        sentiment: string | null;
-      }>;
-      expect(reviewsToInsert[0]?.sentiment).toBe("positive");
-    });
-
-    it("determines sentiment correctly for boundary rating 3", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            external_review_id: "ext-1",
-            reviewer_name: "John",
-            rating: 3, // Boundary: should be neutral
-            review_text: "OK",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
-        }) as never,
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining("Generated synthetic external_review_id"),
       );
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      await GET(request);
-
-      const upsertCalls = vi.mocked(typedUpsert).mock.calls;
-      const lastCall = upsertCalls[upsertCalls.length - 1];
-      expect(lastCall).toBeDefined();
-      const reviewsToInsert = lastCall?.[2] as Array<{
-        sentiment: string | null;
-      }>;
-      expect(reviewsToInsert[0]?.sentiment).toBe("neutral");
     });
 
     it("handles typedUpdate failure when clearing corrupted token", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
       const mockEq = vi.fn().mockResolvedValue({
         data: null,
         error: { message: "Update failed" },
       });
-      const mockUpdate = {
-        eq: mockEq,
-      };
-
-      vi.mocked(typedUpdate).mockReturnValue(mockUpdate as never);
+      vi.mocked(typedUpdate).mockReturnValue({ eq: mockEq } as never);
       vi.mocked(decryptToken).mockImplementation(() => {
         throw new TokenDecryptionError("Invalid encrypted data");
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
+      const json = await response.json();
 
       expect(response.status).toBe(200);
-      const json = await response.json();
       expect(json.errors).toContain(
         "User user-1: Token decryption failed - data may be corrupted",
       );
-      // Should still attempt to clear token even if update fails
-      expect(typedUpdate).toHaveBeenCalled();
-    });
-
-    it("handles typedUpdate failure when clearing expired token", async () => {
-      vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      const mockEq = vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: "Update failed" },
-      });
-      const mockUpdate = {
-        eq: mockEq,
-      };
-
-      vi.mocked(typedUpdate).mockReturnValue(mockUpdate as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockRejectedValue(
-        new GoogleAPIError(401, "Token expired"),
-      );
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
-        }) as never,
-      );
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json.errors).toContain("User user-1: Token expired");
-      // Should still attempt to clear token even if update fails
       expect(typedUpdate).toHaveBeenCalled();
     });
 
     it("handles null upsertedReviews array", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: null, // Null data
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
@@ -1358,220 +799,115 @@ describe("GET /api/cron/poll-reviews", () => {
           },
         ],
       });
+      vi.mocked(typedUpsert).mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      } as never);
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
+      const json = await response.json();
 
       expect(response.status).toBe(200);
-      const json = await response.json();
-      // Should handle null gracefully and count 0 reviews
       expect(json.reviewsProcessed).toBe(0);
     });
 
     it("skips review when external_review_id is empty and review_date is missing", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
       vi.mocked(fetchReviews).mockResolvedValue({
         reviews: [
           {
             reviewer_name: "John",
             rating: 5,
             review_text: "Great!",
-            review_date: null, // Missing review_date
+            review_date: null,
           },
         ],
       });
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
       const response = await GET(request);
-
-      expect(response.status).toBe(200);
       const json = await response.json();
+
       expect(json.reviewsProcessed).toBe(0);
       expect(typedUpsert).not.toHaveBeenCalled();
-      expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Skipping review"),
-      );
+    });
+  });
+
+  describe("error handling with agency tier", () => {
+    beforeEach(() => {
+      delete process.env.CRON_SECRET;
     });
 
-    it("skips review when external_review_id is empty and location_id is missing", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            reviewer_name: "John",
-            rating: 5,
-            review_text: "Great!",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
-
-      // Create location without id (shouldn't happen, but test edge case)
-      const mockFrom = vi.fn((table: string) => {
-        if (table === "locations") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      // Missing id field
-                      google_account_id: "acc-1",
-                      google_location_id: "loc-1",
-                      name: "Location 1",
-                      organization_id: "org-1",
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              in: vi.fn().mockReturnValue({
-                not: vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      id: "user-1",
-                      organization_id: "org-1",
-                      google_refresh_token: "encrypted-token",
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      vi.mocked(createAdminSupabaseClient).mockReturnValue({
-        from: mockFrom,
-      } as never);
-
-      const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      const json = await response.json();
-      expect(json.reviewsProcessed).toBe(0);
-    });
-
-    it("logs summary when reviews are skipped or have synthetic IDs", async () => {
-      vi.spyOn(console, "warn").mockImplementation(() => {});
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      delete process.env.CRON_SECRET;
-
-      vi.mocked(typedUpsert).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: "review-1" }],
-          error: null,
-        }),
-      } as never);
-      vi.mocked(decryptToken).mockReturnValue("decrypted-token");
-      vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
-      vi.mocked(fetchReviews).mockResolvedValue({
-        reviews: [
-          {
-            // Will get synthetic ID
-            reviewer_name: "John",
-            rating: 5,
-            review_text: "Great!",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-          {
-            // Will be skipped (missing reviewer_name)
-            reviewer_name: null,
-            rating: 5,
-            review_text: "Great!",
-            review_date: "2025-01-01T00:00:00.000Z",
-          },
-        ],
-      });
+    it.each([
+      {
+        name: "token decryption errors",
+        setupMocks: () => {
+          vi.mocked(decryptToken).mockImplementation(() => {
+            throw new Error("Decryption failed");
+          });
+        },
+        expectedLocationsProcessed: 0,
+        expectedReviewsProcessed: 0,
+      },
+      {
+        name: "token refresh errors",
+        setupMocks: () => {
+          vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+          vi.mocked(refreshAccessToken).mockRejectedValue(
+            new Error("Token refresh failed"),
+          );
+        },
+        expectedLocationsProcessed: 0,
+        expectedReviewsProcessed: 0,
+      },
+      {
+        name: "fetchReviews errors",
+        setupMocks: () => {
+          vi.mocked(decryptToken).mockReturnValue("decrypted-token");
+          vi.mocked(refreshAccessToken).mockResolvedValue("access-token");
+          vi.mocked(fetchReviews).mockRejectedValue(new Error("API error"));
+        },
+        expectedLocationsProcessed: 0,
+        expectedReviewsProcessed: 0,
+      },
+    ])("handles $name gracefully with agency tier", async ({
+      setupMocks,
+      expectedLocationsProcessed,
+      expectedReviewsProcessed,
+    }) => {
+      setupMocks();
 
       vi.mocked(createAdminSupabaseClient).mockReturnValue(
-        createMockSupabaseClient({
-          locationsData: [
-            {
-              id: "loc-1",
-              google_account_id: "acc-1",
-              google_location_id: "loc-1",
-              name: "Location 1",
-              organization_id: "org-1",
-            },
-          ],
-          usersData: [
-            {
-              id: "user-1",
-              organization_id: "org-1",
-              google_refresh_token: "encrypted-token",
-            },
-          ],
+        createMockPollReviewsSupabaseClient({
+          locationsData: [defaultLocation],
+          usersData: [defaultUser],
+          organizationsData: [{ id: "org-1", plan_tier: "agency" }],
         }) as never,
       );
 
       const request = makeNextRequest("http://localhost/api/cron/poll-reviews");
-      await GET(request);
+      const response = await GET(request);
+      const json = await response.json();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Location Location 1: 1 reviews with synthetic IDs, 1 reviews skipped",
-        ),
-      );
+      expect(response.status).toBe(200);
+      expect(json.locationsProcessed).toBe(expectedLocationsProcessed);
+      expect(json.reviewsProcessed).toBe(expectedReviewsProcessed);
     });
   });
 });

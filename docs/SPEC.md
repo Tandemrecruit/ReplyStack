@@ -65,13 +65,19 @@ See new reviews on dashboard
     ↓
 Click "Generate Response" on any review
     ↓
-AI generates response using voice profile
+AI generates response using voice profile (including custom tones if selected)
     ↓
-Edit if needed (optional)
+Response editing modal opens with:
+    - Review context (reviewer name, rating, review text)
+    - Editable response textarea
+    - Character and word count display
+    - Cancel and Publish buttons
+    ↓
+Edit response if needed (optional)
     ↓
 Click "Publish" → Response posted to Google
     ↓
-Review marked as "Responded"
+Review marked as "Responded" and modal closes
 ```
 
 ### 3. Settings Flow

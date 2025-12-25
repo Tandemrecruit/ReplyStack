@@ -195,7 +195,7 @@ async function callClaudeAPI(
  * @returns The generated text and token count
  * @throws ClaudeAPIError after all retries exhausted
  */
-async function callClaudeWithRetry(
+export async function callClaudeWithRetry(
   systemPrompt: string,
   userPrompt: string,
   maxAttempts: number = MAX_ATTEMPTS,
@@ -248,6 +248,7 @@ async function callClaudeWithRetry(
  * @param voiceProfile - Voice and style configuration used to construct the system prompt
  * @param businessName - The business name to use in prompts and the response
  * @param contactEmail - Optional contact email for negative review addendum
+ * @param customToneEnhancedContext - Optional enhanced context from custom tone quiz
  * @returns An object with `text` containing the generated response and `tokensUsed` indicating total tokens consumed
  * @throws ClaudeAPIError on API failures
  */
@@ -256,6 +257,7 @@ export async function generateResponse(
   voiceProfile: VoiceProfile,
   businessName: string,
   contactEmail?: string,
+  customToneEnhancedContext?: string,
 ): Promise<{ text: string; tokensUsed: number }> {
   // Truncate very long reviews to avoid token limits
   let reviewText = review.review_text;
@@ -272,7 +274,11 @@ export async function generateResponse(
   const reviewWithTruncatedText = { ...review, review_text: reviewText };
 
   // Build prompts
-  const systemPrompt = buildSystemPrompt(voiceProfile, businessName);
+  const systemPrompt = buildSystemPrompt(
+    voiceProfile,
+    businessName,
+    customToneEnhancedContext,
+  );
   const isNegativeReview = review.rating !== null && review.rating <= 2;
   const userPrompt = buildUserPrompt(
     reviewWithTruncatedText,
@@ -290,24 +296,41 @@ export async function generateResponse(
  *
  * @param voiceProfile - Voice and style settings used to populate the prompt (fields used: `tone`, `personality_notes`, `sign_off_style`, `example_responses`, `words_to_avoid`, `words_to_use`, and `max_length`)
  * @param businessName - The business name included in the prompt to identify the sender
+ * @param customToneEnhancedContext - Optional enhanced context from custom tone quiz
  * @returns The formatted system prompt string containing voice instructions, example responses, and rules (including length limit, addressing guidance, and preferred/forbidden words)
  */
 function buildSystemPrompt(
   voiceProfile: VoiceProfile,
   businessName: string,
+  customToneEnhancedContext?: string,
 ): string {
   const exampleResponses = voiceProfile.example_responses?.join("\n\n") ?? "";
   const wordsToAvoid = voiceProfile.words_to_avoid?.join(", ") ?? "";
   const wordsToUse = voiceProfile.words_to_use?.join(", ") ?? "";
 
-  return `You are a review response writer for ${businessName}.
+  // Extract tone name for display (return "Custom Tone" for custom tones)
+  const toneDisplay = voiceProfile.tone?.startsWith("custom:")
+    ? "Custom Tone"
+    : voiceProfile.tone;
+
+  let prompt = `You are a review response writer for ${businessName}.
 
 YOUR VOICE:
-- Tone: ${voiceProfile.tone}
+- Tone: ${toneDisplay}
 - Personality: ${voiceProfile.personality_notes ?? "Professional and friendly"}
 - Sign off as: ${voiceProfile.sign_off_style ?? ""}
 
-EXAMPLES OF RESPONSES THEY LIKE:
+`;
+
+  // Add custom tone enhanced context if available
+  if (customToneEnhancedContext) {
+    prompt += `CUSTOM TONE GUIDANCE:
+${customToneEnhancedContext}
+
+`;
+  }
+
+  prompt += `EXAMPLES OF RESPONSES THEY LIKE:
 ${exampleResponses}
 
 RULES:
@@ -319,6 +342,8 @@ RULES:
 6. Sound human, not corporate
 7. Never use: ${wordsToAvoid}
 8. Prefer using: ${wordsToUse}`;
+
+  return prompt;
 }
 
 /**

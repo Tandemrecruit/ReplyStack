@@ -1,3 +1,10 @@
+import {
+  createMockCustomTone,
+  createMockLocation,
+  createMockReview,
+  createMockUser,
+  createMockVoiceProfile,
+} from "@/tests/helpers/fixtures";
 import { makeNextRequest } from "@/tests/helpers/next";
 
 vi.mock("@/lib/supabase/server", () => {
@@ -20,1977 +27,720 @@ import { POST } from "@/app/api/responses/route";
 import { ClaudeAPIError, generateResponse } from "@/lib/claude/client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Default fixtures
+const defaultUser = createMockUser();
+const defaultReview = createMockReview();
+const defaultLocation = createMockLocation();
+const defaultVoiceProfile = createMockVoiceProfile();
+
 describe("POST /api/responses", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("returns 401 when unauthenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-      },
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
-  });
-
-  it("returns 400 when reviewId is missing", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "reviewId is required",
-    });
-  });
-
-  it("returns 400 when reviewId is null", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: null }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "reviewId is required",
-    });
-  });
-
-  it("returns 400 when reviewId is empty string", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "reviewId is required",
-    });
-  });
-
-  it("returns 404 when user not found", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: "User not found" },
+  // Helper to create a standard authenticated mock client
+  function mockAuthenticatedClient(
+    tableOverrides: {
+      user?: typeof defaultUser | null;
+      userError?: { message: string } | null;
+      review?:
+        | (typeof defaultReview & { locations: typeof defaultLocation })
+        | null;
+      reviewError?: { message: string } | null;
+      existingResponse?: {
+        id: string;
+        generated_text: string;
+        status: string;
+        tokens_used: number;
+      } | null;
+      existingResponseError?: { message: string } | null;
+      voiceProfile?: typeof defaultVoiceProfile | null;
+      voiceProfileError?: { message: string } | null;
+      orgVoiceProfile?: typeof defaultVoiceProfile | null;
+      orgVoiceProfileError?: { message: string } | null;
+      insertResponse?: { id: string } | null;
+      insertResponseError?: { message: string } | null;
+      customTone?: ReturnType<typeof createMockCustomTone> | null;
+    } = {},
+  ) {
+    const mockFrom = vi.fn((table: string) => {
+      if (table === "users") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: tableOverrides.user ?? defaultUser,
+                error: tableOverrides.userError ?? null,
+              }),
             }),
           }),
-        }),
-      }),
-    } as never);
+        };
+      }
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      error: "User not found",
-    });
-  });
-
-  it("returns 400 when user has no organization", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: "u1",
-                organization_id: null,
-                email: "user@example.com",
-              },
-              error: null,
+      if (table === "reviews") {
+        const reviewData = tableOverrides.review ?? {
+          ...defaultReview,
+          locations: defaultLocation,
+        };
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: reviewData,
+                error: tableOverrides.reviewError ?? null,
+              }),
             }),
           }),
+        };
+      }
+
+      if (table === "responses") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: tableOverrides.existingResponse ?? null,
+                error: tableOverrides.existingResponseError ?? null,
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: tableOverrides.insertResponse ?? { id: "resp-1" },
+                error: tableOverrides.insertResponseError ?? null,
+              }),
+            }),
+          }),
+        };
+      }
+
+      if (table === "voice_profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: tableOverrides.voiceProfile ?? null,
+                error: tableOverrides.voiceProfileError ?? null,
+              }),
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: tableOverrides.orgVoiceProfile ?? null,
+                  error: tableOverrides.orgVoiceProfileError ?? null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+
+      if (table === "custom_tones") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: tableOverrides.customTone ?? null,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+
+      return {};
+    });
+
+    vi.mocked(createServerSupabaseClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: defaultUser.id } },
         }),
-      }),
+      },
+      from: mockFrom,
     } as never);
+  }
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
+  describe("authentication and validation", () => {
+    it("returns 401 when unauthenticated", async () => {
+      vi.mocked(createServerSupabaseClient).mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+        },
+      } as never);
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
     });
-    const response = await POST(request);
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Organization not found",
+    it.each([
+      { body: {}, desc: "missing" },
+      { body: { reviewId: null }, desc: "null" },
+      { body: { reviewId: "" }, desc: "empty string" },
+    ])("returns 400 when reviewId is $desc", async ({ body }) => {
+      vi.mocked(createServerSupabaseClient).mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        },
+      } as never);
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "reviewId is required",
+      });
     });
   });
 
-  it("returns 404 when review not found", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: "Review not found" },
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+  describe("user and organization validation", () => {
+    it("returns 404 when user not found", async () => {
+      mockAuthenticatedClient({
+        user: null,
+        userError: { message: "User not found" },
+      });
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: "User not found",
+      });
     });
-    const response = await POST(request);
 
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      error: "Review not found",
+    it("returns 400 when user has no organization", async () => {
+      mockAuthenticatedClient({
+        user: createMockUser({ organization_id: null }),
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "Organization not found",
+      });
     });
   });
 
-  it("returns 404 when review belongs to different organization", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great service!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-2", // Different org
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+  describe("review validation", () => {
+    it("returns 404 when review not found", async () => {
+      mockAuthenticatedClient({
+        review: null,
+        reviewError: { message: "Review not found" },
+      });
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: "Review not found",
+      });
     });
-    const response = await POST(request);
 
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      error: "Review not found",
+    it("returns 404 when review belongs to different organization", async () => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ organization_id: "other-org" }),
+        },
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: "Review not found",
+      });
+    });
+
+    it.each([
+      { reviewText: "", desc: "empty" },
+      { reviewText: "   \n\t  ", desc: "whitespace-only" },
+    ])("returns 400 when review text is $desc", async ({ reviewText }) => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          review_text: reviewText,
+          locations: defaultLocation,
+        },
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "Cannot generate response for review without text",
+      });
     });
   });
 
-  it("returns existing response when one already exists", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great service!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "resp-1",
-                    generated_text: "Thank you for your review!",
-                    status: "draft",
-                    tokens_used: 120,
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+  describe("existing response handling", () => {
+    it("returns existing response when one already exists", async () => {
+      mockAuthenticatedClient({
+        existingResponse: {
+          id: "resp-1",
+          generated_text: "Thank you for your review!",
+          status: "draft",
+          tokens_used: 120,
+        },
+      });
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        id: "resp-1",
+        reviewId: "r1",
+        generatedText: "Thank you for your review!",
+        status: "draft",
+        tokensUsed: 120,
+      });
+      expect(generateResponse).not.toHaveBeenCalled();
     });
-    const response = await POST(request);
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      id: "resp-1",
-      reviewId: "r1",
-      generatedText: "Thank you for your review!",
-      status: "draft",
-      tokensUsed: 120,
-    });
-    expect(generateResponse).not.toHaveBeenCalled();
-  });
+    it("returns 500 when checking existing response fails", async () => {
+      mockAuthenticatedClient({
+        existingResponseError: { message: "Database error" },
+      });
 
-  it("returns 400 when review has no text", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "", // Empty text
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Cannot generate response for review without text",
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to check for existing response",
+        code: "DB_ERROR",
+      });
     });
   });
 
-  it("generates response successfully with location voice profile", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you for your wonderful review!",
-      tokensUsed: 150,
+  describe("response generation with voice profiles", () => {
+    beforeEach(() => {
+      vi.mocked(generateResponse).mockResolvedValue({
+        text: "Thank you for your feedback!",
+        tokensUsed: 100,
+      });
     });
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great service!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: "vp-1",
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          const responsesChain = {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "resp-1" },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-          return responsesChain;
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "vp-1",
-                    organization_id: "org-1",
-                    name: "Location Voice",
-                    tone: "professional",
-                    personality_notes: "Friendly and helpful",
-                    sign_off_style: "Best regards",
-                    example_responses: null,
-                    words_to_use: null,
-                    words_to_avoid: null,
-                    max_length: 200,
-                    created_at: "2025-01-01T00:00:00Z",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data).toEqual({
-      id: "resp-1",
-      reviewId: "r1",
-      generatedText: "Thank you for your wonderful review!",
-      status: "draft",
-      tokensUsed: 150,
-    });
-    expect(generateResponse).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "r1",
-        review_text: "Great service!",
-      }),
-      expect.objectContaining({
-        id: "vp-1",
+    it("generates response with location voice profile", async () => {
+      const locationVoiceProfile = createMockVoiceProfile({
+        id: "vp-loc",
         tone: "professional",
-      }),
-      "Test Location",
-      "user@example.com",
-    );
-  });
+      });
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: "vp-loc" }),
+        },
+        voiceProfile: locationVoiceProfile,
+      });
 
-  it("generates response with organization voice profile when location has none", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you for your feedback!",
-      tokensUsed: 100,
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "review-1" }),
+        expect.objectContaining({ id: "vp-loc", tone: "professional" }),
+        "Test Location",
+        "user@example.com",
+        undefined,
+      );
     });
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 4,
-                    reviewer_name: "Jane",
-                    review_text: "Good experience",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-2",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null, // No location voice profile
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "resp-2" },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: {
-                      id: "vp-org-1",
-                      organization_id: "org-1",
-                      name: "Org Voice",
-                      tone: "casual",
-                      personality_notes: "Warm and welcoming",
-                      sign_off_style: "Thanks!",
-                      example_responses: null,
-                      words_to_use: null,
-                      words_to_avoid: null,
-                      max_length: 150,
-                      created_at: "2025-01-01T00:00:00Z",
-                    },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data).toEqual({
-      id: "resp-2",
-      reviewId: "r1",
-      generatedText: "Thank you for your feedback!",
-      status: "draft",
-      tokensUsed: 100,
-    });
-    expect(generateResponse).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "r1",
-        review_text: "Good experience",
-      }),
-      expect.objectContaining({
-        id: "vp-org-1",
+    it("falls back to organization voice profile when location has none", async () => {
+      const orgVoiceProfile = createMockVoiceProfile({
+        id: "vp-org",
         tone: "casual",
-      }),
-      "Test Location",
-      "user@example.com",
-    );
+      });
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: null }),
+        },
+        orgVoiceProfile,
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ id: "vp-org", tone: "casual" }),
+        "Test Location",
+        "user@example.com",
+        undefined,
+      );
+    });
+
+    it("uses default voice profile when none found", async () => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: null }),
+        },
+        orgVoiceProfile: null,
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ name: "Default", tone: "warm" }),
+        "Test Location",
+        "user@example.com",
+        undefined,
+      );
+    });
+
+    it("handles location voice profile fetch error gracefully", async () => {
+      const orgVoiceProfile = createMockVoiceProfile({ id: "vp-org" });
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: "vp-loc" }),
+        },
+        voiceProfileError: { message: "Profile not found" },
+        orgVoiceProfile,
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(console.warn).toHaveBeenCalledWith(
+        "Failed to fetch location voice profile, using fallback:",
+        expect.objectContaining({ message: "Profile not found" }),
+      );
+    });
+
+    it("handles organization voice profile fetch error gracefully", async () => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: null }),
+        },
+        orgVoiceProfileError: { message: "Database error" },
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(console.warn).toHaveBeenCalledWith(
+        "Failed to fetch organization voice profile, using fallback:",
+        expect.objectContaining({ message: "Database error" }),
+      );
+    });
   });
 
-  it("generates response with default voice profile when none found", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you for your review!",
-      tokensUsed: 80,
+  describe("custom tone handling", () => {
+    beforeEach(() => {
+      vi.mocked(generateResponse).mockResolvedValue({
+        text: "Thank you!",
+        tokensUsed: 50,
+      });
     });
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 3,
-                    reviewer_name: "Bob",
-                    review_text: "It was okay",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-3",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "neutral",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "resp-3" },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null, // No org voice profile
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+    it("passes enhanced context from custom tone", async () => {
+      const customToneVoiceProfile = createMockVoiceProfile({
+        id: "vp-1",
+        tone: "custom:custom-tone-id",
+      });
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: "vp-1" }),
+        },
+        voiceProfile: customToneVoiceProfile,
+        customTone: createMockCustomTone({
+          id: "custom-tone-id",
+          enhanced_context: "Custom enhanced context for responses.",
+        }),
+      });
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
 
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data).toEqual({
-      id: "resp-3",
-      reviewId: "r1",
-      generatedText: "Thank you for your review!",
-      status: "draft",
-      tokensUsed: 80,
+      expect(response.status).toBe(200);
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ tone: "custom:custom-tone-id" }),
+        "Test Location",
+        "user@example.com",
+        "Custom enhanced context for responses.",
+      );
     });
-    expect(generateResponse).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "r1",
-        review_text: "It was okay",
-      }),
-      expect.objectContaining({
-        name: "Default",
-        tone: "warm",
-      }),
-      "Test Location",
-      "user@example.com",
-    );
+
+    it("passes undefined when custom tone has no enhanced context", async () => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: "vp-1" }),
+        },
+        voiceProfile: createMockVoiceProfile({ tone: "custom:custom-tone-id" }),
+        customTone: createMockCustomTone({ enhanced_context: null }),
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      await POST(request);
+
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        undefined,
+      );
+    });
+
+    it("passes undefined when custom tone doesn't exist", async () => {
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: "vp-1" }),
+        },
+        voiceProfile: createMockVoiceProfile({ tone: "custom:nonexistent" }),
+        customTone: null,
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      await POST(request);
+
+      expect(generateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        undefined,
+      );
+    });
   });
 
-  it("handles Claude API timeout error", async () => {
-    vi.mocked(generateResponse).mockRejectedValue(
-      new ClaudeAPIError(408, "Request timeout"),
-    );
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(504);
-    await expect(response.json()).resolves.toEqual({
-      error: "AI response generation timed out",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Claude API error:",
-      expect.objectContaining({
+  describe("Claude API error handling", () => {
+    it.each([
+      {
         status: 408,
         message: "Request timeout",
-      }),
-    );
-  });
-
-  it("handles Claude API rate limit error", async () => {
-    vi.mocked(generateResponse).mockRejectedValue(
-      new ClaudeAPIError(429, "Rate limit exceeded"),
-    );
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        expectedStatus: 504,
+        expectedError: "AI response generation timed out",
+        expectedCode: "AI_TIMEOUT",
       },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(429);
-    await expect(response.json()).resolves.toEqual({
-      error: "Rate limit exceeded. Please try again later.",
-    });
-  });
-
-  it("handles Claude API authentication error (401)", async () => {
-    vi.mocked(generateResponse).mockRejectedValue(
-      new ClaudeAPIError(401, "Invalid API key"),
-    );
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      {
+        status: 429,
+        message: "Rate limit exceeded",
+        expectedStatus: 429,
+        expectedError: "Rate limit exceeded. Please try again later.",
+        expectedCode: "RATE_LIMITED",
       },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "AI service configuration error",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Claude API error:",
-      expect.objectContaining({
+      {
         status: 401,
         message: "Invalid API key",
-      }),
-    );
-  });
-
-  it("handles Claude API authorization error (403)", async () => {
-    vi.mocked(generateResponse).mockRejectedValue(
-      new ClaudeAPIError(403, "Forbidden"),
-    );
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        expectedStatus: 500,
+        expectedError: "AI service configuration error",
+        expectedCode: "INTERNAL_ERROR",
       },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "AI service configuration error",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Claude API error:",
-      expect.objectContaining({
+      {
         status: 403,
         message: "Forbidden",
-      }),
-    );
-  });
-
-  it("handles Claude API generic error (502)", async () => {
-    vi.mocked(generateResponse).mockRejectedValue(
-      new ClaudeAPIError(503, "Service unavailable"),
-    );
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        expectedStatus: 500,
+        expectedError: "AI service configuration error",
+        expectedCode: "INTERNAL_ERROR",
       },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(502);
-    await expect(response.json()).resolves.toEqual({
-      error: "AI service unavailable",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Claude API error:",
-      expect.objectContaining({
+      {
         status: 503,
         message: "Service unavailable",
-      }),
-    );
-  });
-
-  it("handles database error when saving response", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you!",
-      tokensUsed: 50,
-    });
-
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        expectedStatus: 502,
+        expectedError: "AI service unavailable",
+        expectedCode: "AI_SERVICE_ERROR",
       },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: "Database error" },
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+    ])("handles Claude API $status error correctly", async ({
+      status,
+      message,
+      expectedStatus,
+      expectedError,
+      expectedCode,
+    }) => {
+      vi.mocked(generateResponse).mockRejectedValue(
+        new ClaudeAPIError(status, message),
+      );
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: null }),
+        },
+        orgVoiceProfile: null,
+      });
 
-    vi.spyOn(console, "error").mockImplementation(() => {});
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "Failed to save response",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Failed to save response:",
-      expect.objectContaining({ message: "Database error" }),
-    );
-  });
-
-  it("returns 500 when JSON parsing fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "invalid json",
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "Failed to generate response",
-    });
-    expect(console.error).toHaveBeenCalled();
-  });
-
-  it("returns 500 when Supabase client creation fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(createServerSupabaseClient).mockRejectedValueOnce(
-      new Error("Database connection failed"),
-    );
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "Failed to generate response",
-    });
-    expect(console.error).toHaveBeenCalled();
-  });
-
-  it("returns 500 when checking existing response fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: "Database error" },
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: "Failed to check for existing response",
-    });
-    expect(console.error).toHaveBeenCalledWith(
-      "Failed to check for existing response:",
-      expect.objectContaining({ message: "Database error" }),
-    );
-  });
-
-  it("returns 400 when review text is only whitespace", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "   \n\t  ", // Only whitespace
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
-
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Cannot generate response for review without text",
+      expect(response.status).toBe(expectedStatus);
+      await expect(response.json()).resolves.toEqual({
+        error: expectedError,
+        code: expectedCode,
+      });
     });
   });
 
-  it("handles location voice profile fetch error gracefully", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you!",
-      tokensUsed: 50,
+  describe("database errors", () => {
+    it("handles database error when saving response", async () => {
+      vi.mocked(generateResponse).mockResolvedValue({
+        text: "Thank you!",
+        tokensUsed: 50,
+      });
+      mockAuthenticatedClient({
+        review: {
+          ...defaultReview,
+          locations: createMockLocation({ voice_profile_id: null }),
+        },
+        orgVoiceProfile: null,
+        insertResponseError: { message: "Database error" },
+      });
+
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to save response",
+        code: "DB_ERROR",
+      });
     });
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: "vp-1",
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "resp-1" },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: "Profile not found" },
-                }),
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: {
-                      id: "vp-org-1",
-                      organization_id: "org-1",
-                      name: "Org Voice",
-                      tone: "casual",
-                      personality_notes: "Warm",
-                      sign_off_style: "Thanks!",
-                      example_responses: null,
-                      words_to_use: null,
-                      words_to_avoid: null,
-                      max_length: 150,
-                      created_at: "2025-01-01T00:00:00Z",
-                    },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+    it("returns 500 when JSON parsing fails", async () => {
+      vi.mocked(createServerSupabaseClient).mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+        },
+      } as never);
 
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "invalid json",
+      });
+      const response = await POST(request);
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
-    });
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    // Should fall back to org voice profile
-    expect(console.warn).toHaveBeenCalledWith(
-      "Failed to fetch location voice profile, using fallback:",
-      expect.objectContaining({ message: "Profile not found" }),
-    );
-  });
-
-  it("handles organization voice profile fetch error gracefully", async () => {
-    vi.mocked(generateResponse).mockResolvedValue({
-      text: "Thank you!",
-      tokensUsed: 50,
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to generate response",
+        code: "INTERNAL_ERROR",
+      });
     });
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === "users") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "u1",
-                    organization_id: "org-1",
-                    email: "user@example.com",
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "reviews") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: "r1",
-                    rating: 5,
-                    reviewer_name: "John",
-                    review_text: "Great!",
-                    review_date: "2025-01-01T00:00:00Z",
-                    reviewer_photo_url: null,
-                    external_review_id: "ext-1",
-                    platform: "google",
-                    status: "pending",
-                    sentiment: "positive",
-                    has_response: false,
-                    location_id: "loc-1",
-                    created_at: "2025-01-01T00:00:00Z",
-                    locations: {
-                      id: "loc-1",
-                      name: "Test Location",
-                      organization_id: "org-1",
-                      voice_profile_id: null,
-                    },
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "responses") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "resp-1" },
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === "voice_profiles") {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: { message: "Database error" },
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        return {};
-      }),
-    } as never);
+    it("returns 500 when Supabase client creation fails", async () => {
+      vi.mocked(createServerSupabaseClient).mockRejectedValueOnce(
+        new Error("Database connection failed"),
+      );
 
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+      const request = makeNextRequest("http://localhost/api/responses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reviewId: "r1" }),
+      });
+      const response = await POST(request);
 
-    const request = makeNextRequest("http://localhost/api/responses", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ reviewId: "r1" }),
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({
+        error: "Failed to generate response",
+        code: "INTERNAL_ERROR",
+      });
     });
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    // Should fall back to default voice profile
-    expect(console.warn).toHaveBeenCalledWith(
-      "Failed to fetch organization voice profile, using fallback:",
-      expect.objectContaining({ message: "Database error" }),
-    );
-    expect(generateResponse).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        name: "Default",
-        tone: "warm",
-      }),
-      "Test Location",
-      "user@example.com",
-    );
   });
 });

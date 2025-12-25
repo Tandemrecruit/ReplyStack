@@ -56,13 +56,6 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(233,95,51,0.12),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(244,180,26,0.14),transparent_28%)]" />
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center relative">
           <div className="text-left space-y-6">
-            {/* Badge */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent-50 border border-accent-200 text-accent-800">
-              <span className="text-sm font-semibold">
-                Built for local businesses
-              </span>
-            </div>
-
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight">
               Respond to every review{" "}
@@ -292,7 +285,7 @@ export default function LandingPage() {
               {
                 title: "Set Your Voice",
                 description:
-                  "We learn from your past replies + a 6-question tone quiz. Choose from 5 tone options (Warm, Direct, Professional, Friendly, Casual) on each draft.",
+                  "We learn from your past replies + a 10-question tone quiz. Choose from 5 tone options (Warm, Direct, Professional, Friendly, Casual) on each draft.",
               },
               {
                 title: "Respond Instantly",

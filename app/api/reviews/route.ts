@@ -414,7 +414,8 @@ export async function GET(request: NextRequest) {
         if (validationErrors.length > 0) {
           // Extract safe identifiers (avoid logging sensitive content)
           const rawRow = raw as Record<string, unknown>;
-          const reviewId = typeof rawRow.id === "string" ? rawRow.id : "unknown";
+          const reviewId =
+            typeof rawRow.id === "string" ? rawRow.id : "unknown";
           const externalReviewId =
             typeof rawRow.external_review_id === "string"
               ? rawRow.external_review_id

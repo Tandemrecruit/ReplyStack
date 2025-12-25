@@ -10,6 +10,7 @@
 
 - Comprehensive documentation update across all docs to reflect current implementation status
 - Resolved merge conflicts across core documentation files (README, API, SETUP, ARCHITECTURE, ROADMAP, SPEC, CHANGELOG)
+- Removed leftover Git conflict markers from documentation after merging branches
 - Updated README.md: Clarified MVP status as "near complete" with detailed feature breakdown
 - Updated ARCHITECTURE.md: Expanded implementation status with fully/partially/not implemented sections
 - Updated SPEC.md: Corrected feature completion status (review management, voice profile, response workflow, notifications)
@@ -163,20 +164,29 @@
 
 ### Code Quality
 
-- Made ReviewsFilters component route-agnostic: replaced hardcoded "/reviews" path with dynamic base path using optional `basePath` prop or `usePathname()` hook with fallback, automatically removes query strings and trims trailing slashes, enabling component reuse across different routes while maintaining backward compatibility
-- Extracted duplicated empty-state SVG icon into reusable EmptyStateIcon component in reviews page: replaced two identical SVG blocks with single component usage, improving maintainability and reducing code duplication
-- Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe `const typedReviews: ReviewWithLocation[] | null = reviews` assignment and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`) and explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
-- Fixed reviews page tests to handle async Server Component: added mocks for `createServerSupabaseClient`, `redirect`, and Next.js navigation hooks (`useRouter`, `useSearchParams`, `usePathname`), updated tests to await async component rendering, and extracted mock setup into reusable helper function to reduce duplication
-- Refactored reviews page tests to extract repeated mock setup: moved duplicate `createServerSupabaseClient` mock configuration from individual tests into `beforeEach` block, reducing code duplication and improving test maintainability
-- Enhanced reviews page test coverage: created parameterized `createMockSupabaseClient` helper function to support multiple test scenarios, added tests for user with locations but no reviews, user with reviews (including ReviewCard rendering), error states (user lookup failure, missing user data, no organization, locations fetch failure, reviews fetch failure), and filtered empty state, improving test coverage from 7 to 17 test cases
-- Replaced unsafe type assertion in reviews API route with runtime validation: applied same validation pattern as reviews page, added type guard functions and mapping function to validate Supabase query results, updated validation to handle undefined values for optional fields (normalizing to null), ensuring consistent type safety across both API route and page component
+- Replaced unsafe type assertion in reviews page with runtime validation: removed unsafe type assertion and replaced with type guard functions (`isValidReviewLocation`, `isValidReviewWithLocation`)
+- Added explicit mapping function (`mapToReviewWithLocation`) that validates required fields and nested location data before casting, ensuring type safety through compile-time inference and runtime checks
+- Replaced unsafe type assertion in reviews API route with runtime validation: applied same validation pattern as reviews page
+- Added type guard functions and mapping function to validate Supabase query results
+- Updated validation to handle undefined values for optional fields (normalizing to null), ensuring consistent type safety across both API route and page component
 - Fixed dead code in reviews API route: added `platform` field to Supabase select query and API response transformation to match validation and mapping logic, ensuring the field is properly selected from database and returned in responses (defaults to "google" if null, matching reviews page behavior)
 - Fixed unused response data in GenerateResponseButton component: updated `onSuccess` callback to accept and pass the API response data (id, reviewId, generatedText, status, tokensUsed) instead of parsing JSON without using it, enabling callers to access response metadata when needed
 - Fixed trailing `?` in ReviewsFilters component URLs: updated router.push logic to conditionally append query string only when params are non-empty, preventing URLs like `/reviews?` when all filters are cleared
 - Added validation failure logging in reviews API route: modified mapping step to log each invalid review with context (row index, review id, external_review_id, validation errors) using console.error before filtering, avoiding sensitive user content in logs while maintaining existing filter behavior
-- Fixed Promise mock in reviews page tests: replaced custom then/catch implementation with real Promise instance that delegates then/catch/finally to underlying Promise, ensuring full Promise behavior while maintaining chainable query builder methods (in, eq, order, range) that return this
 
 ### Features
+
+- Implemented tiered polling intervals for review monitoring: cron job now runs every 5 minutes with tier-based filtering
+  - Agency tier: processes every run (every 5 minutes)
+  - Growth tier: processes every 2nd run (every 10 minutes)
+  - Starter tier: processes every 3rd run (every 15 minutes)
+  - Updated cron schedule in vercel.json from 15-minute to 5-minute intervals
+  - Added `shouldProcessForTier()` function to determine processing eligibility based on organization plan tier and current minute
+
+- Added Response Editing Modal to review workflow: opens after AI response generation, displays review context (reviewer name, rating, excerpt)
+- Modal provides editable textarea with live character/word counts, publishes edited text to Google Business Profile via existing API
+- Handles errors with accessible error banner, closes and refreshes UI on success
+- Uses native `<dialog>` element for accessibility with ESC key and backdrop click to close, focus management on open/close
 
 - Standardized tone options across all components:
   - Updated tone options from inconsistent values (friendly/professional/casual/formal, Warm/Direct/Concise, Warm/Direct/Concierge) to 5 consistent options (Warm, Direct, Professional, Friendly, Casual) in settings-client.tsx, voice-editor.tsx, live-demo.tsx, and landing page
@@ -185,29 +195,44 @@
 
 ### Bug Fixes
 
-- Fixed response parsing error in generate-response-button component: changed error handling to check `response.ok` before calling `response.json()`, preventing errors when server returns non-JSON (e.g., HTML error pages); now safely attempts JSON parsing for error responses, falls back to text parsing when Content-Type indicates non-JSON, and provides meaningful error messages to users
-- Fixed accessibility issue in auth-divider component: replaced `<div role="separator">` with semantic `<hr>` element to resolve "interactive role separator is not focusable" linting error
+- Fixed publish API to preserve original AI-generated text: existing `generated_text` is no longer overwritten on publish
+- Stores user edits in `edited_text` field only when modified, sets `final_text` to the published content
+- Checks for existing response before update to prevent data loss
+
+- Fixed response parsing error in generate-response-button component: changed error handling to check `response.ok` before calling `response.json()`, preventing errors when server returns non-JSON (e.g., HTML error pages)
+- Now safely attempts JSON parsing for error responses, falls back to text parsing when Content-Type indicates non-JSON, and provides meaningful error messages to users
 - Improved accessibility in GenerateResponseButton component: added `aria-busy={isLoading}` attribute to button element so screen readers announce when the generate action is in progress, tied to the same `isLoading` state used for disabling and label changes
 
 ### UI/UX
 
-- Updated landing page response time messaging: changed hero headline from "30 seconds" to "within minutes", updated metadata description to reflect tiered polling intervals (5-15 minutes based on plan tier), and updated stats section to show "Avg. detection time: 5-15 min" instead of misleading "27 sec" response time
-- Fixed UX inconsistency in review-card component: changed Generate Response button condition to match badge behavior, now shows button when status is null (treated as pending) using `(review.status ?? "pending") === "pending"` instead of strict `review.status === "pending"`, ensuring consistent behavior when badge displays "pending" for null status
+- Updated landing page response time messaging: changed hero headline from "30 seconds" to "within minutes"
+- Updated metadata description to reflect tiered polling intervals (5-15 minutes based on plan tier)
+- Updated stats section to show "Avg. detection time: 5-15 min" instead of misleading "27 sec" response time
+- Fixed UX inconsistency in review-card component: changed Generate Response button condition to match badge behavior
+- Now shows button when status is null (treated as pending) using `(review.status ?? "pending") === "pending"` instead of strict `review.status === "pending"`, ensuring consistent behavior when badge displays "pending" for null status
+
+### Documentation
+
+- Updated API documentation: added comprehensive documentation for POST /api/reviews/[reviewId]/publish endpoint including request/response formats, error codes, and database update behavior
 
 ## 2025-12-19
 
 ### Bug Fixes
 
 - Fixed max_length input in voice editor: changed onChange handler to allow empty string temporarily instead of forcing default value of 150, enabling validation errors to display for empty input rather than immediately resetting to default
-- Fixed Stryker mutation in poll-reviews route: changed loose inequality operator (`!=`) to strict inequality (`!==`) for null check on review.rating
 
 ### UI/UX
 
-- Enhanced max_length validation in voice editor: added real-time validation error state that displays inline error messages, prevents form submission when value is out of range (50-500), clears errors on input correction, and includes aria-live region for accessible error announcements to assistive technologies
+- Enhanced max_length validation in voice editor: added real-time validation error state that displays inline error messages
+- Prevents form submission when value is out of range (50-500), clears errors on input correction
+- Includes aria-live region for accessible error announcements to assistive technologies
 
 ### Features
 
-- Implemented AI response generation endpoint (`POST /api/responses`): generates customer-facing review responses using Claude API, supports voice profile configuration (location-specific, organization-wide, or default), returns existing responses instead of regenerating, tracks token usage, handles Claude API errors (timeout, rate limits, service unavailability), validates review ownership and text content before generation
+- Implemented AI response generation endpoint (`POST /api/responses`): generates customer-facing review responses using Claude API
+- Supports voice profile configuration (location-specific, organization-wide, or default)
+- Returns existing responses instead of regenerating, tracks token usage
+- Handles Claude API errors (timeout, rate limits, service unavailability), validates review ownership and text content before generation
 
 ### Documentation
 
@@ -218,11 +243,20 @@
 
 ### Security
 
-- Fixed base64 validation in token decryption: removed ineffective try/catch around `Buffer.from()` (which doesn't throw on invalid base64), added explicit base64 validation function that checks for valid characters, proper padding, and correct length before decoding, ensuring `TokenDecryptionError` is thrown for clearly invalid base64 input
-- Fixed token re-encryption script to detect primary key usage via key version identifier: added 1-byte key version header (0x01 for primary key, 0x00 for old/legacy) to ciphertext format in `encryptToken()`, created `decryptTokenWithVersion()` function that returns both plaintext and key version used, updated `reencrypt-tokens.ts` to check key version instead of comparing ciphertexts (which never matched due to random IVs), maintaining backward compatibility with legacy tokens without version byte
-- Implemented AES-256-GCM application-layer encryption for Google refresh tokens: created `lib/crypto/encryption.ts` module with `encryptToken()` and `decryptToken()` functions, 12-byte random IV per encryption, 128-bit auth tag for integrity verification, and base64 storage format; updated OAuth callback to encrypt tokens before storage; updated all API routes (`locations`, `poll-reviews` cron, `publish`) to decrypt tokens with error handling; added `TOKEN_ENCRYPTION_KEY` env var (32-byte hex) and `TOKEN_ENCRYPTION_KEY_OLD` for key rotation support; documented key rotation procedure in ARCHITECTURE.md
+- Fixed base64 validation in token decryption: removed ineffective try/catch around `Buffer.from()` (which doesn't throw on invalid base64)
+- Added explicit base64 validation function that checks for valid characters, proper padding, and correct length before decoding, ensuring `TokenDecryptionError` is thrown for clearly invalid base64 input
+- Fixed token re-encryption script to detect primary key usage via key version identifier: added 1-byte key version header (0x01 for primary key, 0x00 for old/legacy) to ciphertext format in `encryptToken()`
+- Created `decryptTokenWithVersion()` function that returns both plaintext and key version used
+- Updated `reencrypt-tokens.ts` to check key version instead of comparing ciphertexts (which never matched due to random IVs), maintaining backward compatibility with legacy tokens without version byte
+- Implemented AES-256-GCM application-layer encryption for Google refresh tokens: created `lib/crypto/encryption.ts` module with `encryptToken()` and `decryptToken()` functions
+- Uses 12-byte random IV per encryption, 128-bit auth tag for integrity verification, and base64 storage format
+- Updated OAuth callback to encrypt tokens before storage
+- Updated all API routes (`locations`, `poll-reviews` cron, `publish`) to decrypt tokens with error handling
+- Added `TOKEN_ENCRYPTION_KEY` env var (32-byte hex) and `TOKEN_ENCRYPTION_KEY_OLD` for key rotation support; documented key rotation procedure in ARCHITECTURE.md
 - Created `scripts/reencrypt-tokens.ts` for key rotation: script re-encrypts all google_refresh_tokens with new key during key rotation, supports `--dry-run` mode for verification, includes detailed logging and error handling
-- Fixed command injection vulnerability in `scripts/generate-types.js`: replaced unsafe shell interpolation with `spawnSync` using argument array and stdout piping via `createWriteStream`; retained `shell: true` on Windows only for npx compatibility with validated input (projectId limited to 20-character alphanumeric pattern) to prevent injection; aligns with ARCHITECTURE.md security guidance on using input validation when `shell: true` is necessary
+- Fixed command injection vulnerability in `scripts/generate-types.js`: replaced unsafe shell interpolation with `spawnSync` using argument array and stdout piping via `createWriteStream`
+- Retained `shell: true` on Windows only for npx compatibility with validated input (projectId limited to 20-character alphanumeric pattern) to prevent injection
+- Aligns with ARCHITECTURE.md security guidance on using input validation when `shell: true` is necessary
 
 ### Bug Fixes
 
@@ -235,7 +269,8 @@
 - Fixed potential empty string insertion in auth callback route: added email validation to ensure non-empty email before upserting to users table (NOT NULL constraint); uses provider-scoped synthetic email fallback (`${user.id}@google-noreply`) when OAuth provider doesn't return an email, with warning log for monitoring
 - Fixed locations POST route to parse and validate request body before organization creation, preventing organizations from being created for invalid requests; body parsing and validation (ensuring body exists and body.locations is an Array) now runs immediately after authentication and returns 400 immediately on invalid input
 - Fixed poll-reviews cron to keep first user found per organization when multiple users have refresh tokens (deterministic behavior instead of last-writer-wins)
-- Fixed poll-reviews cron to generate stable synthetic IDs for reviews missing external_review_id (using SHA-256 hash of location_id + reviewer_name + review_date) to prevent UNIQUE constraint violations from empty strings; reviews with insufficient data are skipped with logging
+- Fixed poll-reviews cron to generate stable synthetic IDs for reviews missing external_review_id (using SHA-256 hash of location_id + reviewer_name + review_date) to prevent UNIQUE constraint violations from empty strings
+- Reviews with insufficient data are skipped with logging
 - Switched synthetic review ID generation to length-prefixed encoding (format: "<length>:<value>") instead of pipe-separated join to prevent collisions when component values contain the separator character
 - Fixed database update failure handling in publish route to prevent silent state inconsistency
 - Added rollback logic for organization creation failures in locations route
@@ -263,22 +298,29 @@
 
 ### UI/UX
 
-- Fixed text contrast on billing page "Upgrade to Pro" card in dark mode: added dark mode overrides for primary color palette (primary-50 through primary-950) to ensure proper contrast with light foreground text, improving contrast ratio from 1.05:1 to 11.76:1 (WCAG AAA compliant)
-- Refined dark mode color scale strategy: fixed primary palette gradient discontinuity (smooth transition from primary-500 to primary-600), added comprehensive dark mode overrides for accent palette (goldenrod) with inverted scale strategy maintaining semantic usage patterns, and documented color system strategy in CSS comments to clarify the intentional partial inversion approach for WCAG contrast compliance
+- Fixed text contrast on billing page "Upgrade to Pro" card in dark mode: added dark mode overrides for primary color palette (primary-50 through primary-950) to ensure proper contrast with light foreground text
+- Improved contrast ratio from 1.05:1 to 11.76:1 (WCAG AAA compliant)
+- Refined dark mode color scale strategy: fixed primary palette gradient discontinuity (smooth transition from primary-500 to primary-600)
+- Added comprehensive dark mode overrides for accent palette (goldenrod) with inverted scale strategy maintaining semantic usage patterns
+- Documented color system strategy in CSS comments to clarify the intentional partial inversion approach for WCAG contrast compliance
 
 ### Infrastructure
 
-- Enhanced generate-types.js script to read SUPABASE_ACCESS_TOKEN from .env.local: added getAccessToken() function that checks environment variable first, then falls back to .env.local file, with proper quote and whitespace handling; fixed Windows compatibility by using shell: true option for spawnSync
+- Enhanced generate-types.js script to read SUPABASE_ACCESS_TOKEN from .env.local: added getAccessToken() function that checks environment variable first, then falls back to .env.local file, with proper quote and whitespace handling
+- Fixed Windows compatibility by using shell: true option for spawnSync
 - Created helper script (`scripts/generate-types.js`) to automatically extract Supabase project ID from environment variables and generate TypeScript types
 - Added validation for Supabase project ID format in `scripts/generate-types.js`: validates extracted project IDs against 20-character alphanumeric pattern before use, treating invalid formats as not found to prevent errors from malformed URLs
 
 ### Database
 
-- Added self-access fallback to users SELECT and UPDATE policies in non-idempotent migration: updated 001_initial_schema.sql to match idempotent version by adding `OR id = auth.uid()` to both SELECT and UPDATE policies, and changing SELECT policy from `IN` to `=` for consistency, ensuring users can view/update their own record before organization_id is set
+- Added self-access fallback to users SELECT and UPDATE policies in non-idempotent migration: updated 001_initial_schema.sql to match idempotent version by adding `OR id = auth.uid()` to both SELECT and UPDATE policies
+- Changed SELECT policy from `IN` to `=` for consistency, ensuring users can view/update their own record before organization_id is set
 - Added self-update fallback to users UPDATE policy: modified the "Users can update users in their organization" policy in 001_initial_schema_idempotent.sql to include `OR id = auth.uid()` in the USING clause, matching the SELECT policy pattern, so users can update their own record even when organization_id is not yet set
-- Fixed fragile self-referential RLS policy for users table: replaced the SELECT policy's self-referential subquery pattern in 001_initial_schema_idempotent.sql with a direct equality comparison (`organization_id = (SELECT organization_id FROM users WHERE id = auth.uid())`) and added explicit self-view fallback (`OR id = auth.uid()`) so users can always see their own row even if the organization check fails, making the policy more robust
+- Fixed fragile self-referential RLS policy for users table: replaced the SELECT policy's self-referential subquery pattern in 001_initial_schema_idempotent.sql with a direct equality comparison (`organization_id = (SELECT organization_id FROM users WHERE id = auth.uid())`)
+- Added explicit self-view fallback (`OR id = auth.uid()`) so users can always see their own row even if the organization check fails, making the policy more robust
 - Enhanced database cleanup migration: added explicit DROP POLICY statements for all RLS policies in 000_drop_all.sql before dropping tables, added notification_preferences table to cleanup, and documented that DROP INDEX statements are intentional (redundant but explicit for clarity) since DROP TABLE CASCADE already removes dependent indexes
-- Updated all timestamp columns to use TIMESTAMPTZ consistently: changed organizations.trial_ends_at, organizations.created_at, users.created_at, voice_profiles.created_at, locations.created_at, reviews.review_date, reviews.created_at, responses.published_at, and responses.created_at from TIMESTAMP to TIMESTAMPTZ in both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to ensure all timestamps store timezone information consistently with 002_add_notification_preferences.sql
+- Updated all timestamp columns to use TIMESTAMPTZ consistently: changed organizations.trial_ends_at, organizations.created_at, users.created_at, voice_profiles.created_at, locations.created_at, reviews.review_date, reviews.created_at, responses.published_at, and responses.created_at from TIMESTAMP to TIMESTAMPTZ
+- Applied changes in both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to ensure all timestamps store timezone information consistently with 002_add_notification_preferences.sql
 - Added INSERT and DELETE policies for organizations table: added "Authenticated users can create organizations" policy (WITH CHECK auth.uid() IS NOT NULL) and "Users can delete their own organization" policy (USING id IN (SELECT organization_id FROM users WHERE id = auth.uid())) to both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to support organization creation and deletion by authenticated users
 - Added INSERT policy for users table: added "Users can insert their own record" policy (WITH CHECK id = auth.uid()) to both 001_initial_schema.sql and 001_initial_schema_idempotent.sql migrations to allow OAuth callback to upsert user records during authentication flow
 - Made notification_preferences migration (002_add_notification_preferences.sql) idempotent: added IF NOT EXISTS clauses, DROP POLICY IF EXISTS, and DROP TRIGGER IF EXISTS to allow safe reruns without errors
@@ -317,7 +359,6 @@
 ### Components
 
 - Introduced shared `AuthDivider` and `GoogleOAuthButton` components
-- Refactored auth forms to reuse shared components
 - Fixed update password redirect timeout cleanup on unmount
 
 ### Documentation

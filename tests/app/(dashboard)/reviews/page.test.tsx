@@ -20,6 +20,17 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/reviews"),
 }));
 
+// Mock HTMLDialogElement methods (not implemented in jsdom)
+// Required for ResponseEditModal component used in GenerateResponseButton
+HTMLDialogElement.prototype.showModal = vi.fn(function (
+  this: HTMLDialogElement,
+) {
+  this.setAttribute("open", "");
+});
+HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
+  this.removeAttribute("open");
+});
+
 import ReviewsPage, { metadata } from "@/app/(dashboard)/reviews/page";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -88,18 +99,24 @@ function createMockSupabaseClient(options: MockClientOptions = {}) {
           data: reviews,
           error: reviewsError,
         });
-        // Create an object with chainable query builder methods
-        const mockQuery = {
+        // Create chainable query builder methods
+        const chainableMethods = {
           in: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
           range: vi.fn().mockReturnThis(),
         };
-        // Attach Promise methods that delegate to the underlying Promise
-        Object.assign(mockQuery, {
-          then: promise.then.bind(promise),
-          catch: promise.catch.bind(promise),
-          finally: promise.finally.bind(promise),
+        // Create a Proxy that makes the object thenable without explicitly adding 'then'
+        // This satisfies Biome's noThenProperty rule while maintaining Promise compatibility
+        const mockQuery = new Proxy(chainableMethods, {
+          get(target, prop) {
+            // Forward Promise methods to the underlying promise
+            if (prop === "then" || prop === "catch" || prop === "finally") {
+              return promise[prop].bind(promise);
+            }
+            // Return chainable methods or other properties
+            return target[prop as keyof typeof target];
+          },
         });
         return {
           select: vi.fn().mockReturnValue(mockQuery),
@@ -329,13 +346,15 @@ describe("app/(dashboard)/reviews/page", () => {
       const Component = await ReviewsPage({ searchParams: {} });
       render(Component);
       expect(
-        screen.getByText(
-          "Please complete your account setup to view reviews.",
-        ),
+        screen.getByText("Please complete your account setup to view reviews."),
       ).toBeInTheDocument();
     });
 
     it("handles locations fetch failure", async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       vi.mocked(createServerSupabaseClient).mockResolvedValue(
         createMockSupabaseClient({
           locationsError: new Error("Failed to fetch locations"),
@@ -347,9 +366,18 @@ describe("app/(dashboard)/reviews/page", () => {
       expect(
         screen.getByText("Failed to load locations. Please try again later."),
       ).toBeInTheDocument();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to fetch locations:",
+        "Failed to fetch locations",
+      );
     });
 
     it("handles reviews fetch failure", async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       vi.mocked(createServerSupabaseClient).mockResolvedValue(
         createMockSupabaseClient({
           locations: [{ id: "loc-1" }],
@@ -362,6 +390,11 @@ describe("app/(dashboard)/reviews/page", () => {
       expect(
         screen.getByText("Failed to load reviews. Please try again later."),
       ).toBeInTheDocument();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to fetch reviews:",
+        "Failed to fetch reviews",
+      );
     });
   });
 

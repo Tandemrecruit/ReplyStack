@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 
 import RootLayout, { metadata } from "@/app/layout";
 
@@ -67,13 +67,13 @@ describe("app/layout (Root Layout)", () => {
   });
 
   it("renders children content", () => {
-    render(
+    const html = renderToString(
       <RootLayout>
         <div data-testid="child-content">Test Content</div>
       </RootLayout>,
     );
-    expect(screen.getByTestId("child-content")).toBeInTheDocument();
-    expect(screen.getByText("Test Content")).toBeInTheDocument();
+    expect(html).toContain('data-testid="child-content"');
+    expect(html).toContain("Test Content");
   });
 
   // Note: Tests for html/body element attributes removed - jsdom cannot query
@@ -81,13 +81,13 @@ describe("app/layout (Root Layout)", () => {
   // render container. These are integration-level concerns better tested with E2E.
 
   it("renders multiple children", () => {
-    render(
+    const html = renderToString(
       <RootLayout>
         <div data-testid="child-1">Child 1</div>
         <div data-testid="child-2">Child 2</div>
       </RootLayout>,
     );
-    expect(screen.getByTestId("child-1")).toBeInTheDocument();
-    expect(screen.getByTestId("child-2")).toBeInTheDocument();
+    expect(html).toContain('data-testid="child-1"');
+    expect(html).toContain('data-testid="child-2"');
   });
 });

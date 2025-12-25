@@ -192,9 +192,14 @@ export async function POST(
       );
     } catch (error) {
       if (error instanceof GoogleAPIError) {
+        // Map Google API errors to specific error codes
+        const code =
+          error.status === 403
+            ? "GOOGLE_PERMISSION_DENIED"
+            : "GOOGLE_API_ERROR";
         return NextResponse.json(
-          { error: error.message },
-          { status: error.status },
+          { error: error.message, code },
+          { status: error.status === 403 ? 403 : 502 },
         );
       }
       throw error;
@@ -216,21 +221,33 @@ export async function POST(
       );
     }
 
-    // Upsert response record
-    const { data: responseRecord, error: responseError } = await supabase
+    const now = new Date().toISOString();
+
+    // Check for existing response to determine if this is a direct publish or publishing an AI-generated response
+    const { data: existingResponse } = await supabase
       .from("responses")
-      .upsert(
-        {
-          review_id: reviewId,
-          generated_text: responseText,
-          final_text: responseText,
-          status: "published",
-          published_at: new Date().toISOString(),
-        },
-        { onConflict: "review_id" },
-      )
-      .select()
-      .single();
+      .select("generated_text")
+      .eq("review_id", reviewId)
+      .maybeSingle();
+
+    // Atomically upsert response using database function to prevent race conditions
+    // This handles concurrent publish requests by using ON CONFLICT at the database level
+    // The function preserves generated_text on update and sets edited_text appropriately
+    // For direct publishes (no existing response), pass null for generated_text to distinguish from AI-generated
+    const { data: responseRecords, error: responseError } = await supabase.rpc(
+      "upsert_response",
+      {
+        p_review_id: reviewId,
+        // If no existing response, this is a direct publish - set generated_text to null
+        // If existing response exists, pass its generated_text to preserve it
+        p_generated_text: existingResponse?.generated_text ?? null,
+        p_final_text: responseText,
+        p_status: "published",
+        p_published_at: now,
+      },
+    );
+
+    const responseRecord = responseRecords?.[0] ?? null;
 
     if (responseError) {
       console.error("Failed to save response record:", responseError.message);
@@ -268,7 +285,7 @@ export async function POST(
   } catch (error) {
     console.error("Publish response error:", error);
     return NextResponse.json(
-      { error: "Failed to publish response" },
+      { error: "Failed to publish response", code: "INTERNAL_ERROR" },
       { status: 500 },
     );
   }
