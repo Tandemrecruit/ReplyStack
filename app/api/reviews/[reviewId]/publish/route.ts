@@ -192,9 +192,14 @@ export async function POST(
       );
     } catch (error) {
       if (error instanceof GoogleAPIError) {
+        // Map Google API errors to specific error codes
+        const code =
+          error.status === 403
+            ? "GOOGLE_PERMISSION_DENIED"
+            : "GOOGLE_API_ERROR";
         return NextResponse.json(
-          { error: error.message },
-          { status: error.status },
+          { error: error.message, code },
+          { status: error.status === 403 ? 403 : 502 },
         );
       }
       throw error;
@@ -280,7 +285,7 @@ export async function POST(
   } catch (error) {
     console.error("Publish response error:", error);
     return NextResponse.json(
-      { error: "Failed to publish response" },
+      { error: "Failed to publish response", code: "INTERNAL_ERROR" },
       { status: 500 },
     );
   }

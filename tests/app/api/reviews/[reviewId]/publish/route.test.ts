@@ -1043,6 +1043,7 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
       error: "Forbidden",
+      code: "GOOGLE_PERMISSION_DENIED",
     });
   });
 
@@ -1067,6 +1068,7 @@ describe("POST /api/reviews/[reviewId]/publish", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
       error: "Failed to publish response",
+      code: "INTERNAL_ERROR",
     });
   });
 });

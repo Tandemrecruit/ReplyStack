@@ -361,6 +361,7 @@ describe("POST /api/responses", () => {
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toEqual({
         error: "Failed to check for existing response",
+        code: "DB_ERROR",
       });
     });
   });
@@ -610,36 +611,42 @@ describe("POST /api/responses", () => {
         message: "Request timeout",
         expectedStatus: 504,
         expectedError: "AI response generation timed out",
+        expectedCode: "AI_TIMEOUT",
       },
       {
         status: 429,
         message: "Rate limit exceeded",
         expectedStatus: 429,
         expectedError: "Rate limit exceeded. Please try again later.",
+        expectedCode: "RATE_LIMITED",
       },
       {
         status: 401,
         message: "Invalid API key",
         expectedStatus: 500,
         expectedError: "AI service configuration error",
+        expectedCode: "INTERNAL_ERROR",
       },
       {
         status: 403,
         message: "Forbidden",
         expectedStatus: 500,
         expectedError: "AI service configuration error",
+        expectedCode: "INTERNAL_ERROR",
       },
       {
         status: 503,
         message: "Service unavailable",
         expectedStatus: 502,
         expectedError: "AI service unavailable",
+        expectedCode: "AI_SERVICE_ERROR",
       },
     ])("handles Claude API $status error correctly", async ({
       status,
       message,
       expectedStatus,
       expectedError,
+      expectedCode,
     }) => {
       vi.mocked(generateResponse).mockRejectedValue(
         new ClaudeAPIError(status, message),
@@ -662,6 +669,7 @@ describe("POST /api/responses", () => {
       expect(response.status).toBe(expectedStatus);
       await expect(response.json()).resolves.toEqual({
         error: expectedError,
+        code: expectedCode,
       });
     });
   });
@@ -691,6 +699,7 @@ describe("POST /api/responses", () => {
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toEqual({
         error: "Failed to save response",
+        code: "DB_ERROR",
       });
     });
 
@@ -711,6 +720,7 @@ describe("POST /api/responses", () => {
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toEqual({
         error: "Failed to generate response",
+        code: "INTERNAL_ERROR",
       });
     });
 
@@ -729,6 +739,7 @@ describe("POST /api/responses", () => {
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toEqual({
         error: "Failed to generate response",
+        code: "INTERNAL_ERROR",
       });
     });
   });

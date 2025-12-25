@@ -1,5 +1,18 @@
 # Changelog
 
+## 2025-12-25
+
+### API Routes
+
+- Added structured error codes to API responses: `app/api/responses/route.ts` and `app/api/reviews/[reviewId]/publish/route.ts` now return a `code` field in error responses (`DB_ERROR`, `INTERNAL_ERROR`, `AI_TIMEOUT`, `RATE_LIMITED`, `AI_SERVICE_ERROR`, `GOOGLE_API_ERROR`, `GOOGLE_PERMISSION_DENIED`) enabling clients to distinguish retryable transient failures from user-actionable errors
+
+### Documentation
+
+- Clarified semantic difference between `edited_text` and `final_text` in FEATURES.md: `edited_text` is set only when the user modifies the generated text (NULL when unchanged); `final_text` always contains the text that was actually published (may be the generated text, the edited text, or null for direct publishes with no AI)
+- Enhanced API error code documentation in FEATURES.md and API.md: split generic `500` errors into specific codes (`INTERNAL_ERROR`, `DB_ERROR`, `GOOGLE_API_ERROR`, `AI_SERVICE_ERROR`, `AI_TIMEOUT`, `RATE_LIMITED`, `GOOGLE_PERMISSION_DENIED`) across all API endpoints; added error response format examples and client retry guidance
+- Clarified custom tone fallback behavior in FEATURES.md: when a custom tone is not found, `enhancedContext` is omitted from the AI prompt (undefined), no warning is logged to the user, and response generation continues using the base tone without enhancement
+- Documented system default voice profile values in FEATURES.md: added table showing default values (tone="warm", personality_notes="Professional and friendly", sign_off_style="The Team", max_length=150, words_to_avoid=["sorry for any inconvenience", "valued customer"]) and clarified that core fields are guaranteed non-null while optional enhancement fields (words_to_use, example_responses) may be null
+
 ## 2025-12-24
 
 ### Testing

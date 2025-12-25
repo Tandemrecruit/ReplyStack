@@ -153,6 +153,8 @@ Google Business Profile reviews.
 ### Database Integration
 
 **Response Storage:**
+- `edited_text` is set only when the user modifies the generated text; it is NULL when unchanged
+- `final_text` always contains the text that was actually published (may be the generated text, the edited text, or null for direct publishes with no AI)
 - If response exists: preserves `generated_text`, stores edits in `edited_text` (only if modified)
 - If no existing response: creates new with `generated_text` and `final_text`
 - Direct publishes (no AI): `generated_text` is null
@@ -188,7 +190,22 @@ Google Business Profile reviews.
 - `401`: Unauthorized, Google authentication expired
 - `403`: Google API permission denied
 - `404`: User/review not found
-- `500`: Server error
+- `500` (`INTERNAL_ERROR`): Unexpected server error (retry may help)
+- `500` (`DB_ERROR`): Database operation failed (retry may help)
+- `502` (`GOOGLE_API_ERROR`): Google Business Profile API unreachable or returned error (retry after delay)
+
+**Error Response Format:**
+```json
+{
+  "error": "Error message",
+  "code": "INTERNAL_ERROR" | "DB_ERROR" | "GOOGLE_API_ERROR"
+}
+```
+
+**Client Retry Guidance:**
+- `500` codes: Transient failures; retry with exponential backoff (max 3 attempts)
+- `502`: External API issue; retry after 5-10 seconds
+- `400`, `401`, `403`, `404`: User-actionable errors; do not retry automatically
 
 ---
 
@@ -378,6 +395,20 @@ When generating responses, voice profile is resolved in this order:
 2. Organization-level voice profile
 3. Default voice profile (system default)
 
+When no profile exists at location, organization, or system tiers, the following system defaults are applied to ensure all required fields have values:
+
+| Field | Default Value |
+|-------|---------------|
+| `tone` | `"warm"` |
+| `personality_notes` | `"Professional and friendly"` |
+| `sign_off_style` | `"The Team"` |
+| `max_length` | `150` |
+| `words_to_avoid` | `["sorry for any inconvenience", "valued customer"]` |
+| `words_to_use` | `null` (no specific words required) |
+| `example_responses` | `null` (no examples provided) |
+
+All core fields (`tone`, `personality_notes`, `sign_off_style`, `max_length`, `words_to_avoid`) are guaranteed to have values; only optional enhancement fields (`words_to_use`, `example_responses`) may be null.
+
 ### Custom Tone Integration
 
 - Custom tones can be selected as the tone
@@ -457,18 +488,36 @@ AI-powered response generation using Claude AI, personalized with voice profile 
 
 ### Custom Tone Support
 
-- If tone starts with `custom:`, looks up custom tone
-- Includes `enhancedContext` in AI prompt
-- Falls back gracefully if custom tone not found
+- If tone starts with `custom:`, looks up custom tone by ID
+- Includes `enhancedContext` in AI prompt when custom tone is found
+- **Fallback behavior when custom tone is not found:**
+  - `enhancedContext` is omitted from the AI prompt (passed as `undefined`)
+  - No warning or error is logged to the user
+  - Response generation continues using the base tone value without enhancement
 
 ### Error Handling
 
 - `400`: Missing reviewId, no organization, review has no text
 - `404`: User/review not found
-- `429`: Rate limit exceeded (Claude API)
-- `500`: Database/Claude API error
-- `502`: AI service unavailable
-- `504`: Response generation timed out
+- `429` (`RATE_LIMITED`): Claude API rate limit exceeded (retry after delay from response headers)
+- `500` (`INTERNAL_ERROR`): Unexpected server error (retry may help)
+- `500` (`DB_ERROR`): Database operation failed (retry may help)
+- `502` (`AI_SERVICE_ERROR`): Claude API unreachable or returned error (retry after delay)
+- `504` (`AI_TIMEOUT`): Response generation timed out (retry with same request)
+
+**Error Response Format:**
+```json
+{
+  "error": "Error message",
+  "code": "INTERNAL_ERROR" | "DB_ERROR" | "RATE_LIMITED" | "AI_SERVICE_ERROR" | "AI_TIMEOUT"
+}
+```
+
+**Client Retry Guidance:**
+- `500` codes: Transient failures; retry with exponential backoff (max 3 attempts)
+- `502`, `504`: External AI service issue; retry after 5-10 seconds
+- `429`: Rate limited; wait for duration specified in `Retry-After` header or default 60 seconds
+- `400`, `404`: User-actionable errors; do not retry automatically
 
 ---
 
@@ -501,7 +550,9 @@ Publishes edited or generated responses to Google Business Profile as replies to
    - `status = 'responded'`
 
 2. Upserts `responses` table:
-   - If exists: preserves `generated_text`, stores edits in `edited_text` (if modified)
+   - `edited_text` is set only when the user modifies the generated text; it is NULL when unchanged
+   - `final_text` always contains the text that was actually published (may be the generated text, the edited text, or null for direct publishes with no AI)
+   - If exists: preserves `generated_text`, stores edits in `edited_text` (only if modified)
    - If new: creates with `generated_text` and `final_text`
    - Sets `status = 'published'`
    - Sets `published_at` timestamp
@@ -517,7 +568,23 @@ Publishes edited or generated responses to Google Business Profile as replies to
 
 - `400`: Missing/empty response_text, Google account not connected
 - `401`: Unauthorized, Google auth expired (requires reconnection)
-- `403`: Google API permission denied
+- `403` (`GOOGLE_PERMISSION_DENIED`): Google API permission denied (user must re-authorize)
 - `404`: User/review not found
-- `500`: Database/Google API error
-- Returns `200` with warning if Google succeeds but DB fails
+- `500` (`INTERNAL_ERROR`): Unexpected server error (retry may help)
+- `500` (`DB_ERROR`): Database operation failed (retry may help)
+- `502` (`GOOGLE_API_ERROR`): Google Business Profile API unreachable or returned error (retry after delay)
+- Returns `200` with warning if Google succeeds but DB fails (partial success)
+
+**Error Response Format:**
+```json
+{
+  "error": "Error message",
+  "code": "INTERNAL_ERROR" | "DB_ERROR" | "GOOGLE_API_ERROR" | "GOOGLE_PERMISSION_DENIED"
+}
+```
+
+**Client Retry Guidance:**
+- `500` codes: Transient failures; retry with exponential backoff (max 3 attempts)
+- `502`: External API issue; retry after 5-10 seconds
+- `401`, `403`: Authentication/authorization errors; prompt user to reconnect Google account
+- `400`, `404`: User-actionable errors; do not retry automatically

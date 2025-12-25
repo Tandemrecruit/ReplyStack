@@ -28,10 +28,12 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Error responses:
   - `400`: Missing reviewId, no organization, review has no text
   - `404`: User not found, review not found, review belongs to different organization
-  - `429`: Rate limit exceeded (Claude API)
-  - `500`: Database error, Claude API error, general server error
-  - `502`: AI service unavailable
-  - `504`: AI response generation timed out
+  - `429` (`RATE_LIMITED`): Claude API rate limit exceeded (retry after delay)
+  - `500` (`DB_ERROR`): Database operation failed (retry may help)
+  - `500` (`INTERNAL_ERROR`): Unexpected server error (retry may help)
+  - `502` (`AI_SERVICE_ERROR`): Claude API unreachable or returned error (retry after delay)
+  - `504` (`AI_TIMEOUT`): AI response generation timed out (retry with same request)
+- Error response format: `{ error: string, code?: string }`
 
 ### POST /api/reviews/[reviewId]/publish
 
@@ -44,11 +46,13 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - If no existing response: creates new response record with `generated_text` and `final_text` set to published content.
 - Returns: `{ success: boolean, message: string, response_id: string, published_at: string }`.
 - Error responses:
-  - `400`: Missing or empty `response_text`, Google account not connected, no organization
-  - `401`: Unauthorized, Google authentication expired or corrupted (requires reconnection)
+  - `400`: Missing or empty `response_text`, Google account not connected (`GOOGLE_NOT_CONNECTED`), no organization
+  - `401` (`GOOGLE_AUTH_EXPIRED`): Unauthorized, Google authentication expired or corrupted (requires reconnection)
+  - `403` (`GOOGLE_PERMISSION_DENIED`): Google API permission denied (user must re-authorize)
   - `404`: User not found, review not found, review belongs to different organization
-  - `403`: Google API permission denied
-  - `500`: Database error, Google API error, general server error
+  - `500` (`INTERNAL_ERROR`): Unexpected server error (retry may help)
+  - `502` (`GOOGLE_API_ERROR`): Google Business Profile API unreachable or returned error (retry after delay)
+- Error response format: `{ error: string, code?: string }`
 - Note: If Google publish succeeds but database update fails, returns `200` with `warning` field indicating database inconsistency.
 
 ### GET /api/cron/poll-reviews
@@ -72,8 +76,10 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `account_name`: Name of the Google account
   - `is_synced`: Boolean indicating if location is saved in database
 - Error responses:
-  - `401`: Unauthorized, Google authentication expired or corrupted (requires reconnection)
-  - `500`: Database error, Google API error, general server error
+  - `401` (`GOOGLE_AUTH_EXPIRED`): Unauthorized, Google authentication expired or corrupted (requires reconnection)
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
+  - `502` (`GOOGLE_API_ERROR`): Google API unreachable or returned error
 
 ### POST /api/locations
 
@@ -85,7 +91,9 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `400`: Invalid request body, missing required fields
   - `401`: Unauthorized
   - `404`: User not found
-  - `500`: Database error, Google API error, general server error
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
+  - `502` (`GOOGLE_API_ERROR`): Google API unreachable or returned error
 
 ### GET /api/custom-tones
 
@@ -96,7 +104,8 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Error responses:
   - `401`: Unauthorized
   - `404`: User not found, organization not found
-  - `500`: Database error, general server error
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
 
 ### POST /api/tone-quiz/generate
 
@@ -109,10 +118,11 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `400`: Invalid request body, missing answers, duplicate question IDs, invalid question/answer IDs
   - `401`: Unauthorized
   - `404`: User not found, organization not found
-  - `429`: Rate limit exceeded (Claude API)
-  - `500`: Database error, Claude API error, general server error
-  - `502`: AI service unavailable
-  - `504`: AI response generation timed out
+  - `429` (`RATE_LIMITED`): Claude API rate limit exceeded (retry after delay)
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
+  - `502` (`AI_SERVICE_ERROR`): Claude API unreachable or returned error
+  - `504` (`AI_TIMEOUT`): AI response generation timed out
 
 ### GET /api/notifications
 
@@ -121,7 +131,8 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Returns: `{ emailNotifications: boolean }` (defaults to `true` if no preference set).
 - Error responses:
   - `401`: Unauthorized
-  - `500`: Database error, general server error
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
 
 ### PUT /api/notifications
 
@@ -133,7 +144,8 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
 - Error responses:
   - `400`: Invalid request body, emailNotifications must be boolean
   - `401`: Unauthorized
-  - `500`: Database error, general server error
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
 
 ### PUT /api/voice-profile
 
@@ -146,7 +158,8 @@ Status: Core features implemented. Auth flows, Google Business Profile integrati
   - `400`: Invalid request body, validation errors
   - `401`: Unauthorized
   - `404`: User not found, organization not found
-  - `500`: Database error, general server error
+  - `500` (`DB_ERROR`): Database operation failed
+  - `500` (`INTERNAL_ERROR`): Unexpected server error
 
 ### POST /api/webhooks/stripe
 

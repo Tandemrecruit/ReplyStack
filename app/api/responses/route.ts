@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         existingResponseError,
       );
       return NextResponse.json(
-        { error: "Failed to check for existing response" },
+        { error: "Failed to check for existing response", code: "DB_ERROR" },
         { status: 500 },
       );
     }
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
     if (insertError || !insertedResponse) {
       console.error("Failed to save response:", insertError);
       return NextResponse.json(
-        { error: "Failed to save response" },
+        { error: "Failed to save response", code: "DB_ERROR" },
         { status: 500 },
       );
     }
@@ -244,31 +244,34 @@ export async function POST(request: NextRequest) {
 
       if (error.status === 408) {
         return NextResponse.json(
-          { error: "AI response generation timed out" },
+          { error: "AI response generation timed out", code: "AI_TIMEOUT" },
           { status: 504 },
         );
       }
       if (error.status === 429) {
         return NextResponse.json(
-          { error: "Rate limit exceeded. Please try again later." },
+          {
+            error: "Rate limit exceeded. Please try again later.",
+            code: "RATE_LIMITED",
+          },
           { status: 429 },
         );
       }
       if (error.status === 401 || error.status === 403) {
         return NextResponse.json(
-          { error: "AI service configuration error" },
+          { error: "AI service configuration error", code: "INTERNAL_ERROR" },
           { status: 500 },
         );
       }
       return NextResponse.json(
-        { error: "AI service unavailable" },
+        { error: "AI service unavailable", code: "AI_SERVICE_ERROR" },
         { status: 502 },
       );
     }
 
     console.error("Response generation error:", error);
     return NextResponse.json(
-      { error: "Failed to generate response" },
+      { error: "Failed to generate response", code: "INTERNAL_ERROR" },
       { status: 500 },
     );
   }
