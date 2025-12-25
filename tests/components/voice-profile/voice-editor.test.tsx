@@ -762,6 +762,9 @@ describe("components/voice-profile/VoiceEditor", () => {
       personality_notes: "Family business since 1985",
       sign_off_style: "— John, Owner",
       max_length: 250,
+      example_responses: null,
+      words_to_use: null,
+      words_to_avoid: null,
     });
   });
 
@@ -819,5 +822,213 @@ describe("components/voice-profile/VoiceEditor", () => {
         max_length: 175,
       }),
     );
+  });
+
+  describe("Example Responses", () => {
+    it("renders example responses section", async () => {
+      await renderVoiceEditor({
+        profile: { tone: "friendly" },
+        onSave: vi.fn(),
+      });
+
+      expect(screen.getByText(/Example Responses/i)).toBeInTheDocument();
+      expect(screen.getByText(/Paste 3-5 review replies/i)).toBeInTheDocument();
+    });
+
+    it("shows existing example responses from profile", async () => {
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          example_responses: ["Thanks for the review!", "We appreciate you!"],
+        },
+        onSave: vi.fn(),
+      });
+
+      expect(screen.getByText("Thanks for the review!")).toBeInTheDocument();
+      expect(screen.getByText("We appreciate you!")).toBeInTheDocument();
+      expect(screen.getByText("(2/5)")).toBeInTheDocument();
+    });
+
+    it("adds a new example response", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
+
+      const textarea = screen.getByPlaceholderText(
+        /Thanks so much for the kind words/i,
+      );
+      await user.type(textarea, "Great feedback, thank you!");
+
+      const addButton = screen.getByRole("button", { name: "Add" });
+      await user.click(addButton);
+
+      expect(
+        screen.getByText("Great feedback, thank you!"),
+      ).toBeInTheDocument();
+    });
+
+    it("removes an example response", async () => {
+      const user = userEvent.setup();
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          example_responses: ["Thanks for the review!"],
+        },
+        onSave: vi.fn(),
+      });
+
+      const removeButton = screen.getByRole("button", {
+        name: "Remove example 1",
+      });
+      await user.click(removeButton);
+
+      expect(
+        screen.queryByText("Thanks for the review!"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("limits example responses to 5", async () => {
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          example_responses: ["1", "2", "3", "4", "5"],
+        },
+        onSave: vi.fn(),
+      });
+
+      expect(screen.getByText("(5/5)")).toBeInTheDocument();
+      // Add button should not be visible when at limit
+      expect(
+        screen.queryByRole("button", { name: "Add" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("includes example_responses in save payload", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          example_responses: ["Existing response"],
+        },
+        onSave,
+      });
+
+      await user.click(
+        screen.getByRole("button", { name: "Save Voice Profile" }),
+      );
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          example_responses: ["Existing response"],
+        }),
+      );
+    });
+  });
+
+  describe("Words to Use", () => {
+    it("renders words to use input", async () => {
+      await renderVoiceEditor({
+        profile: { tone: "friendly" },
+        onSave: vi.fn(),
+      });
+
+      expect(screen.getByLabelText("Words to Use")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/family-owned/i)).toBeInTheDocument();
+    });
+
+    it("shows existing words to use from profile", async () => {
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          words_to_use: ["handcrafted", "family"],
+        },
+        onSave: vi.fn(),
+      });
+
+      const input = screen.getByLabelText("Words to Use") as HTMLInputElement;
+      expect(input.value).toBe("handcrafted, family");
+    });
+
+    it("parses comma-separated words on save", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
+
+      const input = screen.getByLabelText("Words to Use");
+      await user.type(input, "thank you, appreciate, welcome");
+
+      await user.click(
+        screen.getByRole("button", { name: "Save Voice Profile" }),
+      );
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          words_to_use: ["thank you", "appreciate", "welcome"],
+        }),
+      );
+    });
+
+    it("handles empty words to use", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
+
+      await user.click(
+        screen.getByRole("button", { name: "Save Voice Profile" }),
+      );
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          words_to_use: expect.anything(),
+        }),
+      );
+    });
+  });
+
+  describe("Words to Avoid", () => {
+    it("renders words to avoid input", async () => {
+      await renderVoiceEditor({
+        profile: { tone: "friendly" },
+        onSave: vi.fn(),
+      });
+
+      expect(screen.getByLabelText("Words to Avoid")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(/sorry for any inconvenience/i),
+      ).toBeInTheDocument();
+    });
+
+    it("shows existing words to avoid from profile", async () => {
+      await renderVoiceEditor({
+        profile: {
+          tone: "friendly",
+          words_to_avoid: ["sorry", "inconvenience"],
+        },
+        onSave: vi.fn(),
+      });
+
+      const input = screen.getByLabelText("Words to Avoid") as HTMLInputElement;
+      expect(input.value).toBe("sorry, inconvenience");
+    });
+
+    it("parses comma-separated words on save", async () => {
+      const user = userEvent.setup();
+      const onSave = vi.fn();
+      await renderVoiceEditor({ profile: { tone: "friendly" }, onSave });
+
+      const input = screen.getByLabelText("Words to Avoid");
+      await user.type(input, "valued customer, sorry for any inconvenience");
+
+      await user.click(
+        screen.getByRole("button", { name: "Save Voice Profile" }),
+      );
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          words_to_avoid: ["valued customer", "sorry for any inconvenience"],
+        }),
+      );
+    });
   });
 });

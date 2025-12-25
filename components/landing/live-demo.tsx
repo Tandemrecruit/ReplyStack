@@ -291,7 +291,9 @@ export function LiveDemo() {
                     </svg>
                   ))}
                 </div>
-                <span className="text-xs text-foreground-muted">New review</span>
+                <span className="text-xs text-foreground-muted">
+                  New review
+                </span>
               </div>
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-foreground-muted/10 text-foreground-muted">
                 Simulated
