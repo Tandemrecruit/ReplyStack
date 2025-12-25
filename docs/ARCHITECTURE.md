@@ -18,9 +18,35 @@
 
 ## Implementation Status (Dec 2025)
 
-- Implemented: project setup, Supabase client/middleware, authentication flows, Google Business Profile integration (OAuth, location sync, review polling), Claude AI integration (response generation), voice profile API, review management API, response publishing to Google, token encryption (AES-256-GCM), landing page.
-- Partially implemented: dashboard UI (components exist but need data integration), response editing UI (publish works, edit modal missing), Stripe integration (webhook stub exists, checkout/portal pending), email notifications (preferences API/UI done, sending pending).
-- Not implemented: Stripe checkout/portal, email sending (Resend integration), response editing modal, dashboard data integration, review management features (ignore, search, date filters).
+- **Fully Implemented:**
+  - Project infrastructure: Next.js 16, React 19, Tailwind v4, TypeScript, Vitest, Biome
+  - Authentication: Email/password, Google OAuth, password reset, email verification, middleware routing
+  - Database: PostgreSQL via Supabase with RLS, multi-tenant architecture, encrypted token storage (AES-256-GCM)
+  - Google Business Profile: OAuth flow, token encryption/rotation, location sync, tier-based review polling (5/10/15 min intervals), review fetching, response publishing
+  - AI Integration: Claude Haiku 4.5 client with retry logic, timeout handling, token tracking
+  - Voice Profile: API with tone selection (5 standard + custom), personality notes, sign-off, max length, custom tones
+  - Tone Quiz: 10-question interactive quiz with AI-generated custom tones
+  - Review Management: GET/POST/PATCH APIs with filtering (status, rating), pagination support
+  - Response Generation: POST /api/responses with voice profile resolution (location → org → default fallback)
+  - Response Publishing: POST /api/reviews/[reviewId]/publish with atomic upsert, preserves generated text
+  - Response Editing: Modal with review context, character/word counts, accessibility features
+  - Dashboard UI: Reviews page with functional filters, generate response button, review cards
+  - Notification Preferences: GET/PUT /api/notifications for email opt-in/opt-out
+  - Landing Page: Hero, features, pricing, FAQ sections
+
+- **Partially Implemented:**
+  - Stripe: Webhook endpoint exists (stub only), checkout/portal/subscription management pending
+  - Email: Notification preferences API/UI complete, Resend sending integration pending
+  - Voice Profile UI: Tone quiz and custom tones complete, missing UI fields for example responses and words to use/avoid (API supports these fields)
+
+- **Not Implemented:**
+  - Stripe checkout session creation and customer portal links
+  - Email sending via Resend (welcome emails, review notifications)
+  - Regenerate response button (API returns existing response)
+  - Review management: ignore status, search, date range filter
+  - Optimistic UI updates for publish operations
+  - Waitlist management (table, signup form, admin interface, invite emails)
+  - Initial bulk import of 200 reviews when location is first connected
 
 ---
 

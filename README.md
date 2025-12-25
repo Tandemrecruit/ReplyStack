@@ -4,7 +4,7 @@ AI-powered Google Business review response tool for local businesses. Respond to
 
 ## Development Status
 
-Core features implemented. Authentication, Google Business Profile integration, review polling, and AI response generation are complete. Dashboard UI data integration, response editing UI, and Stripe webhooks are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
+**MVP near complete:** Authentication; Google Business Profile integration (OAuth, location sync, tier-based review polling); AI response generation (Claude Haiku 4.5); voice profile management (tone quiz + custom tones); response editing modal; and dashboard UI with functional filters are implemented. Remaining: Stripe checkout/portal + webhook implementation, email sending (Resend), voice profile UI fields (example responses, words to use/avoid), and waitlist management. See [Roadmap](./docs/ROADMAP.md) for detailed status.
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ Core features implemented. Authentication, Google Business Profile integration, 
 - **Language:** TypeScript (strict mode)
 - **Database:** PostgreSQL via Supabase
 - **Auth:** Supabase Auth + Google OAuth
-- **AI:** Claude Haiku 4.5 (claude-haiku-4-5-20251001)
+- **AI:** Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) via Anthropic API
 - **Payments:** Stripe (subscriptions)
 - **Email:** Resend
 - **Styling:** Tailwind CSS v4

@@ -1,6 +1,6 @@
 # API Overview
 
-Status: Core features implemented. Auth flows, Google Business Profile integration, review polling, and AI response generation are complete. Stripe webhooks are still pending.
+Status: **MVP near complete.** Implemented: authentication; Google Business Profile integration (OAuth, location sync, tier-based review polling); AI response generation (Claude Haiku 4.5); voice profile management (tone quiz + custom tones); response editing modal; notification preferences; and landing page. Remaining: Stripe checkout/portal + webhook implementation, email sending (Resend), voice profile UI fields (example responses, words to use/avoid), and waitlist management.
 
 ## Auth Model
 

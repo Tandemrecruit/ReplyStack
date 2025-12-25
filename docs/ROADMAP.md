@@ -5,20 +5,30 @@
 ### Current Status (Dec 2025)
 
 **Completed:**
-- Project scaffolding and infrastructure setup
-- Authentication (email/password, Google OAuth, password reset)
-- Google Business Profile integration (OAuth, location selection, token encryption)
-- Review polling and storage (cron job, deduplication)
-- Voice profile API (tone, personality notes, sign-off, max length)
-- AI response generation (Claude integration, token tracking)
-- Dashboard data integration (reviews page with functional filters and generate response button)
-- Landing page (hero, features, pricing, FAQ)
+- Project scaffolding and infrastructure setup (Next.js 16, React 19, Tailwind v4, TypeScript, Vitest, Biome)
+- Authentication (email/password, Google OAuth, password reset, email verification)
+- Google Business Profile integration (OAuth, location selection, token encryption with AES-256-GCM)
+- Review polling and storage (tier-based cron job every 5 min, processes starter/growth/agency tiers at 15/10/5 min intervals)
+- Voice profile API (tone, personality notes, sign-off, max length, custom tones, example responses, words to use/avoid)
+- Voice profile UI (VoiceEditor component with tone selection, personality notes, sign-off, max length, custom tone quiz integration)
+- AI response generation (Claude Haiku 4.5 integration with retry logic, timeout handling, token tracking)
+- Custom tones (10-question tone quiz with AI-generated custom tone names/descriptions)
+- Dashboard data integration (reviews page with functional rating/status filters, generate response button, review cards)
+- Response editing UI (ResponseEditModal with review context, character/word count, accessibility features)
+- Response publishing (atomic upsert to Google Business Profile, preserves generated text)
+- Notification preferences API and UI (GET/PUT /api/notifications, settings page integration)
+- Location management API (GET/POST /api/locations with sync status)
+- Landing page (hero, features, pricing, FAQ sections)
 
 **Remaining:**
-- Response editing UI (edit modal, character count, optimistic updates)
-- Voice profile UI fields (example responses input, words to use/avoid)
-- Stripe integration (checkout, webhooks, subscription management)
-- Email notifications (new review alerts, welcome emails)
+- Voice profile UI fields (example responses input, words to use/avoid input — API supports these fields, UI missing)
+- Stripe integration (checkout session creation, customer portal links, webhook implementation)
+- Email notifications (Resend integration for new review alerts, welcome emails, trial ending reminders)
+- Regenerate response button (API currently returns existing response instead of regenerating)
+- Optimistic UI updates for publish operations
+- Review management features (ignore status API/UI, search, date range filter)
+- Waitlist management (database table, signup form, admin interface, invite functionality)
+- Initial bulk import of 200 reviews when location is first connected
 
 **Goal:** One location, core response loop, payments working
 
@@ -48,68 +58,70 @@
   - [ ] Initial bulk import of 200 reviews when location is first connected **(blocked: depends on location connection trigger/hook to detect first-time connections and initiate bulk import)**
 
 - [X] **Review polling and storage**
-  - [x] Review fetch from Google API
-  - [x] Store reviews in database
-  - [x] Cron job for polling (every 15 min)
-  - [x] Deduplication logic
+  - [x] Review fetch from Google API (tier-based: starter 15min, growth 10min, agency 5min)
+  - [x] Store reviews in database with deduplication by `external_review_id`
+  - [x] Cron job for polling (Vercel cron every 5 min, tier-based processing with time-window tolerance)
+  - [x] Deduplication logic (cron_poll_state table tracks last_processed_at per tier)
 
 - [X] **AI response generation**
-  - [x] Claude API integration
-  - [x] System prompt with voice profile
-  - [x] Generate response endpoint
-  - [x] Token usage tracking
+  - [x] Claude API integration (Haiku 4.5 with retry logic, exponential backoff, 30s timeout)
+  - [x] System prompt with voice profile (tone, personality, sign-off, max length, words to use/avoid, custom tones)
+  - [x] Generate response endpoint (POST /api/responses with voice profile resolution: location → org → default)
+  - [x] Token usage tracking (input + output tokens stored in responses table)
 
 - [X] **Basic dashboard UI**
   - [x] Review list component (ReviewCard component with full data integration)
-  - [x] Rating filter (fully functional, filters reviews by rating)
-  - [x] Status filter (fully functional, filters reviews by status)
-  - [x] Generate response button (fully functional, generates responses via API)
+  - [x] Rating filter (fully functional via ReviewsFilters component, filters reviews by rating 1-5)
+  - [x] Status filter (fully functional via ReviewsFilters component, filters by pending/responded/ignored)
+  - [x] Generate response button (GenerateResponseButton component, fully functional, calls POST /api/responses)
   - [ ] Response preview (not yet implemented)
 
 - [ ] **Review management features**
-  - [ ] Mark review as "ignored" (status field exists in DB, but no API endpoint or UI)
+  - [ ] Mark review as "ignored" (status field exists in reviews table, but no API endpoint or UI)
   - [ ] Search reviews by text content (not implemented)
-  - [ ] Filter by date range (API does not support, needs implementation)
+  - [ ] Filter by date range (API does not support, needs query parameter and database filtering)
 
 ### Week 2: Polish & Launch
 
-- [~] **Response editing and publishing**
-  - [ ] Edit modal component
-  - [ ] Character/word count
-  - [x] Save draft functionality (responses saved as drafts when generated)
-  - [x] Publish to Google API (endpoint implemented at POST /api/reviews/[reviewId]/publish)
+- [X] **Response editing and publishing**
+  - [x] Edit modal component (ResponseEditModal with review context, reviewer name, rating stars, review text)
+  - [x] Character/word count (displayed in modal footer, updates in real-time)
+  - [x] Save draft functionality (responses saved as drafts when generated via POST /api/responses)
+  - [x] Publish to Google API (POST /api/reviews/[reviewId]/publish with atomic upsert, preserves generated_text)
   - [ ] Regenerate response button (API returns existing response instead of regenerating)
-  - [ ] Optimistic UI updates
-  - [x] Error handling and retry (error handling implemented, retry logic in Claude client)
+  - [ ] Optimistic UI updates (not implemented, manual refresh required after publish)
+  - [x] Error handling and retry (error handling with user-friendly messages, retry logic in Claude client)
 
 - [~] **Voice profile setup**
-  - [x] Tone selection step (5 options: Warm, Direct, Professional, Friendly, Casual)
-  - [x] Personality notes input
-  - [ ] Example responses input (API supports, UI missing)
-  - [x] Sign-off configuration
-  - [ ] Words to use/avoid (API supports, UI missing)
-  - [x] Max length setting (with validation, 50-500 words)
-  - [x] Save and update profile (API and UI fully implemented via VoiceEditor component)
-  - [ ] 10-question tone quiz (helps users choose between Warm, Direct, Professional, Friendly, Casual)
+  - [x] Tone selection step (5 standard options: Warm, Direct, Professional, Friendly, Casual)
+  - [x] Custom tone generation via 10-question tone quiz (ToneQuiz component, POST /api/tone-quiz/generate)
+  - [x] Personality notes input (free text field in VoiceEditor)
+  - [ ] Example responses input (API supports `example_responses` array, UI field not implemented in VoiceEditor)
+  - [x] Sign-off configuration (name/title/business in VoiceEditor)
+  - [ ] Words to use/avoid (API supports `words_to_use` and `words_to_avoid` arrays, UI fields not implemented in VoiceEditor)
+  - [x] Max length setting (with validation, 50-500 words, slider + number input in VoiceEditor)
+  - [x] Save and update profile (PUT /api/voice-profile API and VoiceEditor UI fully implemented)
+  - [x] 10-question tone quiz (helps users choose between standard tones or generate custom tone via Claude AI)
 
 - [~] **Stripe integration**
-  - [ ] Products and prices in Stripe Dashboard
-  - [ ] Checkout session creation
-  - [~] Webhook handler (stub exists, needs implementation)
-  - [ ] Customer portal link
-  - [ ] Trial logic (14 days)
-  - [ ] Subscription status checks
+  - [ ] Products and prices in Stripe Dashboard (not configured)
+  - [ ] Checkout session creation (no API endpoint for creating checkout sessions)
+  - [~] Webhook handler (stub exists at POST /api/webhooks/stripe, signature verification not implemented)
+  - [ ] Customer portal link (no API endpoint for creating portal sessions)
+  - [ ] Trial logic (14 days) (not implemented)
+  - [ ] Subscription status checks (not implemented)
 
 - [~] **Email notifications**
-  - [~] Resend integration (preferences API/UI done, no email sending yet)
-  - [ ] New review notification
-  - [ ] Welcome email
-  - [x] Notification preferences (API and UI implemented)
+  - [x] Resend API integration setup (RESEND_API_KEY and RESEND_FROM_EMAIL env vars configured)
+  - [ ] New review notification email template and sending (Resend integration not implemented)
+  - [ ] Welcome email (not implemented)
+  - [x] Notification preferences (GET/PUT /api/notifications API and settings UI fully implemented)
+  - [x] Email opt-in/opt-out toggle (part of notification preferences, stored in notification_preferences table)
 
 - [~] **Account management**
-  - [x] Update password (update-password-form exists)
-  - [ ] Update email in settings
-  - [ ] Delete account functionality (GDPR requirement)
+  - [x] Update password (update-password-form component exists at app/(auth)/update-password/page.tsx)
+  - [ ] Update email in settings (not implemented)
+  - [ ] Delete account functionality (GDPR requirement, not implemented)
 
 - [ ] **Onboarding & UX**
   - [ ] Voice Profile Wizard (guided multi-step onboarding)
@@ -117,9 +129,9 @@
   - [ ] Success metrics tracking (time to first response)
 
 - [ ] **Infrastructure & monitoring**
-  - [ ] Basic error tracking (Sentry integration)
-  - [~] Rate limiting (error handling for rate limits exists, but no per-user limits implemented)
-  - [ ] Google API rate limit monitoring
+  - [ ] Basic error tracking (Sentry integration not configured)
+  - [~] Rate limiting (Claude client has retry logic and error handling for 429 errors, but no per-user rate limits implemented)
+  - [ ] Google API rate limit monitoring (not implemented)
 
 - [X] **Landing page**
   - [x] Hero section
@@ -129,12 +141,12 @@
   - [x] CTA buttons
 
 - [ ] **Waitlist management**
-  - [ ] Waitlist database table (email, name, signup_date, invited_at, invited_by)
-  - [ ] Waitlist signup form on landing page
-  - [ ] API endpoint for waitlist signups (POST /api/waitlist)
-  - [ ] Admin interface to view/manage waitlist
-  - [ ] Invite functionality (send signup link to waitlist users)
-  - [ ] Email integration for waitlist invites (Resend)
+  - [ ] Waitlist database table (email, name, signup_date, invited_at, invited_by) (not created)
+  - [ ] Waitlist signup form on landing page (not implemented)
+  - [ ] API endpoint for waitlist signups (POST /api/waitlist) (not implemented)
+  - [ ] Admin interface to view/manage waitlist (not implemented)
+  - [ ] Invite functionality (send signup link to waitlist users) (not implemented)
+  - [ ] Email integration for waitlist invites (Resend) (not implemented)
 
 - [ ] **Soft launch**
   - [ ] Deploy to production
