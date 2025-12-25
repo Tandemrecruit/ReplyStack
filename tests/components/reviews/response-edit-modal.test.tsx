@@ -401,13 +401,10 @@ describe("components/reviews/ResponseEditModal", () => {
 
       const clickPromise = user.click(publishButton);
 
-      await waitFor(
-        () => {
-          expect(cancelButton).toBeDisabled();
-          expect(publishButton).toBeDisabled();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(cancelButton).toBeDisabled();
+        expect(publishButton).toBeDisabled();
+      }, WAIT_FOR_TIMEOUT);
 
       resolveFetch?.({
         ok: true,
@@ -422,10 +419,12 @@ describe("components/reviews/ResponseEditModal", () => {
 
       // Create a deferred promise so we can control when fetch resolves
       // This allows us to check the disabled state while the fetch is still pending
-      let resolveFetch: ((value: {
-        ok: boolean;
-        json: () => Promise<{ success: boolean }>;
-      }) => void) | undefined;
+      let resolveFetch:
+        | ((value: {
+            ok: boolean;
+            json: () => Promise<{ success: boolean }>;
+          }) => void)
+        | undefined;
       const fetchPromise = new Promise<{
         ok: boolean;
         json: () => Promise<{ success: boolean }>;
@@ -442,12 +441,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       // Wait for the click to trigger and isPublishing to be set to true
       // The textarea should be disabled while the fetch is pending
-      await waitFor(
-        () => {
-          expect(screen.getByRole("textbox")).toBeDisabled();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("textbox")).toBeDisabled();
+      }, WAIT_FOR_TIMEOUT);
 
       // Now resolve the fetch to complete the operation
       if (resolveFetch) {
@@ -476,14 +472,11 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toHaveTextContent(
-            "Google account not connected",
-          );
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Google account not connected",
+        );
+      }, WAIT_FOR_TIMEOUT);
     });
 
     it("displays generic error for non-JSON response", async () => {
@@ -499,14 +492,11 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toHaveTextContent(
-            "Failed to publish (500)",
-          );
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Failed to publish (500)",
+        );
+      }, WAIT_FOR_TIMEOUT);
     });
 
     it("displays error for network failure", async () => {
@@ -518,12 +508,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toHaveTextContent("Network error");
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent("Network error");
+      }, WAIT_FOR_TIMEOUT);
     });
 
     it("does not close modal on error", async () => {
@@ -540,12 +527,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
 
       expect(onClose).not.toHaveBeenCalled();
     });
@@ -567,12 +551,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
 
       // Text should still be there
       expect(textarea).toHaveValue("Edited text");
@@ -592,12 +573,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
 
       // Second call succeeds
       mockFetch.mockResolvedValueOnce({
@@ -607,12 +585,9 @@ describe("components/reviews/ResponseEditModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Publish" }));
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
     });
   });
 
@@ -640,22 +615,16 @@ describe("components/reviews/ResponseEditModal", () => {
 
       // Trigger error
       await user.click(screen.getByRole("button", { name: "Publish" }));
-      await waitFor(
-        () => {
-          expect(screen.getByRole("alert")).toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
 
       // Reopen with new text
       rerender(<ResponseEditModal {...defaultProps} initialText="New text" />);
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-        },
-        WAIT_FOR_TIMEOUT,
-      );
+      await waitFor(() => {
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      }, WAIT_FOR_TIMEOUT);
     });
   });
 });

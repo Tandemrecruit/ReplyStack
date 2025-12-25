@@ -197,6 +197,8 @@ export function createMockServerSupabaseClient(
       });
 
       // Override insert to return the insert chain
+      // createMockChain's `insert` can be optional in the mocked type; ensure it's present.
+      chain.insert = chain.insert ?? vi.fn();
       chain.insert.mockReturnValue(insertChain);
 
       return chain;

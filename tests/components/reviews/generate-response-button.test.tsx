@@ -367,7 +367,7 @@ describe("components/reviews/GenerateResponseButton", () => {
 
     it("handles API error with long HTML response", async () => {
       const user = userEvent.setup();
-      const longHtml = "<html>" + "x".repeat(300) + "</html>";
+      const longHtml = `<html>${"x".repeat(300)}</html>`;
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
