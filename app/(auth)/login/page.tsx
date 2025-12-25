@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   description: "Sign in to your Replily account",
 };
 
+/**
+ * Skeleton placeholder for the login form shown while the real form is loading.
+ *
+ * Renders three simple rectangular skeleton blocks that visually represent form controls and a submit action; intended for use as a Suspense fallback or other loading state.
+ *
+ * @returns A JSX element containing three skeleton blocks that mimic the layout of the login form.
+ */
 function LoginFormSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">

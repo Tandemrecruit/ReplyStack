@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Render the Terms of Service page for Replily.
+ * Renders the Terms of Service page for Replily.
  *
- * Renders static, semantically-structured Terms of Service content (including a
- * last-updated timestamp, numbered sections 1–10 covering eligibility, account
- * use, billing, termination, disclaimers, and contact information) and a
- * mailto link to support@replily.com.
+ * Displays static, semantically structured Terms of Service content (last-updated
+ * timestamp, numbered sections 1–10 covering eligibility, account use, billing,
+ * termination, disclaimers, and contact information) and a mailto link to
+ * support@replily.com.
  *
  * @returns A React element containing the Terms of Service page
  */
