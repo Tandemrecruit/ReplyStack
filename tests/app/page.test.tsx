@@ -26,9 +26,11 @@ describe("app/page (Landing Page)", () => {
       "href",
       "/login",
     );
-    expect(
-      screen.getByRole("link", { name: /start free trial/i }),
-    ).toHaveAttribute("href", "/signup");
+    // Multiple waitlist links exist on page, check the first one (in nav)
+    const waitlistLinks = screen.getAllByRole("link", {
+      name: /join waitlist/i,
+    });
+    expect(waitlistLinks[0]).toHaveAttribute("href", "#waitlist");
   });
 
   it("renders complete hero section with all elements", () => {
@@ -47,20 +49,17 @@ describe("app/page (Landing Page)", () => {
     );
 
     // Key CTAs
-    const trialLinks = screen.getAllByRole("link", {
-      name: /start 14-day free trial/i,
+    const waitlistLinks = screen.getAllByRole("link", {
+      name: /join waitlist/i,
     });
-    expect(trialLinks.length).toBeGreaterThanOrEqual(1);
-    expect(trialLinks[0]).toHaveAttribute("href", "/signup");
+    expect(waitlistLinks.length).toBeGreaterThanOrEqual(1);
+    expect(waitlistLinks[0]).toHaveAttribute("href", "#waitlist");
     expect(
       screen.getByRole("link", { name: /see how it works/i }),
     ).toHaveAttribute("href", "#how-it-works");
     expect(
       screen.getByRole("link", { name: /see a live example/i }),
     ).toHaveAttribute("href", "#live-demo");
-
-    // Social proof
-    expect(screen.getByText(/\d+\+ local owners/i)).toBeInTheDocument();
 
     // Hero visual card elements (structural check)
     expect(screen.getByText(/New review/i)).toBeInTheDocument();
@@ -71,28 +70,15 @@ describe("app/page (Landing Page)", () => {
       screen.getByRole("button", { name: /edit reply/i }),
     ).toBeInTheDocument();
 
-    // Trust indicators (appears in multiple places)
+    // Trust indicators
     expect(
-      screen.getAllByText(/No credit card required/i).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Cancel anytime/i)).toBeInTheDocument();
+      screen.getByText(/Be the first to know when we launch/i),
+    ).toBeInTheDocument();
   });
 
   it("renders LiveDemo component", () => {
     render(<LandingPage />);
     expect(screen.getByTestId("live-demo")).toBeInTheDocument();
-  });
-
-  it("renders social proof section with business names", () => {
-    render(<LandingPage />);
-    expect(
-      screen.getByText(/trusted by local businesses/i),
-    ).toBeInTheDocument();
-    // Check for at least one business name (flexible matching - use getAllByText since "dental" also appears in hero)
-    const businessNames = screen.getAllByText(
-      /Maria's Corner Bakery|Dr\. Chen Family Dental|QuickFix HVAC/i,
-    );
-    expect(businessNames.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders how it works section with all feature steps", () => {
@@ -129,12 +115,9 @@ describe("app/page (Landing Page)", () => {
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Defuse.*reviews/i)).toBeInTheDocument();
 
-    // Proof point cards (structural check - multiple cards exist)
-    expect(
-      screen.getAllByText(
-        /Avg\. response time|Response rate|Tone match score|Hours saved weekly/i,
-      ).length,
-    ).toBeGreaterThanOrEqual(1);
+    // Proof point cards (detection time and hours saved)
+    expect(screen.getByText(/Avg\. detection time/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hours saved weekly/i)).toBeInTheDocument();
   });
 
   it("renders pricing section with plan details and CTAs", () => {
@@ -161,11 +144,11 @@ describe("app/page (Landing Page)", () => {
 
     // Pricing CTAs
     const pricingCta = screen.getAllByRole("link", {
-      name: /start 14-day free trial/i,
+      name: /join waitlist/i,
     });
     expect(pricingCta.length).toBeGreaterThanOrEqual(2);
     expect(
-      pricingCta.some((link) => link.getAttribute("href") === "/signup"),
+      pricingCta.some((link) => link.getAttribute("href") === "#waitlist"),
     ).toBe(true);
 
     // Pricing FAQ link
@@ -174,10 +157,10 @@ describe("app/page (Landing Page)", () => {
       "/pricing-faq",
     );
 
-    // Trust indicators (appears in multiple places)
+    // Trust indicator in pricing section
     expect(
-      screen.getAllByText(/No credit card required/i).length,
-    ).toBeGreaterThanOrEqual(1);
+      screen.getByText(/Be first to try when we launch/i),
+    ).toBeInTheDocument();
   });
 
   it("renders CTA section with conversion links", () => {
@@ -188,13 +171,14 @@ describe("app/page (Landing Page)", () => {
       }),
     ).toBeInTheDocument();
 
+    // All "Join Waitlist" links point to #waitlist
+    const waitlistLinks = screen.getAllByRole("link", {
+      name: /join waitlist/i,
+    });
+    expect(waitlistLinks.length).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByRole("link", { name: /start your free trial/i }),
-    ).toHaveAttribute("href", "/signup");
-    expect(screen.getByRole("link", { name: /view the app/i })).toHaveAttribute(
-      "href",
-      "/login",
-    );
+      waitlistLinks.every((link) => link.getAttribute("href") === "#waitlist"),
+    ).toBe(true);
   });
 
   it("renders footer with all links and copyright", () => {

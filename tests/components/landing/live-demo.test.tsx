@@ -66,14 +66,11 @@ describe("components/landing/LiveDemo", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders CTA links", () => {
+    it("renders CTA link", () => {
       render(<LiveDemo />);
       expect(
-        screen.getByRole("link", { name: "Start your free trial" }),
-      ).toHaveAttribute("href", "/signup");
-      expect(
-        screen.getByRole("link", { name: "View the app" }),
-      ).toHaveAttribute("href", "/login");
+        screen.getByRole("link", { name: "Join Waitlist" }),
+      ).toHaveAttribute("href", "#waitlist");
     });
 
     it("renders with default sample review", () => {

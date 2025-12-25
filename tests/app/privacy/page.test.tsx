@@ -23,8 +23,8 @@ describe("app/privacy/page", () => {
       "/login",
     );
     expect(
-      screen.getByRole("link", { name: /start free trial/i }),
-    ).toHaveAttribute("href", "/signup");
+      screen.getByRole("link", { name: /join waitlist/i }),
+    ).toHaveAttribute("href", "/#waitlist");
   });
 
   it("renders page heading", () => {
