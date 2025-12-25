@@ -6,7 +6,8 @@ This document provides detailed documentation for key features in ReplyStack.
 
 ### Overview
 
-The Tone Quiz is an interactive 10-question quiz that helps users discover their ideal communication tone and generates personalized custom tones using AI.
+The Tone Quiz is an interactive 10-question quiz that helps users discover their ideal communication
+tone and generates personalized custom tones using AI.
 
 ### User Flow
 
@@ -87,7 +88,8 @@ CREATE TABLE custom_tones (
 
 ### Overview
 
-The Response Editing Modal allows users to review, edit, and publish AI-generated responses to Google Business Profile reviews.
+The Response Editing Modal allows users to review, edit, and publish AI-generated responses to
+Google Business Profile reviews.
 
 ### User Flow
 
@@ -194,7 +196,9 @@ The Response Editing Modal allows users to review, edit, and publish AI-generate
 
 ### Overview
 
-Custom tones are AI-generated personalized communication styles created through the Tone Quiz. They extend the standard tone options (Warm, Direct, Professional, Friendly, Casual) with organization-specific tones.
+Custom tones are AI-generated personalized communication styles created through the Tone Quiz.
+They extend the standard tone options (Warm, Direct, Professional, Friendly, Casual) with
+organization-specific tones.
 
 ### Features
 
@@ -296,7 +300,8 @@ CREATE TABLE notification_preferences (
 
 ### Overview
 
-Users can connect and manage Google Business Profile locations for review monitoring and response publishing.
+Users can connect and manage Google Business Profile locations for review monitoring and response
+publishing.
 
 ### Features
 
@@ -346,7 +351,8 @@ interface LocationWithStatus {
 
 ### Overview
 
-Voice profiles define how AI-generated responses should sound, including tone, personality, and style preferences.
+Voice profiles define how AI-generated responses should sound, including tone, personality, and
+style preferences.
 
 ### Features
 
@@ -384,7 +390,8 @@ When generating responses, voice profile is resolved in this order:
 
 ### Overview
 
-Automated background job that polls Google Business Profile API for new reviews and updates existing reviews.
+Automated background job that polls Google Business Profile API for new reviews and updates existing
+reviews.
 
 ### Features
 

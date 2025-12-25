@@ -469,10 +469,34 @@ describe("lib/claude/client", () => {
 
     describe("review handling", () => {
       it.each([
-        { rating: null, expectedContains: "Unknown" },
-        { rating: 2, expectedContains: "negative review", requiresEmail: true },
-        { reviewer_name: null, expectedContains: "Anonymous" },
-        { review_date: null, expectedContains: "Unknown date" },
+        {
+          rating: null,
+          reviewer_name: undefined,
+          review_date: undefined,
+          requiresEmail: undefined,
+          expectedContains: "Unknown",
+        },
+        {
+          rating: 2,
+          reviewer_name: undefined,
+          review_date: undefined,
+          requiresEmail: true,
+          expectedContains: "negative review",
+        },
+        {
+          rating: undefined,
+          reviewer_name: null,
+          review_date: undefined,
+          requiresEmail: undefined,
+          expectedContains: "Anonymous",
+        },
+        {
+          rating: undefined,
+          reviewer_name: undefined,
+          review_date: null,
+          requiresEmail: undefined,
+          expectedContains: "Unknown date",
+        },
       ])("handles review with $expectedContains", async ({
         rating,
         reviewer_name,

@@ -5,7 +5,7 @@ import { VoiceEditor } from "@/components/voice-profile/voice-editor";
 
 describe("components/voice-profile/VoiceEditor", () => {
   beforeEach(() => {
-    // Mock fetch for custom tones API call in useEffect
+    // Mock fetch for /api/custom-tones endpoint called in useEffect
     global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
@@ -21,13 +21,15 @@ describe("components/voice-profile/VoiceEditor", () => {
   // Custom render that waits for async operations in useEffect
   const renderVoiceEditor = async (
     props: Parameters<typeof VoiceEditor>[0],
-  ) => {
+  ): Promise<ReturnType<typeof render>> => {
+    let result!: ReturnType<typeof render>;
     await act(async () => {
-      render(<VoiceEditor {...props} />);
+      result = render(<VoiceEditor {...props} />);
     });
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
     });
+    return result;
   };
 
   it("submits updated form data via onSave", async () => {

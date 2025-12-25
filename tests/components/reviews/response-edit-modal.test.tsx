@@ -32,6 +32,9 @@ HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
   this.removeAttribute("open");
 });
 
+// Timeout configuration for waitFor calls
+const WAIT_FOR_TIMEOUT = { timeout: 3000 };
+
 describe("components/reviews/ResponseEditModal", () => {
   const defaultProps = {
     isOpen: true,
@@ -403,7 +406,7 @@ describe("components/reviews/ResponseEditModal", () => {
           expect(cancelButton).toBeDisabled();
           expect(publishButton).toBeDisabled();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       resolveFetch?.({
@@ -443,7 +446,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("textbox")).toBeDisabled();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       // Now resolve the fetch to complete the operation
@@ -479,7 +482,7 @@ describe("components/reviews/ResponseEditModal", () => {
             "Google account not connected",
           );
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
     });
 
@@ -502,7 +505,7 @@ describe("components/reviews/ResponseEditModal", () => {
             "Failed to publish (500)",
           );
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
     });
 
@@ -519,7 +522,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("alert")).toHaveTextContent("Network error");
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
     });
 
@@ -541,7 +544,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("alert")).toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       expect(onClose).not.toHaveBeenCalled();
@@ -568,7 +571,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("alert")).toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       // Text should still be there
@@ -593,7 +596,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("alert")).toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       // Second call succeeds
@@ -608,7 +611,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.queryByRole("alert")).not.toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
     });
   });
@@ -641,7 +644,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.getByRole("alert")).toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
 
       // Reopen with new text
@@ -651,7 +654,7 @@ describe("components/reviews/ResponseEditModal", () => {
         () => {
           expect(screen.queryByRole("alert")).not.toBeInTheDocument();
         },
-        { timeout: 3000 },
+        WAIT_FOR_TIMEOUT,
       );
     });
   });

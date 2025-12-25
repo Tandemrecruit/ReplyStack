@@ -388,17 +388,16 @@ describe("components/reviews/ReviewsFilters", () => {
   });
 
   describe("Edge cases", () => {
-    it("handles empty string value as 'all'", async () => {
+    it("handles 'all' value correctly", async () => {
       const user = userEvent.setup();
       render(<ReviewsFilters />);
 
       const ratingSelect = screen.getByRole("combobox", {
         name: "Filter by rating",
       });
-      // Select an option first, then try to set empty
+      // Select an option first, then select "all"
       await user.selectOptions(ratingSelect, "5");
-      // Setting to empty should be treated as "all"
-      // This tests the value === "" branch
+      // Selecting "all" should remove the filter param
       const allOption = screen.getByRole("option", { name: "All Ratings" });
       await user.selectOptions(
         ratingSelect,

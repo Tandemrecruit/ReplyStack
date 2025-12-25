@@ -19,6 +19,40 @@ describe("components/voice-profile/ToneQuiz", () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * Helper to answer all questions in the quiz.
+   * @param user - User event instance
+   * @param stopIndex - Optional index to stop at (exclusive). If not provided, answers all questions.
+   */
+  const answerAllQuestions = async (
+    user: ReturnType<typeof userEvent.setup>,
+    stopIndex?: number,
+  ) => {
+    const endIndex = stopIndex ?? QUIZ_QUESTIONS.length;
+    for (let i = 0; i < endIndex; i++) {
+      const question = QUIZ_QUESTIONS[i];
+      if (!question) continue;
+
+      // For multi-select, select first two answers
+      if (question.allowMultiple && question.answers.length >= 2) {
+        await user.click(screen.getByText(question.answers[0]?.text ?? ""));
+        await user.click(screen.getByText(question.answers[1]?.text ?? ""));
+      } else {
+        await user.click(screen.getByText(question.answers[0]?.text ?? ""));
+      }
+
+      const buttonText =
+        i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
+      await user.click(screen.getByRole("button", { name: buttonText }));
+
+      if (i < QUIZ_QUESTIONS.length - 1) {
+        await waitFor(() => {
+          expect(screen.queryByText(question.text)).not.toBeInTheDocument();
+        });
+      }
+    }
+  };
+
   describe("Initial render", () => {
     it("renders quiz header and first question", () => {
       render(<ToneQuiz />);
@@ -61,18 +95,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Navigate to the multi-select question by answering previous questions
-      for (let i = 0; i < multiSelectIndex; i++) {
-        const answer = screen.getByText(
-          QUIZ_QUESTIONS[i]?.answers[0]?.text ?? "",
-        );
-        await user.click(answer);
-        await user.click(screen.getByRole("button", { name: "Next" }));
-        await waitFor(() => {
-          expect(
-            screen.queryByText(QUIZ_QUESTIONS[i]?.text ?? ""),
-          ).not.toBeInTheDocument();
-        });
-      }
+      await answerAllQuestions(user, multiSelectIndex);
 
       // Assert "Select all that apply" text is visible for multi-select question
       expect(screen.getByText("Select all that apply")).toBeInTheDocument();
@@ -253,23 +276,12 @@ describe("components/voice-profile/ToneQuiz", () => {
       const user = userEvent.setup();
       render(<ToneQuiz />);
 
-      // Navigate to a multi-select question (question 9)
-      for (let i = 0; i < 8; i++) {
-        const answer = screen.getByText(
-          QUIZ_QUESTIONS[i]?.answers[0]?.text ?? "",
-        );
-        await user.click(answer);
-        await user.click(screen.getByRole("button", { name: "Next" }));
-        await waitFor(() => {
-          expect(
-            screen.queryByText(QUIZ_QUESTIONS[i]?.text ?? ""),
-          ).not.toBeInTheDocument();
-        });
-      }
+      // Navigate to a multi-select question (question 9, index 8)
+      await answerAllQuestions(user, 8);
 
       // Now on question 9 (multi-select)
       const multiSelectQuestion = QUIZ_QUESTIONS[8];
-      if (multiSelectQuestion && multiSelectQuestion.allowMultiple) {
+      if (multiSelectQuestion?.allowMultiple) {
         const firstAnswer = screen.getByText(
           multiSelectQuestion.answers[0]?.text ?? "",
         );
@@ -295,22 +307,11 @@ describe("components/voice-profile/ToneQuiz", () => {
       const user = userEvent.setup();
       render(<ToneQuiz />);
 
-      // Navigate to a multi-select question
-      for (let i = 0; i < 8; i++) {
-        const answer = screen.getByText(
-          QUIZ_QUESTIONS[i]?.answers[0]?.text ?? "",
-        );
-        await user.click(answer);
-        await user.click(screen.getByRole("button", { name: "Next" }));
-        await waitFor(() => {
-          expect(
-            screen.queryByText(QUIZ_QUESTIONS[i]?.text ?? ""),
-          ).not.toBeInTheDocument();
-        });
-      }
+      // Navigate to a multi-select question (question 9, index 8)
+      await answerAllQuestions(user, 8);
 
       const multiSelectQuestion = QUIZ_QUESTIONS[8];
-      if (multiSelectQuestion && multiSelectQuestion.allowMultiple) {
+      if (multiSelectQuestion?.allowMultiple) {
         const firstAnswer = screen.getByText(
           multiSelectQuestion.answers[0]?.text ?? "",
         );
@@ -336,18 +337,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Navigate to last question
-      for (let i = 0; i < QUIZ_QUESTIONS.length - 1; i++) {
-        const answer = screen.getByText(
-          QUIZ_QUESTIONS[i]?.answers[0]?.text ?? "",
-        );
-        await user.click(answer);
-        await user.click(screen.getByRole("button", { name: "Next" }));
-        await waitFor(() => {
-          expect(
-            screen.queryByText(QUIZ_QUESTIONS[i]?.text ?? ""),
-          ).not.toBeInTheDocument();
-        });
-      }
+      await answerAllQuestions(user, QUIZ_QUESTIONS.length - 1);
 
       expect(
         screen.getByRole("button", { name: "Generate Tone" }),
@@ -372,28 +362,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        // For multi-select, select first two answers
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith("/api/tone-quiz/generate", {
@@ -428,27 +397,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(screen.getByText("Test Tone")).toBeInTheDocument();
@@ -467,27 +416,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(screen.getByText("Generation failed")).toBeInTheDocument();
@@ -504,27 +433,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(
@@ -540,27 +449,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(screen.getByText("Network error")).toBeInTheDocument();
@@ -584,27 +473,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       });
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(
@@ -712,27 +581,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(
@@ -759,27 +608,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(screen.getByText("Test Tone")).toBeInTheDocument();
@@ -800,27 +629,7 @@ describe("components/voice-profile/ToneQuiz", () => {
       render(<ToneQuiz />);
 
       // Answer all questions
-      for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
-        const question = QUIZ_QUESTIONS[i];
-        if (!question) continue;
-
-        if (question.allowMultiple && question.answers.length >= 2) {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-          await user.click(screen.getByText(question.answers[1]?.text ?? ""));
-        } else {
-          await user.click(screen.getByText(question.answers[0]?.text ?? ""));
-        }
-
-        const buttonText =
-          i === QUIZ_QUESTIONS.length - 1 ? "Generate Tone" : "Next";
-        await user.click(screen.getByRole("button", { name: buttonText }));
-
-        if (i < QUIZ_QUESTIONS.length - 1) {
-          await waitFor(() => {
-            expect(screen.queryByText(question.text)).not.toBeInTheDocument();
-          });
-        }
-      }
+      await answerAllQuestions(user);
 
       await waitFor(() => {
         expect(

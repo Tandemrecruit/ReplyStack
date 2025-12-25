@@ -107,6 +107,8 @@ describe("app/(dashboard)/settings/settings-client", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Clear test global state to prevent leakage between tests
+    delete (window as { __testCustomTone?: unknown }).__testCustomTone;
   });
 
   // Helper to render component and handle async useEffect operations
