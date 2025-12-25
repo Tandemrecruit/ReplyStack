@@ -264,41 +264,38 @@ export function LiveDemo() {
                 </select>
               </div>
 
-              <div className="flex gap-3">
-                <Link
-                  href="/signup"
-                  className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center"
-                >
-                  Start your free trial
-                </Link>
-                <Link
-                  href="/login"
-                  className="px-6 py-3 border border-dashed border-primary-400 text-primary-700 font-semibold rounded-full hover:bg-primary-50 transition-colors text-center"
-                >
-                  View the app
-                </Link>
-              </div>
+              <Link
+                href="#waitlist"
+                className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center"
+              >
+                Join Waitlist
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="p-6 rounded-2xl bg-background border border-border shadow-sm space-y-4">
           <div className="rounded-xl border border-border bg-background-secondary p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex" aria-hidden="true">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <svg
-                    key={star}
-                    aria-hidden="true"
-                    className="w-4 h-4 text-star"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg
+                      key={star}
+                      aria-hidden="true"
+                      className="w-4 h-4 text-star"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <span className="text-xs text-foreground-muted">New review</span>
               </div>
-              <span className="text-xs text-foreground-muted">New review</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-foreground-muted/10 text-foreground-muted">
+                Simulated
+              </span>
             </div>
             <p className="text-sm text-foreground">
               “{normalize(reviewText) || "…"}”

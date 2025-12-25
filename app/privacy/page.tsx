@@ -28,9 +28,9 @@ export default function PrivacyPage() {
             </Link>
             <Link
               className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors"
-              href="/signup"
+              href="/#waitlist"
             >
-              Start free trial
+              Join Waitlist
             </Link>
           </div>
         </div>

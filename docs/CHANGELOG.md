@@ -2,6 +2,12 @@
 
 ## 2025-12-25
 
+### UI/UX
+
+- Replaced all "Start Free Trial" / "Start 14-Day Free Trial" CTAs with "Join Waitlist" across landing page, live demo, and privacy page since the offer isn't live yet; updated links to point to `#waitlist` section
+- Removed pre-launch claims from landing page: removed "Trusted by local businesses" social proof section with fake business names, removed "Tone score" metric (unimplemented), removed "Response rate: 100%" and "Tone match score" proof point cards that implied real usage data, changed "Join hundreds of local businesses" to "Be among the first local businesses", removed "View the app" CTAs from CTA section and live demo
+- Added "Simulated example" badge to live demo card to clarify that responses are template-based, not AI-generated
+
 ### API Routes
 
 - Added structured error codes to API responses: `app/api/responses/route.ts` and `app/api/reviews/[reviewId]/publish/route.ts` now return a `code` field in error responses (`DB_ERROR`, `INTERNAL_ERROR`, `AI_TIMEOUT`, `RATE_LIMITED`, `AI_SERVICE_ERROR`, `GOOGLE_API_ERROR`, `GOOGLE_PERMISSION_DENIED`) enabling clients to distinguish retryable transient failures from user-actionable errors
