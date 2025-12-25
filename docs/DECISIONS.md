@@ -1551,6 +1551,97 @@ Implementation pattern (waitlist example):
 
 ---
 
+## ADR-033: API Response Field Normalization (snake_case to camelCase)
+
+**Status:** Accepted
+
+### Context
+
+The database uses PostgreSQL naming conventions (snake_case for columns), while the frontend uses JavaScript/TypeScript conventions (camelCase for object properties). Inconsistent field naming across the API boundary creates confusion, requires ad-hoc mapping in components, and makes the codebase harder to maintain.
+
+### Decision
+
+Normalize all API response fields from database snake_case to JavaScript camelCase at the API boundary:
+
+1. **Database layer:** Use snake_case for all column names (`enhanced_context`, `created_at`, `organization_id`)
+2. **API layer:** Transform to camelCase in API route responses (`enhancedContext`, `createdAt`, `organizationId`)
+3. **Shared types:** Define camelCase types in `lib/types/` for frontend consumption
+4. **Request bodies:** Accept both conventions on input, but prefer camelCase for consistency
+
+Implementation pattern:
+
+```typescript
+// lib/types/custom-tone.ts - Shared type with camelCase
+export type CustomTone = {
+  id: string;
+  name: string;
+  enhancedContext: string | null;  // camelCase at API boundary
+  createdAt: string;
+};
+
+// API route transformation
+const tones = data.map((tone) => ({
+  id: tone.id,
+  name: tone.name,
+  enhancedContext: tone.enhanced_context ?? null,  // snake → camel
+  createdAt: tone.created_at,
+}));
+```
+
+### Rationale
+
+- **Frontend consistency:** JavaScript/TypeScript conventions use camelCase; mixing conventions is confusing
+- **IDE support:** camelCase properties work better with autocomplete and refactoring tools
+- **Separation of concerns:** Database schema decisions don't leak into frontend code
+- **Industry standard:** Most REST APIs use camelCase for JSON responses (Google, GitHub, Stripe)
+- **Type safety:** Shared types in `lib/types/` provide compile-time validation of the API contract
+
+### Alternatives Considered
+
+1. **Use snake_case everywhere**
+   - Pros: No transformation needed, consistent with database
+   - Cons: Violates JavaScript conventions, awkward in frontend code (`user.organization_id`)
+
+2. **Use camelCase in database**
+   - Pros: No transformation needed
+   - Cons: Violates PostgreSQL conventions, makes raw SQL queries awkward
+
+3. **Transform on frontend only**
+   - Pros: Simpler API routes
+   - Cons: Transformation logic scattered across components, no shared types
+
+4. **Use a serialization library (e.g., class-transformer)**
+   - Pros: Automated transformation
+   - Cons: Additional dependency, magic behavior, harder to debug
+
+### Consequences
+
+- **Positive:**
+  - Clean separation between database and API conventions
+  - Consistent frontend code using JavaScript conventions
+  - Shared types provide API contract documentation
+  - Better IDE support for frontend development
+
+- **Negative:**
+  - Manual mapping required in each API route
+  - Must keep `lib/types/` in sync with database schema
+  - Slight runtime overhead for field transformation
+  - Developers must remember to transform fields in new API routes
+
+### Implementation Locations
+
+- `lib/types/custom-tone.ts` - CustomTone type with camelCase fields
+- `app/api/custom-tones/route.ts` - Transforms `enhanced_context` → `enhancedContext`
+- `app/api/tone-quiz/generate/route.ts` - Returns camelCase fields
+
+### Future Considerations
+
+- Consider a utility function for common transformations if patterns repeat
+- May adopt a schema validation library (Zod) for automatic transformation in the future
+- Document the convention in onboarding materials for new developers
+
+---
+
 ## Template for New Decisions
 
 ```markdown
