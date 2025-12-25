@@ -521,6 +521,68 @@ AI-powered response generation using Claude AI, personalized with voice profile 
 
 ---
 
+## Waitlist Signup
+
+### Overview
+
+Pre-launch waitlist signup allows users to register their interest before the product launches. The waitlist
+is implemented as a public API endpoint with email enumeration protection.
+
+### Features
+
+- **Public API:** No authentication required (uses Supabase RLS with anonymous INSERT)
+- **Email Validation:** Both client-side and server-side email format validation
+- **Review Volume:** Collects estimated monthly Google review volume for prioritization
+- **Duplicate Protection:** Silently succeeds on duplicate emails to prevent email enumeration attacks
+- **Case-Insensitive:** Emails are normalized to lowercase before storage
+
+### User Flow
+
+1. User visits landing page and scrolls to waitlist section
+2. User enters email address
+3. User selects monthly review volume (Less than 10, 10-50, 50-100, 100+)
+4. User clicks "Join the Waitlist"
+5. On success, form is replaced with confirmation message
+
+### API Endpoint
+
+**POST /api/waitlist**
+- Body: `{ email: string, review_volume: string }`
+- Returns: `{ success: true }` on success (including duplicates)
+- Review volume options: `less_than_10`, `10_to_50`, `50_to_100`, `100_plus`
+
+### Database Schema
+
+```sql
+CREATE TABLE waitlist (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    review_volume TEXT NOT NULL CHECK (
+        review_volume IN ('less_than_10', '10_to_50', '50_to_100', '100_plus')
+    ),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Case-insensitive unique index
+CREATE UNIQUE INDEX waitlist_email_lower_idx ON waitlist (LOWER(email));
+
+-- RLS: Allow anonymous inserts only
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anonymous waitlist signups"
+    ON waitlist FOR INSERT TO anon WITH CHECK (true);
+```
+
+### Security Considerations
+
+- **Email Enumeration Protection:** Returns success even for duplicate emails
+- **RLS INSERT-only:** Anonymous users can only INSERT, not SELECT/UPDATE/DELETE
+- **Admin Access:** Requires service role key to view waitlist entries
+- **Input Validation:** Both API and database validate email format and review volume values
+
+See ADR-032 for the full architectural decision on public API endpoints with anonymous RLS.
+
+---
+
 ## Response Publishing
 
 ### Overview

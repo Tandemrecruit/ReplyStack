@@ -104,7 +104,7 @@ Settings Page
 
 ## MVP Feature Requirements
 
-Status note (Dec 2025): **MVP near complete.** Implemented: authentication; Google Business Profile integration (OAuth, location sync, tier-based review polling); AI response generation (Claude Haiku 4.5); voice profile management (tone quiz + custom tones); response editing modal; notification preferences; and dashboard UI with functional filters. Remaining: Stripe checkout/portal + webhook implementation, email sending (Resend), voice profile UI fields (example responses, words to use/avoid), and waitlist management.
+Status note (Dec 2025): **MVP near complete.** Implemented: authentication; Google Business Profile integration (OAuth, location sync, tier-based review polling); AI response generation (Claude Haiku 4.5); voice profile management (tone quiz + custom tones); response editing modal; notification preferences; dashboard UI with functional filters; and waitlist signup (public API + form). Remaining: Stripe checkout/portal + webhook implementation, email sending (Resend), voice profile UI fields (example responses, words to use/avoid), and waitlist admin interface.
 
 ### Authentication
 - [x] Email/password registration and login

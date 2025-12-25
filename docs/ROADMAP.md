@@ -140,10 +140,10 @@
   - [x] FAQ (pricing-faq page exists)
   - [x] CTA buttons
 
-- [ ] **Waitlist management**
-  - [ ] Waitlist database table (email, name, signup_date, invited_at, invited_by) (not created)
-  - [ ] Waitlist signup form on landing page (not implemented)
-  - [ ] API endpoint for waitlist signups (POST /api/waitlist) (not implemented)
+- [~] **Waitlist management**
+  - [x] Waitlist database table (email, review_volume, created_at) with RLS for anonymous inserts
+  - [x] Waitlist signup form on landing page (WaitlistForm component with validation)
+  - [x] API endpoint for waitlist signups (POST /api/waitlist with email enumeration protection)
   - [ ] Admin interface to view/manage waitlist (not implemented)
   - [ ] Invite functionality (send signup link to waitlist users) (not implemented)
   - [ ] Email integration for waitlist invites (Resend) (not implemented)

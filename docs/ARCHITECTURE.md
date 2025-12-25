@@ -9,7 +9,7 @@
 | Database | PostgreSQL via Supabase | Relational fits review data, auth included |
 | Auth | Supabase Auth + Google OAuth | Need Google OAuth for Business Profile API |
 | Payments | Stripe | Subscription-native |
-| AI | Claude API (Sonnet) | Best natural tone for business communication |
+| AI | Claude Haiku 4.5 | Best cost/quality ratio for business communication |
 | Styling | Tailwind CSS v4 | Modern utility-first styling |
 | Deployment | Vercel | Natural Next.js fit |
 | Email | Resend | Simple transactional email |
@@ -45,7 +45,7 @@
   - Regenerate response button (API returns existing response)
   - Review management: ignore status, search, date range filter
   - Optimistic UI updates for publish operations
-  - Waitlist management (table, signup form, admin interface, invite emails)
+  - Waitlist admin interface (viewing entries, sending invite emails)
   - Initial bulk import of 200 reviews when location is first connected
 
 ---

@@ -179,6 +179,21 @@ Status: **MVP near complete.** Implemented: authentication; Google Business Prof
 - Body: `{ emailNotifications: boolean }`.
 - Current behavior: Upserts notification preference and returns `{ emailNotifications }`. Rejects non-boolean input with `400`.
 
+### POST /api/waitlist
+
+- Auth: None (public endpoint).
+- Body: `{ email: string, review_volume: string }`.
+- Creates a waitlist signup for pre-launch access.
+- Review volume options: `less_than_10`, `10_to_50`, `50_to_100`, `100_plus`.
+- Returns: `{ success: true }` on success (including duplicate submissions for email enumeration protection).
+- Error responses:
+  - `400`: Missing email or review_volume, invalid email format, invalid review_volume value
+  - `500`: Database error (retry may help)
+- Notes:
+  - Uses Supabase RLS with anonymous INSERT policy (see ADR-032)
+  - Case-insensitive email uniqueness via `LOWER(email)` index
+  - Duplicate submissions return success to prevent email enumeration attacks
+
 ### POST /api/webhooks/stripe
 
 - Auth: Stripe signature header `stripe-signature` (verification not implemented).
