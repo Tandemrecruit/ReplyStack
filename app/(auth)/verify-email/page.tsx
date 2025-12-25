@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Verify Email | ReplyStack",
+  title: "Verify Email | Replily",
   description: "Check your email to verify your account",
 };
 

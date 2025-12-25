@@ -1,13 +1,13 @@
 # Supabase Setup Guide
 
-Complete guide for connecting and setting up your Supabase database for ReplyStack.
+Complete guide for connecting and setting up your Supabase database for Replily.
 
 ## Step 1: Create a Supabase Project
 
 1. Go to [https://supabase.com](https://supabase.com) and sign in (or create an account)
 2. Click **"New Project"**
 3. Fill in the project details:
-   - **Name**: ReplyStack (or your preferred name)
+   - **Name**: Replily (or your preferred name)
    - **Database Password**: Choose a strong password (save it securely - you'll need it for direct database access)
    - **Region**: Choose the region closest to your users
    - **Pricing Plan**: Free tier is fine for development
@@ -281,7 +281,7 @@ To allow any user to sign in, you'll need to:
 2. Submit your app for verification in the OAuth consent screen
 3. Once approved, change the publishing status from "Testing" to "In production"
 
-> **Note**: The `business.manage` scope used by ReplyStack requires verification. Google will review your app to ensure it meets their requirements for accessing sensitive business data.
+> **Note**: The `business.manage` scope used by Replily requires verification. Google will review your app to ensure it meets their requirements for accessing sensitive business data.
 
 ## Next Steps
 

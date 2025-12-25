@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-This document logs key architectural and product decisions for ReplyStack.
+This document logs key architectural and product decisions for Replily.
 
 ## When to Create a New ADR
 

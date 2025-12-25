@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export const metadata: Metadata = {
-  title: "Sign Up | ReplyStack",
-  description: "Create your ReplyStack account",
+  title: "Sign Up | Replily",
+  description: "Create your Replily account",
 };
 
 /**

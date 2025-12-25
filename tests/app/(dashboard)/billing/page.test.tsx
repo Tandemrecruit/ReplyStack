@@ -4,7 +4,7 @@ import BillingPage, { metadata } from "@/app/(dashboard)/billing/page";
 
 describe("app/(dashboard)/billing/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Billing | ReplyStack");
+    expect(metadata.title).toBe("Billing | Replily");
     expect(metadata.description).toBe("Manage your subscription and billing");
   });
 

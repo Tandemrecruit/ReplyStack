@@ -1,4 +1,4 @@
--- ReplyStack Initial Database Schema
+-- Replily Initial Database Schema
 -- Run this migration in your Supabase SQL Editor to set up the database
 
 -- Organizations (accounts/tenants)

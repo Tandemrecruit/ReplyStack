@@ -29,7 +29,7 @@ describe("app/(dashboard)/layout", () => {
         <div>Test</div>
       </DashboardLayout>,
     );
-    const logoLink = screen.getByRole("link", { name: "ReplyStack" });
+    const logoLink = screen.getByRole("link", { name: "Replily" });
     expect(logoLink).toBeInTheDocument();
     expect(logoLink).toHaveAttribute("href", "/dashboard");
   });

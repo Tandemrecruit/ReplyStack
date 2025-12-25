@@ -5,13 +5,13 @@ import { LiveDemo } from "@/components/landing/live-demo";
 import { WaitlistForm } from "@/components/landing/waitlist-form";
 
 export const metadata: Metadata = {
-  title: "ReplyStack | AI-Powered Review Responses for Local Businesses",
+  title: "Replily | AI-Powered Review Responses for Local Businesses",
   description:
     "Get AI-generated review responses within minutes—as fast as 5 minutes on Pro plans. Replies that sound like you, not canned AI. Built for restaurants, dental practices, and local service businesses.",
 };
 
 /**
- * Render the ReplyStack marketing landing page including navigation, hero,
+ * Render the Replily marketing landing page including navigation, hero,
  * live demo, features, benefits, pricing, CTAs, and footer.
  *
  * @returns The complete landing page JSX element containing site header, hero
@@ -30,7 +30,7 @@ export default function LandingPage() {
                 <span className="text-white font-bold text-sm">R</span>
               </div>
               <span className="text-xl font-bold text-foreground">
-                ReplyStack
+                Replily
               </span>
             </Link>
 
@@ -216,7 +216,7 @@ export default function LandingPage() {
             Get early access
           </h2>
           <p className="text-foreground-secondary mb-6">
-            Join the waitlist and be first to try ReplyStack when we launch.
+            Join the waitlist and be first to try Replily when we launch.
           </p>
           <WaitlistForm />
         </div>
@@ -232,7 +232,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              How ReplyStack Works
+              How Replily Works
             </h2>
             <p className="mt-4 text-lg text-foreground-secondary max-w-2xl mx-auto">
               Three simple steps, built for local owners—not AI tinkerers
@@ -547,7 +547,7 @@ export default function LandingPage() {
               <p>
                 Questions?{" "}
                 <Link
-                  href="mailto:support@replystack.com"
+                  href="mailto:support@replily.com"
                   className="text-primary-700 hover:underline"
                 >
                   Email us
@@ -575,7 +575,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-xl text-accent-900">
             Be among the first local businesses to respond faster with
-            ReplyStack.
+            Replily.
           </p>
           <Link
             href="#waitlist"
@@ -595,7 +595,7 @@ export default function LandingPage() {
                 <span className="text-white font-bold text-sm">R</span>
               </div>
               <span className="text-lg font-bold text-foreground">
-                ReplyStack
+                Replily
               </span>
             </div>
 
@@ -607,13 +607,13 @@ export default function LandingPage() {
                 Terms
               </Link>
               <Link
-                href="mailto:support@replystack.com"
+                href="mailto:support@replily.com"
                 className="hover:text-foreground"
               >
                 Contact
               </Link>
               <Link
-                href="mailto:support@replystack.com?subject=Help%20choosing%20a%20plan"
+                href="mailto:support@replily.com?subject=Help%20choosing%20a%20plan"
                 className="hover:text-foreground"
               >
                 Need help choosing?
@@ -621,7 +621,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-foreground-muted">
-              &copy; {new Date().getFullYear()} ReplyStack. All rights reserved.
+              &copy; {new Date().getFullYear()} Replily. All rights reserved.
             </p>
           </div>
         </div>

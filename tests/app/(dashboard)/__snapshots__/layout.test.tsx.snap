@@ -23,7 +23,7 @@ exports[`app/(dashboard)/layout > matches layout snapshot 1`] = `
             <span
               class="text-xl font-bold text-primary-600"
             >
-              ReplyStack
+              Replily
             </span>
           </a>
           <div

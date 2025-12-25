@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | ReplyStack",
+  title: "Terms of Service | Replily",
   description:
-    "Terms and conditions for using ReplyStack, the AI-powered review response tool for local businesses.",
+    "Terms and conditions for using Replily, the AI-powered review response tool for local businesses.",
 };
 
 /**
- * Render the Terms of Service page for ReplyStack.
+ * Render the Terms of Service page for Replily.
  *
  * Renders static, semantically-structured Terms of Service content (including a
  * last-updated timestamp, numbered sections 1–10 covering eligibility, account
  * use, billing, termination, disclaimers, and contact information) and a
- * mailto link to support@replystack.com.
+ * mailto link to support@replily.com.
  *
  * @returns A React element containing the Terms of Service page
  */
@@ -28,7 +28,7 @@ export default function TermsPage() {
 
         <p>
           These Terms of Service ("Terms") govern your access to and use of
-          ReplyStack's website, products, and services. By creating an account
+          Replily's website, products, and services. By creating an account
           or using the Service, you agree to these Terms.
         </p>
 
@@ -63,7 +63,7 @@ export default function TermsPage() {
         <h2>4. Intellectual Property</h2>
         <p>
           All content, features, and functionality of the Service are owned by
-          ReplyStack and are protected by copyright, trademark, and other
+          Replily and are protected by copyright, trademark, and other
           intellectual property laws. You retain ownership of content you create
           through the Service (e.g., review responses).
         </p>
@@ -85,13 +85,13 @@ export default function TermsPage() {
         <h2>7. Disclaimers</h2>
         <p>
           THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
-          ReplyStack does not guarantee that generated responses will be
+          Replily does not guarantee that generated responses will be
           error-free, appropriate, or meet your specific requirements.
         </p>
 
         <h2>8. Limitation of Liability</h2>
         <p>
-          To the maximum extent permitted by law, ReplyStack shall not be liable
+          To the maximum extent permitted by law, Replily shall not be liable
           for any indirect, incidental, special, consequential, or punitive
           damages.
         </p>
@@ -107,10 +107,10 @@ export default function TermsPage() {
         <p>
           Questions? Email us at{" "}
           <Link
-            href="mailto:support@replystack.com"
+            href="mailto:support@replily.com"
             className="text-primary-700 hover:underline"
           >
-            support@replystack.com
+            support@replily.com
           </Link>
           .
         </p>

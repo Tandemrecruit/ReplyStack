@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Login | ReplyStack",
-  description: "Sign in to your ReplyStack account",
+  title: "Login | Replily",
+  description: "Sign in to your Replily account",
 };
 
 function LoginFormSkeleton() {

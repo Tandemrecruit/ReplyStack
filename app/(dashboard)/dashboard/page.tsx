@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Dashboard | ReplyStack",
+  title: "Dashboard | Replily",
   description: "Manage your Google Business reviews",
 };
 
 /**
- * Renders the Dashboard page for ReplyStack, showing a header, quick-stats placeholders, and a "Get Started" card with onboarding steps and a settings CTA.
+ * Renders the Dashboard page for Replily, showing a header, quick-stats placeholders, and a "Get Started" card with onboarding steps and a settings CTA.
  *
  * @returns The JSX content for the dashboard page.
  */
@@ -18,7 +18,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="mt-1 text-foreground-secondary">
-          Welcome to ReplyStack. Get started by connecting your Google Business
+          Welcome to Replily. Get started by connecting your Google Business
           Profile.
         </p>
       </div>

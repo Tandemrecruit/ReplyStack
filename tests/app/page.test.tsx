@@ -10,7 +10,7 @@ vi.mock("@/components/landing/live-demo", () => ({
 describe("app/page (Landing Page)", () => {
   it("exports correct metadata", () => {
     expect(metadata.title).toBe(
-      "ReplyStack | AI-Powered Review Responses for Local Businesses",
+      "Replily | AI-Powered Review Responses for Local Businesses",
     );
     expect(metadata.description).toContain("Get AI-generated review responses");
   });
@@ -18,7 +18,7 @@ describe("app/page (Landing Page)", () => {
   it("renders navigation with all key links", () => {
     render(<LandingPage />);
     // Logo link
-    const logoLink = screen.getByRole("link", { name: /R\s*ReplyStack/i });
+    const logoLink = screen.getByRole("link", { name: /R\s*Replily/i });
     expect(logoLink).toHaveAttribute("href", "/");
 
     // Auth links
@@ -84,7 +84,7 @@ describe("app/page (Landing Page)", () => {
   it("renders how it works section with all feature steps", () => {
     render(<LandingPage />);
     expect(
-      screen.getByRole("heading", { name: /how replystack works/i }),
+      screen.getByRole("heading", { name: /how replily works/i }),
     ).toBeInTheDocument();
 
     // Feature step titles
@@ -195,19 +195,19 @@ describe("app/page (Landing Page)", () => {
     );
     expect(screen.getByRole("link", { name: /Contact/i })).toHaveAttribute(
       "href",
-      "mailto:support@replystack.com",
+      "mailto:support@replily.com",
     );
     expect(
       screen.getByRole("link", { name: /need help choosing/i }),
     ).toHaveAttribute(
       "href",
-      "mailto:support@replystack.com?subject=Help%20choosing%20a%20plan",
+      "mailto:support@replily.com?subject=Help%20choosing%20a%20plan",
     );
 
     // Copyright
     const currentYear = new Date().getFullYear();
     expect(
-      screen.getByText(new RegExp(`${currentYear} ReplyStack`)),
+      screen.getByText(new RegExp(`${currentYear} Replily`)),
     ).toBeInTheDocument();
   });
 });
