@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LiveDemo } from "@/components/landing/live-demo";
+import { WaitlistForm } from "@/components/landing/waitlist-form";
 
 export const metadata: Metadata = {
   title: "ReplyStack | AI-Powered Review Responses for Local Businesses",
@@ -226,6 +227,19 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Waitlist Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-background-secondary border-y border-border">
+        <div className="max-w-md mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+            Get early access
+          </h2>
+          <p className="text-foreground-secondary mb-6">
+            Join the waitlist and be first to try ReplyStack when we launch.
+          </p>
+          <WaitlistForm />
         </div>
       </section>
 
