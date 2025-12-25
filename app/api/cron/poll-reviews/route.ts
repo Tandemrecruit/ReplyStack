@@ -57,11 +57,109 @@ interface LocationWithUser {
 }
 
 /**
+ * Time window tolerance for tier scheduling (in minutes).
+ * Allows cron jobs that run slightly early or late to still process correctly.
+ */
+const TIME_WINDOW_TOLERANCE_MINUTES = 2;
+
+/**
+ * Tier scheduling configuration:
+ * - interval: target processing interval in minutes
+ * - minIntervalSinceLastProcess: minimum time since last processing to allow new run (prevents duplicates)
+ */
+const TIER_CONFIG = {
+  agency: { interval: 5, minIntervalSinceLastProcess: 3 }, // Every 5 min, but wait at least 3 min since last
+  growth: { interval: 10, minIntervalSinceLastProcess: 8 }, // Every 10 min, but wait at least 8 min since last
+  starter: { interval: 15, minIntervalSinceLastProcess: 13 }, // Every 15 min, but wait at least 13 min since last
+} as const;
+
+/**
+ * Determines if a tier should be processed using resilient time-window checks with best-effort deduplication.
+ *
+ * APPROACH (B): Time-window check with last-processed timestamp deduplication
+ *
+ * This approach replaces exact minute alignment with:
+ * 1. Time window check: Accepts runs within +/- TIME_WINDOW_TOLERANCE_MINUTES of target minutes
+ * 2. Last-processed timestamp: Reduces duplicate processing by checking when tier was last processed
+ * 3. Best-effort deduplication: Uses timestamp checks to minimize duplicate runs, but does not provide
+ *    strict single-run guarantees. Two overlapping cron invocations may both process the same tier if
+ *    they read the same old last_processed_at value before either completes. This is acceptable because
+ *    review upserts are idempotent by external_review_id.
+ *
+ * Benefits over exact-minute approach:
+ * - Resilient to cron timing variations (early/late runs)
+ * - Reduces duplicate processing via timestamp tracking
+ * - Handles clock skew and delayed executions gracefully
+ * - Acceptable duplicate processing is safe due to idempotent review upserts
+ *
+ * - 'agency' (highest tier): approximately every 5 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ * - 'growth' (mid tier): approximately every 10 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ * - 'starter' (low tier): approximately every 15 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ *
+ * @param planTier - The organization's plan tier ('agency', 'growth', 'starter', or null for starter)
+ * @param currentTime - Current timestamp (for testing)
+ * @param lastProcessedAt - Timestamp when this tier was last processed (from database)
+ * @returns true if this tier should be processed in this cron run
+ */
+function shouldProcessForTier(
+  planTier: string | null,
+  currentTime: Date,
+  lastProcessedAt: Date | null,
+): boolean {
+  // Normalize tier: null/unknown tiers default to 'starter'
+  const tier =
+    planTier === "agency" || planTier === "growth" ? planTier : "starter";
+  const config = TIER_CONFIG[tier];
+
+  // Agency tier: always process if enough time has passed since last run
+  if (tier === "agency") {
+    if (!lastProcessedAt) return true;
+    const minutesSinceLastProcess =
+      (currentTime.getTime() - lastProcessedAt.getTime()) / (1000 * 60);
+    return minutesSinceLastProcess >= config.minIntervalSinceLastProcess;
+  }
+
+  // For growth and starter tiers: check both time window AND last processed timestamp
+  const currentMinute = currentTime.getMinutes();
+  // Calculate target minutes: 0, interval, 2*interval, 3*interval, etc. up to 60
+  const targetMinutes: number[] = [];
+  for (let m = 0; m < 60; m += config.interval) {
+    targetMinutes.push(m);
+  }
+
+  // Check if current minute is within tolerance window of any target minute
+  const isWithinTimeWindow = targetMinutes.some((targetMin) => {
+    const diff = Math.abs(currentMinute - targetMin);
+    // Handle wrap-around (e.g., 59 -> 0)
+    const wrappedDiff = Math.min(diff, 60 - diff);
+    return wrappedDiff <= TIME_WINDOW_TOLERANCE_MINUTES;
+  });
+
+  if (!isWithinTimeWindow) {
+    return false;
+  }
+
+  // Additional deduplication: ensure we haven't processed too recently
+  if (lastProcessedAt) {
+    const minutesSinceLastProcess =
+      (currentTime.getTime() - lastProcessedAt.getTime()) / (1000 * 60);
+    return minutesSinceLastProcess >= config.minIntervalSinceLastProcess;
+  }
+
+  // No previous processing recorded, allow this run
+  return true;
+}
+
+/**
  * Polls Google Business Profile for new reviews for active locations and upserts them into the database.
  *
- * This handler is intended to run as a cron job (configured to run regularly) and will:
+ * This handler is intended to run as a cron job (configured to run every 5 minutes) and will:
  * - verify an optional cron secret for authorization,
- * - fetch active locations and associated users with Google refresh tokens,
+ * - fetch active locations and filter them based on organization plan tier:
+ *   - 'agency' tier: approximately every 5 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ *   - 'growth' tier: approximately every 10 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ *   - 'starter' tier: approximately every 15 minutes using a resilient time window with best‑effort deduplication based on last_processed timestamps (allows slight early/late runs within a TIME_WINDOW_TOLERANCE)
+ * - fetch associated users with Google refresh tokens for filtered locations,
  * - refresh access tokens per user and fetch reviews for each of their locations,
  * - upsert retrieved reviews (deduplicated by external_review_id) and infer sentiment from rating,
  * - clear expired refresh tokens for users if detected, and
@@ -122,16 +220,121 @@ export async function GET(request: NextRequest) {
     // Type assertion: locations is an array of LocationQueryResult
     const typedLocations = locations as LocationQueryResult[];
 
-    // Get unique organization IDs
+    // Get unique organization IDs (filter out nulls)
     const orgIds = [
-      ...new Set(typedLocations.map((l) => l.organization_id).filter(Boolean)),
+      ...new Set(
+        typedLocations
+          .map((l) => l.organization_id)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+
+    // Fetch organizations to get plan_tier for tier-based filtering
+    const { data: organizations, error: orgsError } = await supabase
+      .from("organizations")
+      .select("id, plan_tier")
+      .in("id", orgIds);
+
+    if (orgsError) {
+      console.error("Failed to fetch organizations:", orgsError.message);
+      return NextResponse.json(
+        { error: "Failed to fetch organizations" },
+        { status: 500 },
+      );
+    }
+
+    // Create a map of organization_id to plan_tier
+    const orgTierMap = new Map<string, string | null>();
+    for (const org of organizations ?? []) {
+      orgTierMap.set(org.id, org.plan_tier);
+    }
+
+    // Fetch last processed timestamps for each tier from cron_poll_state table
+    const { data: pollStateData, error: pollStateError } = await supabase
+      .from("cron_poll_state")
+      .select("tier, last_processed_at");
+
+    if (pollStateError) {
+      console.error("Failed to fetch cron poll state:", pollStateError.message);
+      // Continue with processing - if table doesn't exist yet, we'll process all tiers
+      // This allows graceful degradation during migration
+    }
+
+    // Create a map of tier to last_processed_at timestamp
+    const tierLastProcessedMap = new Map<string, Date | null>();
+    for (const state of pollStateData ?? []) {
+      if (state.tier && state.last_processed_at) {
+        tierLastProcessedMap.set(state.tier, new Date(state.last_processed_at));
+      } else {
+        tierLastProcessedMap.set(state.tier ?? "starter", null);
+      }
+    }
+
+    // Ensure all tiers have entries (default to null if not found)
+    for (const tier of ["agency", "growth", "starter"] as const) {
+      if (!tierLastProcessedMap.has(tier)) {
+        tierLastProcessedMap.set(tier, null);
+      }
+    }
+
+    const currentTime = new Date();
+
+    // Precompute and cache tier processing decisions once per run to avoid recomputing per location
+    const allowedToProcessTier = new Map<string, boolean>();
+    for (const tier of ["agency", "growth", "starter"] as const) {
+      const lastProcessedAt = tierLastProcessedMap.get(tier) ?? null;
+      // Use the tier directly (not planTier) since we're computing per tier
+      const planTier = tier === "starter" ? null : tier;
+      allowedToProcessTier.set(
+        tier,
+        shouldProcessForTier(planTier, currentTime, lastProcessedAt),
+      );
+    }
+
+    // Filter locations based on tier-based polling schedule with resilient time-window checks
+    const locationsToProcess = typedLocations.filter((location) => {
+      if (!location.organization_id) return false;
+      const planTier = orgTierMap.get(location.organization_id) ?? null;
+      const tier =
+        planTier === "agency" || planTier === "growth" ? planTier : "starter";
+      return allowedToProcessTier.get(tier) ?? false;
+    });
+
+    // Track which tiers we're processing in this run for atomic timestamp updates
+    const tiersToUpdate = new Set<string>();
+    for (const location of locationsToProcess) {
+      if (!location.organization_id) continue;
+      const planTier = orgTierMap.get(location.organization_id) ?? null;
+      const tier =
+        planTier === "agency" || planTier === "growth" ? planTier : "starter";
+      tiersToUpdate.add(tier);
+    }
+
+    if (locationsToProcess.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message:
+          "No locations to process in this polling cycle (tier-based scheduling)",
+        ...results,
+        duration: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Get unique organization IDs from filtered locations (filter out nulls)
+    const filteredOrgIds = [
+      ...new Set(
+        locationsToProcess
+          .map((l) => l.organization_id)
+          .filter((id): id is string => id !== null),
+      ),
     ];
 
     // Get users with refresh tokens for these organizations
     const { data: users, error: usersError } = await supabase
       .from("users")
       .select("id, organization_id, google_refresh_token")
-      .in("organization_id", orgIds)
+      .in("organization_id", filteredOrgIds)
       .not("google_refresh_token", "is", null);
 
     if (usersError) {
@@ -162,10 +365,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build list of locations with user data
+    // Build list of locations with user data (use filtered locations)
     const locationsWithUsers: LocationWithUser[] = [];
-    for (const location of typedLocations) {
-      if (!location.organization_id) continue;
+    for (const location of locationsToProcess) {
+      if (!location.organization_id || !location.id) continue;
       const user = orgToUser.get(location.organization_id);
       if (!user) continue;
 
@@ -338,6 +541,39 @@ export async function GET(request: NextRequest) {
               ? error.message
               : "Failed to fetch reviews";
           results.errors.push(`Location ${location.name}: ${message}`);
+        }
+      }
+    }
+
+    // Update last_processed_at timestamps for tiers that were processed in this run.
+    // Note: The upsert operation itself is atomic, but the decision phase (reading state and
+    // deciding which tiers to process) is not serialized. Overlapping cron invocations may both
+    // process the same tier if they read the same old last_processed_at before either completes.
+    // This is acceptable because review upserts are idempotent by external_review_id.
+    // Use upsert to handle initial state and updates atomically.
+    if (tiersToUpdate.size > 0) {
+      const now = new Date().toISOString();
+      for (const tier of tiersToUpdate) {
+        const { error: updateError } = await supabase
+          .from("cron_poll_state")
+          .upsert(
+            {
+              tier,
+              last_processed_at: now,
+              updated_at: now,
+            },
+            { onConflict: "tier" },
+          );
+
+        if (updateError) {
+          console.error(
+            `Failed to update last_processed_at for tier ${tier}:`,
+            updateError.message,
+          );
+          // Don't fail the entire job - this is a best-effort update
+          results.errors.push(
+            `Warning: Failed to update processing timestamp for ${tier} tier`,
+          );
         }
       }
     }

@@ -1,10 +1,10 @@
 # ReplyStack
 
-AI-powered Google Business review response tool for local businesses. Respond to every review in 30 seconds with AI that sounds like you.
+AI-powered Google Business review response tool for local businesses. Respond to every review within 15 minutes with AI that sounds like you.
 
 ## Development Status
 
-Core features implemented. Authentication, Google Business Profile integration, review polling, and AI response generation are complete. Dashboard UI data integration, response editing UI, and Stripe webhooks are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
+Core features implemented. Authentication, Google Business Profile integration, review polling, AI response generation, response editing modal, and dashboard UI data integration are complete. Stripe integration and email notifications are in progress. See [Roadmap](./docs/ROADMAP.md) for detailed status.
 
 ## Tech Stack
 
@@ -105,6 +105,7 @@ ReplyStack/
 
 - [Architecture](./docs/ARCHITECTURE.md) - Technical architecture and database schema
 - [Specification](./docs/SPEC.md) - Product specification and user flows
+- [Features](./docs/FEATURES.md) - Detailed feature documentation (tone quiz, response editing, custom tones, etc.)
 - [Roadmap](./docs/ROADMAP.md) - Development roadmap and feature planning
 - [Prompts](./docs/PROMPTS.md) - AI prompt templates
 - [Decisions](./docs/DECISIONS.md) - Architecture decision records

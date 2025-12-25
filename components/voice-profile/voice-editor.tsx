@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { VoiceProfile } from "@/lib/supabase/types";
+import type { CustomTone } from "@/lib/types/custom-tone";
 
 interface VoiceEditorProps {
   profile?: Partial<VoiceProfile>;
@@ -71,6 +72,53 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
   const [maxLengthError, setMaxLengthError] = useState<string | null>(
     getInitialMaxLengthError(initialMaxLength),
   );
+  const [customTones, setCustomTones] = useState<CustomTone[]>([]);
+  const [isLoadingCustomTones, setIsLoadingCustomTones] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const fetchCustomTones = async () => {
+      try {
+        const response = await fetch("/api/custom-tones", { signal });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch custom tones: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        let data: CustomTone[] = [];
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          console.error("Error parsing custom tones response:", parseError);
+          throw new Error("Invalid JSON response from server");
+        }
+
+        if (!signal.aborted && Array.isArray(data)) {
+          setCustomTones(data);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          // Request was aborted, don't log or update state
+          return;
+        }
+        console.error("Error fetching custom tones:", error);
+      } finally {
+        if (!signal.aborted) {
+          setIsLoadingCustomTones(false);
+        }
+      }
+    };
+
+    fetchCustomTones();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   const validateMaxLength = (value: number | string): boolean => {
     if (value === "" || value === null || value === undefined) {
@@ -132,28 +180,109 @@ export function VoiceEditor({ profile, onSave }: VoiceEditorProps) {
         <p className="block text-sm font-medium text-foreground mb-3">
           Response Tone
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          {TONE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFormData({ ...formData, tone: option.value })}
-              className={`
-                p-4 rounded-lg border text-left transition-colors
-                ${
-                  formData.tone === option.value
-                    ? "border-primary-500 bg-primary-50"
-                    : "border-border hover:border-border-hover"
-                }
-              `}
-            >
-              <p className="font-medium text-foreground">{option.label}</p>
-              <p className="text-sm text-foreground-secondary">
-                {option.description}
-              </p>
-            </button>
-          ))}
+
+        {/* Standard Tones */}
+        <div className="mb-6">
+          <p className="text-sm font-medium text-foreground-secondary mb-2">
+            Standard Tones
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {TONE_OPTIONS.map((option) => {
+              const isSelected =
+                formData.tone === option.value &&
+                !formData.tone.startsWith("custom:");
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, tone: option.value })
+                  }
+                  className={`
+                    p-4 rounded-lg border text-left transition-colors
+                    ${
+                      isSelected
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-border hover:border-border-hover"
+                    }
+                  `}
+                >
+                  <p className="font-medium text-foreground">{option.label}</p>
+                  <p className="text-sm text-foreground-secondary">
+                    {option.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Custom Tones */}
+        {isLoadingCustomTones && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-lg border border-border animate-pulse"
+                >
+                  <div className="h-5 bg-foreground-muted rounded mb-2 w-3/4" />
+                  <div className="h-4 bg-foreground-muted rounded w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {!isLoadingCustomTones && customTones.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {customTones.map((customTone) => {
+                const customToneValue = `custom:${customTone.id}`;
+                const isSelected = formData.tone === customToneValue;
+                return (
+                  <button
+                    key={customTone.id}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, tone: customToneValue })
+                    }
+                    className={`
+                      p-4 rounded-lg border text-left transition-colors
+                      ${
+                        isSelected
+                          ? "border-primary-500 bg-primary-50"
+                          : "border-border hover:border-border-hover"
+                      }
+                    `}
+                  >
+                    <p className="font-medium text-foreground">
+                      {customTone.name}
+                    </p>
+                    <p className="text-sm text-foreground-secondary">
+                      {customTone.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {!isLoadingCustomTones && customTones.length === 0 && (
+          <div>
+            <p className="text-sm font-medium text-foreground-secondary mb-2">
+              Custom Tones
+            </p>
+            <p className="text-sm text-foreground-muted">
+              No custom tones available. Create one using the tone quiz.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Personality Notes */}

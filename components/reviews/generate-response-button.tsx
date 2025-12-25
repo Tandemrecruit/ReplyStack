@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { ResponseEditModal, type ReviewSummary } from "./response-edit-modal";
 
 /**
  * Response data returned from the /api/responses endpoint
@@ -16,6 +17,7 @@ interface ResponseData {
 
 interface GenerateResponseButtonProps {
   reviewId: string;
+  reviewSummary?: ReviewSummary;
   onSuccess?: (data: ResponseData) => void;
   onError?: (error: string) => void;
 }
@@ -24,19 +26,25 @@ interface GenerateResponseButtonProps {
  * Client component that handles "Generate Response" button click and API call.
  *
  * Calls POST /api/responses with the review ID, shows loading state during the request,
- * and handles success/error states. On success, triggers optional callback or refreshes the page.
+ * and handles success/error states. On success, opens the response edit modal.
  *
  * @param reviewId - The ID of the review to generate a response for
+ * @param reviewSummary - Optional review context to display in the edit modal
  * @param onSuccess - Optional callback invoked on successful response generation with the response data
  * @param onError - Optional callback invoked with error message on failure
  */
 export function GenerateResponseButton({
   reviewId,
+  reviewSummary,
   onSuccess,
   onError,
 }: GenerateResponseButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [generatedText, setGeneratedText] = useState("");
 
   const handleGenerate = useCallback(async () => {
     setIsLoading(true);
@@ -66,11 +74,14 @@ export function GenerateResponseButton({
             errorMessage = `Failed to generate response (${response.status} ${response.statusText}). Please try again.`;
           }
         } else {
+          const isHtml = contentType?.includes("text/html");
           // Not JSON (e.g., HTML error page), try to read as text
           try {
             const errorText = await response.text();
-            // Only use text if it's short and seems meaningful
+            // For HTML responses, always include status (tests + real-world debugging).
+            // For other text responses, only use body if it's short and meaningful.
             if (
+              !isHtml &&
               errorText.length > 0 &&
               errorText.length < 200 &&
               !errorText.startsWith("<")
@@ -94,13 +105,14 @@ export function GenerateResponseButton({
 
       const data = (await response.json()) as ResponseData;
 
-      // Success - refresh the page to show updated review status
-      // Future: navigate to response preview/edit modal
+      // Call onSuccess callback if provided
       if (onSuccess) {
         onSuccess(data);
-      } else {
-        router.refresh();
       }
+
+      // Open the modal with the generated text
+      setGeneratedText(data.generatedText);
+      setIsModalOpen(true);
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -114,17 +126,36 @@ export function GenerateResponseButton({
     } finally {
       setIsLoading(false);
     }
-  }, [reviewId, onSuccess, onError, router]);
+  }, [reviewId, onSuccess, onError]);
+
+  const handleModalClose = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
+  const handlePublished = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   return (
-    <button
-      onClick={handleGenerate}
-      type="button"
-      disabled={isLoading}
-      aria-busy={isLoading}
-      className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {isLoading ? "Generating..." : "Generate Response"}
-    </button>
+    <>
+      <button
+        onClick={handleGenerate}
+        type="button"
+        disabled={isLoading}
+        aria-busy={isLoading}
+        className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? "Generating..." : "Generate Response"}
+      </button>
+
+      <ResponseEditModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        reviewId={reviewId}
+        initialText={generatedText}
+        onPublished={handlePublished}
+        reviewSummary={reviewSummary}
+      />
+    </>
   );
 }

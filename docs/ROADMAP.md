@@ -9,16 +9,19 @@
 - Authentication (email/password, Google OAuth, password reset)
 - Google Business Profile integration (OAuth, location selection, token encryption)
 - Review polling and storage (cron job, deduplication)
-- Voice profile API (tone, personality notes, sign-off, max length)
+- Voice profile API (tone, personality notes, sign-off, max length, custom tones)
 - AI response generation (Claude integration, token tracking)
 - Dashboard data integration (reviews page with functional filters and generate response button)
+- Response editing UI (edit modal with review context, character/word count, accessibility features)
+- Tone quiz (10-question interactive quiz with custom tone generation)
 - Landing page (hero, features, pricing, FAQ)
 
 **Remaining:**
-- Response editing UI (edit modal, character count, optimistic updates)
 - Voice profile UI fields (example responses input, words to use/avoid)
 - Stripe integration (checkout, webhooks, subscription management)
 - Email notifications (new review alerts, welcome emails)
+- Regenerate response button
+- Optimistic UI updates
 
 **Goal:** One location, core response loop, payments working
 
@@ -74,8 +77,8 @@
 ### Week 2: Polish & Launch
 
 - [~] **Response editing and publishing**
-  - [ ] Edit modal component
-  - [ ] Character/word count
+  - [x] Edit modal component (ResponseEditModal with review context, accessibility features)
+  - [x] Character/word count (displayed in modal footer)
   - [x] Save draft functionality (responses saved as drafts when generated)
   - [x] Publish to Google API (endpoint implemented at POST /api/reviews/[reviewId]/publish)
   - [ ] Regenerate response button (API returns existing response instead of regenerating)
@@ -90,7 +93,7 @@
   - [ ] Words to use/avoid (API supports, UI missing)
   - [x] Max length setting (with validation, 50-500 words)
   - [x] Save and update profile (API and UI fully implemented via VoiceEditor component)
-  - [ ] 10-question tone quiz (helps users choose between Warm, Direct, Professional, Friendly, Casual)
+  - [x] 10-question tone quiz (helps users choose between Warm, Direct, Professional, Friendly, Casual, plus custom tone generation)
 
 - [~] **Stripe integration**
   - [ ] Products and prices in Stripe Dashboard
