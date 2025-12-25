@@ -55,6 +55,15 @@ Status: **MVP near complete.** Implemented: authentication; Google Business Prof
 - Error response format: `{ error: string, code?: string }`
 - Note: If Google publish succeeds but database update fails, returns `200` with `warning` field indicating database inconsistency.
 
+### GET /api/voice-profile
+- Auth: Required.
+- Current behavior: Returns `{ profile }` for the authenticated user's organization. Falls back to defaults when no profile exists: `tone: "friendly"`, empty `personality_notes`/`sign_off_style`, `max_length: 150`.
+
+### PUT /api/voice-profile
+- Auth: Required.
+- Body: `{ tone: string; personality_notes?: string; sign_off_style?: string; max_length?: number }`.
+- Current behavior: Upserts the organization's voice profile and returns `{ profile }`. Validates `tone` is a non-empty string; rejects invalid types with `400`.
+
 ### GET /api/cron/poll-reviews
 
 - Auth: `Authorization: Bearer $CRON_SECRET`.
@@ -160,6 +169,15 @@ Status: **MVP near complete.** Implemented: authentication; Google Business Prof
   - `404`: User not found, organization not found
   - `500` (`DB_ERROR`): Database operation failed
   - `500` (`INTERNAL_ERROR`): Unexpected server error
+
+### GET /api/notifications
+- Auth: Required (Supabase session).
+- Current behavior: Returns `{ emailNotifications: boolean }` for the authenticated user (defaults to `true` when no preference row exists).
+
+### PUT /api/notifications
+- Auth: Required.
+- Body: `{ emailNotifications: boolean }`.
+- Current behavior: Upserts notification preference and returns `{ emailNotifications }`. Rejects non-boolean input with `400`.
 
 ### POST /api/webhooks/stripe
 

@@ -52,7 +52,7 @@ Before marking an ADR as "Accepted":
 
 ## ADR-001: Next.js 15 with App Router
 
-**Status:** Superseded
+**Status:** Superseded by ADR-006
 
 ### Context
 
@@ -224,7 +224,7 @@ spacing). We want onboarding docs to stay lint-clean and readable.
 
 ### Decision
 
-Adopt a setup doc pattern: wrap lines to 80 characters, add blank lines around
+Adopt a setup doc pattern: wrap lines to 100 characters, add blank lines around
 lists, and avoid trailing blank lines.
 
 ### Rationale
