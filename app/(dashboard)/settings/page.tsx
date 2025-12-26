@@ -8,9 +8,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Render the Settings page for managing Replily account preferences.
- *
- * Renders the page's UI component tree for settings.
+ * Settings page for managing Replily account preferences.
  *
  * @returns A React element containing the Settings page content
  */
