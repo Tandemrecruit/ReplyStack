@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Pricing FAQ | ReplyStack",
+  title: "Pricing FAQ | Replily",
   description:
-    "Answers to common questions about ReplyStack pricing, billing, and features.",
+    "Answers to common questions about Replily pricing, billing, and features.",
 };
 
 const faqs = [
@@ -39,11 +39,11 @@ const faqs = [
 ];
 
 /**
- * Renders the Pricing FAQ page with a list of common billing and feature questions and a contact call-to-action.
+ * Page component that displays common billing and feature questions and a contact call-to-action.
  *
- * Displays a centered content area with a heading, subheading, a question-and-answer list sourced from the module-level `faqs` array, and a contact panel containing a mailto link to support@replystack.com.
+ * Shows a heading, subtitle, a list of question-and-answer pairs from the module-level `faqs` array, and a contact panel linking to support@replily.com.
  *
- * @returns The JSX element for the pricing FAQ page.
+ * @returns The JSX element for the Pricing FAQ page
  */
 export default function PricingFAQPage() {
   return (
@@ -67,7 +67,7 @@ export default function PricingFAQPage() {
           <p className="text-foreground-secondary">
             Still have questions?{" "}
             <Link
-              href="mailto:support@replystack.com"
+              href="mailto:support@replily.com"
               className="text-primary-700 hover:underline font-medium"
             >
               Email us

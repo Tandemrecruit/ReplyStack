@@ -4,15 +4,15 @@ import PrivacyPage, { metadata } from "@/app/privacy/page";
 
 describe("app/privacy/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Privacy Policy | ReplyStack");
+    expect(metadata.title).toBe("Privacy Policy | Replily");
     expect(metadata.description).toBe(
-      "How ReplyStack handles your data and privacy.",
+      "How Replily handles your data and privacy.",
     );
   });
 
   it("renders header with logo", () => {
     render(<PrivacyPage />);
-    const logoLink = screen.getByRole("link", { name: "ReplyStack" });
+    const logoLink = screen.getByRole("link", { name: "Replily" });
     expect(logoLink).toHaveAttribute("href", "/");
   });
 
@@ -38,7 +38,7 @@ describe("app/privacy/page", () => {
     render(<PrivacyPage />);
     expect(
       screen.getByText(
-        /This is a plain-language summary of how ReplyStack handles data/i,
+        /This is a plain-language summary of how Replily handles data/i,
       ),
     ).toBeInTheDocument();
   });
@@ -46,11 +46,11 @@ describe("app/privacy/page", () => {
   it("renders contact email link", () => {
     render(<PrivacyPage />);
     const emailLinks = screen.getAllByRole("link", {
-      name: "support@replystack.com",
+      name: "support@replily.com",
     });
     expect(emailLinks.length).toBeGreaterThan(0);
     emailLinks.forEach((link) => {
-      expect(link).toHaveAttribute("href", "mailto:support@replystack.com");
+      expect(link).toHaveAttribute("href", "mailto:support@replily.com");
     });
   });
 

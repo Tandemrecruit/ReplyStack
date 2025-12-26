@@ -11,8 +11,8 @@ vi.mock("@/components/auth/reset-password-form", () => ({
 
 describe("app/(auth)/reset-password/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Reset Password | ReplyStack");
-    expect(metadata.description).toBe("Reset your ReplyStack password");
+    expect(metadata.title).toBe("Reset Password | Replily");
+    expect(metadata.description).toBe("Reset your Replily password");
   });
 
   it("renders the page heading", () => {

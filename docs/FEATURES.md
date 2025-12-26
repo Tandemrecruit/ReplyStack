@@ -1,6 +1,6 @@
 # Feature Documentation
 
-This document provides detailed documentation for key features in ReplyStack.
+This document provides detailed documentation for key features in Replily.
 
 ## Tone Quiz
 

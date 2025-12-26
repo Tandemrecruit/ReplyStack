@@ -4,7 +4,7 @@ import PricingFAQPage, { metadata } from "@/app/pricing-faq/page";
 
 describe("app/pricing-faq/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Pricing FAQ | ReplyStack");
+    expect(metadata.title).toBe("Pricing FAQ | Replily");
     expect(metadata.description).toContain("Answers to common questions");
   });
 
@@ -65,7 +65,7 @@ describe("app/pricing-faq/page", () => {
     render(<PricingFAQPage />);
     expect(screen.getByText(/Still have questions\?/i)).toBeInTheDocument();
     const emailLink = screen.getByRole("link", { name: "Email us" });
-    expect(emailLink).toHaveAttribute("href", "mailto:support@replystack.com");
+    expect(emailLink).toHaveAttribute("href", "mailto:support@replily.com");
   });
 
   it("uses semantic HTML for FAQ list", () => {

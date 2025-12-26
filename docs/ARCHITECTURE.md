@@ -345,7 +345,7 @@ Improves perceived performance significantly.
 ## Directory Structure
 
 ```
-ReplyStack/
+Replily/
 ├── app/
 │   ├── (auth)/{login,page.tsx; signup/page.tsx; callback/route.ts; layout.tsx}
 │   ├── (dashboard)/{dashboard/page.tsx; reviews/page.tsx; settings/page.tsx; billing/page.tsx; layout.tsx; settings/settings-client.tsx}

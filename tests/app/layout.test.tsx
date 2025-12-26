@@ -15,8 +15,8 @@ vi.mock("next/font/google", () => ({
 describe("app/layout (Root Layout)", () => {
   it("exports correct metadata", () => {
     expect(metadata.title).toEqual({
-      default: "ReplyStack | AI-Powered Review Responses",
-      template: "%s | ReplyStack",
+      default: "Replily | AI-Powered Review Responses",
+      template: "%s | Replily",
     });
     expect(metadata.description).toContain(
       "Respond to every Google Business review",
@@ -34,17 +34,17 @@ describe("app/layout (Root Layout)", () => {
   });
 
   it("exports metadata with authors", () => {
-    expect(metadata.authors).toEqual([{ name: "ReplyStack" }]);
-    expect(metadata.creator).toBe("ReplyStack");
+    expect(metadata.authors).toEqual([{ name: "Replily" }]);
+    expect(metadata.creator).toBe("Replily");
   });
 
   it("exports metadata with openGraph properties", () => {
     expect(metadata.openGraph).toEqual({
       type: "website",
       locale: "en_US",
-      url: "https://replystack.com",
-      siteName: "ReplyStack",
-      title: "ReplyStack | AI-Powered Review Responses",
+      url: "https://replily.com",
+      siteName: "Replily",
+      title: "Replily | AI-Powered Review Responses",
       description:
         "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
     });
@@ -53,7 +53,7 @@ describe("app/layout (Root Layout)", () => {
   it("exports metadata with twitter properties", () => {
     expect(metadata.twitter).toEqual({
       card: "summary_large_image",
-      title: "ReplyStack | AI-Powered Review Responses",
+      title: "Replily | AI-Powered Review Responses",
       description:
         "Respond to every Google Business review in 30 seconds with AI that sounds like you.",
     });

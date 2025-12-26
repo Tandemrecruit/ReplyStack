@@ -1,4 +1,4 @@
--- ReplyStack Initial Database Schema (Idempotent Version)
+-- Replily Initial Database Schema (Idempotent Version)
 -- This version can be safely rerun - it won't fail if objects already exist
 -- Use this if you want to ensure your schema matches the current migration
 

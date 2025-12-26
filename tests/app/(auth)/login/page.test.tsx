@@ -9,8 +9,8 @@ vi.mock("@/components/auth/login-form", () => ({
 
 describe("app/(auth)/login/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Login | ReplyStack");
-    expect(metadata.description).toBe("Sign in to your ReplyStack account");
+    expect(metadata.title).toBe("Login | Replily");
+    expect(metadata.description).toBe("Sign in to your Replily account");
   });
 
   it("renders the page heading", () => {

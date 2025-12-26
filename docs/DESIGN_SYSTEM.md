@@ -2,7 +2,7 @@
 
 ## Color System Overview
 
-ReplyStack uses a **partial semantic inversion** strategy for dark mode to maintain brand identity while ensuring WCAG contrast compliance. This means shade numbers have different meanings in light vs dark mode for certain ranges.
+Replily uses a **partial semantic inversion** strategy for dark mode to maintain brand identity while ensuring WCAG contrast compliance. This means shade numbers have different meanings in light vs dark mode for certain ranges.
 
 ### ⚠️ Important: Semantic Inversion
 

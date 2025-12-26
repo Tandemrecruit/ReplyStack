@@ -9,8 +9,8 @@ vi.mock("@/app/(dashboard)/settings/settings-client", () => ({
 
 describe("app/(dashboard)/settings/page", () => {
   it("exports correct metadata", () => {
-    expect(metadata.title).toBe("Settings | ReplyStack");
-    expect(metadata.description).toBe("Manage your ReplyStack settings");
+    expect(metadata.title).toBe("Settings | Replily");
+    expect(metadata.description).toBe("Manage your Replily settings");
   });
 
   it("renders the SettingsClient component", () => {
