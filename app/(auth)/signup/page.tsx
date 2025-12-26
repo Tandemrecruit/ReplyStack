@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 
+import { SignupForm } from "@/components/auth/signup-form";
+
 export const metadata: Metadata = {
-  title: "Sign Up | ReplyStack",
-  description: "Create your ReplyStack account",
+  title: "Sign Up | Replily",
+  description: "Create your Replily account",
 };
 
 /**
- * Renders the Signup page layout for ReplyStack with a header and a placeholder for the signup form.
- *
- * The layout includes a centered title and subtitle, and a card-like region indicating that the signup form will be added.
- *
- * @returns The JSX element for the signup page.
+ * Signup page with email/password registration and Google OAuth.
  */
 export default function SignupPage() {
   return (
@@ -22,12 +20,7 @@ export default function SignupPage() {
         </p>
       </div>
 
-      {/* TODO: Add signup form */}
-      <div className="p-6 bg-surface rounded-lg border border-border">
-        <p className="text-foreground-muted text-center">
-          Signup form coming soon
-        </p>
-      </div>
+      <SignupForm />
     </div>
   );
 }

@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`app/(dashboard)/layout > matches layout snapshot 1`] = `
+<div
+  class="min-h-screen bg-background"
+>
+  <nav
+    class="border-b border-border bg-surface"
+  >
+    <div
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+    >
+      <div
+        class="flex justify-between h-16"
+      >
+        <div
+          class="flex items-center gap-8"
+        >
+          <a
+            class="flex items-center gap-2"
+            href="/dashboard"
+          >
+            <span
+              class="text-xl font-bold text-primary-600"
+            >
+              Replily
+            </span>
+          </a>
+          <div
+            class="hidden sm:flex items-center gap-1"
+          >
+            <a
+              class="px-3 py-2 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
+              href="/reviews"
+            >
+              Reviews
+            </a>
+            <a
+              class="px-3 py-2 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
+              href="/settings"
+            >
+              Settings
+            </a>
+            <a
+              class="px-3 py-2 rounded-md text-sm font-medium text-foreground-secondary hover:text-foreground hover:bg-background-secondary transition-colors"
+              href="/billing"
+            >
+              Billing
+            </a>
+          </div>
+        </div>
+        <div
+          class="flex items-center"
+        >
+          <div
+            class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center"
+          >
+            <span
+              class="text-sm font-medium text-primary-700"
+            >
+              U
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main
+    class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+  >
+    <div>
+      Test
+    </div>
+  </main>
+</div>
+`;

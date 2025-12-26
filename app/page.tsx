@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LiveDemo } from "@/components/landing/live-demo";
+import { WaitlistForm } from "@/components/landing/waitlist-form";
 
 export const metadata: Metadata = {
-  title: "ReplyStack | AI-Powered Review Responses for Local Businesses",
+  title: "Replily | AI-Powered Review Responses for Local Businesses",
   description:
-    "Respond to every Google Business review in 30 seconds with AI that sounds like you. Built for restaurants, dental practices, and local service businesses.",
+    "Get AI-generated review responses within minutes—as fast as 5 minutes on Pro plans. Replies that sound like you, not canned AI. Built for restaurants, dental practices, and local service businesses.",
 };
 
 /**
- * Render the ReplyStack marketing landing page including navigation, hero,
+ * Render the Replily marketing landing page including navigation, hero,
  * live demo, features, benefits, pricing, CTAs, and footer.
  *
  * @returns The complete landing page JSX element containing site header, hero
@@ -29,7 +30,7 @@ export default function LandingPage() {
                 <span className="text-white font-bold text-sm">R</span>
               </div>
               <span className="text-xl font-bold text-foreground">
-                ReplyStack
+                Replily
               </span>
             </Link>
 
@@ -41,10 +42,10 @@ export default function LandingPage() {
                 Sign in
               </Link>
               <Link
-                href="/signup"
+                href="#waitlist"
                 className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/25"
               >
-                Start Free Trial
+                Join Waitlist
               </Link>
             </div>
           </div>
@@ -56,18 +57,11 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(233,95,51,0.12),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(244,180,26,0.14),transparent_28%)]" />
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center relative">
           <div className="text-left space-y-6">
-            {/* Badge */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent-50 border border-accent-200 text-accent-800">
-              <span className="text-sm font-semibold">
-                Built for local businesses
-              </span>
-            </div>
-
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight">
-              Respond to every review in{" "}
+              Respond to every review{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-accent-400">
-                30 seconds
+                within minutes
               </span>{" "}
               with replies that sound like you.
             </h1>
@@ -81,10 +75,10 @@ export default function LandingPage() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <Link
-                href="/signup"
+                href="#waitlist"
                 className="w-full sm:w-auto px-8 py-4 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-all shadow-sm shadow-primary-500/25"
               >
-                Start 14-Day Free Trial
+                Join Waitlist
               </Link>
               <Link
                 href="#how-it-works"
@@ -100,32 +94,9 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <p className="text-sm text-foreground-muted">
-                No credit card required. Cancel anytime.
-              </p>
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <div className="flex -space-x-2">
-                  {[
-                    { initials: "JM", label: "Jasmine (salon owner)" },
-                    { initials: "DC", label: "Dr. Chen (dentist)" },
-                    { initials: "MR", label: "Marco (restaurant owner)" },
-                  ].map((item) => (
-                    <div
-                      key={item.initials}
-                      title={item.label}
-                      aria-hidden="true"
-                      className="w-8 h-8 rounded-full border-2 border-surface bg-gradient-to-br from-primary-500 to-accent-400 text-white text-[11px] font-bold flex items-center justify-center shadow-sm"
-                    >
-                      {item.initials}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-foreground-secondary">
-                  140+ local owners publish replies with ReplyStack
-                </span>
-              </div>
-            </div>
+            <p className="text-sm text-foreground-muted">
+              Be the first to know when we launch.
+            </p>
           </div>
 
           {/* Hero Visual */}
@@ -195,13 +166,12 @@ export default function LandingPage() {
                     deliveries quick. Can&apos;t wait to have you back. — Joe
                     (owner)
                   </p>
-                  <div className="flex items-center justify-between text-xs text-foreground-muted">
+                  <div className="text-xs text-foreground-muted">
                     <span>Voice: Warm • Neighborly • First-person</span>
-                    <span>Tone score: 96 (last 30 days)</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-foreground-secondary">
                     <div className="flex gap-1">
-                      {["Warm", "Direct", "Cheerful"].map((tone) => (
+                      {["Warm", "Direct", "Professional"].map((tone) => (
                         <span
                           key={tone}
                           className="px-2 py-1 rounded-full border border-border bg-surface text-foreground"
@@ -236,36 +206,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <LiveDemo />
-
-      {/* Social Proof */}
-      <section className="py-12 border-y border-border bg-background-secondary">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm font-semibold text-foreground-muted mb-6 tracking-wide uppercase">
-            Trusted by local businesses
+      {/* Waitlist Section */}
+      <section
+        id="waitlist"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-secondary border-y border-border"
+      >
+        <div className="max-w-md mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+            Get early access
+          </h2>
+          <p className="text-foreground-secondary mb-6">
+            Join the waitlist and be first to try Replily when we launch.
           </p>
-          <div className="relative">
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-background-secondary to-transparent" />
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-background-secondary to-transparent" />
-            <div className="flex gap-3 overflow-x-auto py-1 px-1 md:justify-center md:flex-wrap">
-              {[
-                "Maria's Corner Bakery · Tulsa",
-                "Dr. Chen Family Dental · Seattle",
-                "QuickFix HVAC · Denver",
-                "Southside Barbers · Austin",
-                "Harborview Auto · Tampa",
-              ].map((name) => (
-                <div
-                  key={name}
-                  className="shrink-0 px-4 py-2 rounded-full border border-accent-200 bg-accent-50 text-accent-800 text-sm font-semibold"
-                >
-                  {name}
-                </div>
-              ))}
-            </div>
-          </div>
+          <WaitlistForm />
         </div>
       </section>
+
+      <LiveDemo />
 
       {/* Features Section */}
       <section
@@ -275,7 +232,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              How ReplyStack Works
+              How Replily Works
             </h2>
             <p className="mt-4 text-lg text-foreground-secondary max-w-2xl mx-auto">
               Three simple steps, built for local owners—not AI tinkerers
@@ -292,7 +249,7 @@ export default function LandingPage() {
               {
                 title: "Set Your Voice",
                 description:
-                  "We learn from your past replies + a 6-question tone quiz. Choose Warm, Direct, or Concierge tone on each draft.",
+                  "We learn from your past replies + a 10-question tone quiz. Choose from 5 tone options (Warm, Direct, Professional, Friendly, Casual) on each draft.",
               },
               {
                 title: "Respond Instantly",
@@ -425,55 +382,35 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* Proof points instead of duplicate preview */}
+            {/* Proof points */}
             <div className="grid sm:grid-cols-2 gap-4">
-              {[
-                {
-                  label: "Avg. response time",
-                  value: "27 sec",
-                  meta: "Last 30 days",
-                },
-                {
-                  label: "Response rate",
-                  value: "100%",
-                  meta: "Across 124 recent reviews",
-                },
-                {
-                  label: "Tone match score",
-                  value: "96/100",
-                  meta: "Owner-approved replies",
-                },
-                {
-                  label: "Hours saved weekly",
-                  value: "10+",
-                  meta: "Single-location average",
-                },
-              ].map((item, index) => (
-                <div
-                  key={item.label}
-                  className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-foreground-muted">
-                      {item.label}
-                    </p>
-                    {index === 0 ? (
-                      <span className="text-[11px] px-2 py-1 rounded-full border border-primary-200 bg-primary-50 text-primary-700">
-                        Live
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-2xl font-semibold text-foreground mt-1">
-                    {item.value}
+              <div className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-foreground-muted">
+                    Avg. detection time
                   </p>
-                  <p className="text-xs text-foreground-muted">{item.meta}</p>
-                  {index === 2 ? (
-                    <div className="mt-1 h-1.5 rounded-full bg-border overflow-hidden">
-                      <div className="h-full w-[92%] bg-gradient-to-r from-primary-500 to-accent-400" />
-                    </div>
-                  ) : null}
+                  <span className="text-[11px] px-2 py-1 rounded-full border border-primary-200 bg-primary-50 text-primary-700">
+                    Live
+                  </span>
                 </div>
-              ))}
+                <p className="text-2xl font-semibold text-foreground mt-1">
+                  5-15 min
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  Based on plan tier
+                </p>
+              </div>
+              <div className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1">
+                <p className="text-sm text-foreground-muted">
+                  Hours saved weekly
+                </p>
+                <p className="text-2xl font-semibold text-foreground mt-1">
+                  10+
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  Single-location average
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -598,19 +535,19 @@ export default function LandingPage() {
             </ul>
 
             <Link
-              href="/signup"
+              href="#waitlist"
               className="mt-8 block w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center shadow-sm shadow-primary-500/25"
             >
-              Start 14-Day Free Trial
+              Join Waitlist
             </Link>
             <p className="mt-3 text-sm text-foreground-muted">
-              No credit card required
+              Be first to try when we launch
             </p>
             <div className="mt-4 text-sm text-foreground-secondary space-y-2">
               <p>
                 Questions?{" "}
                 <Link
-                  href="mailto:support@replystack.com"
+                  href="mailto:support@replily.com"
                   className="text-primary-700 hover:underline"
                 >
                   Email us
@@ -636,23 +573,16 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold">
             Ready to transform your review management?
           </h2>
-          <p className="text-xl text-accent-100">
-            Join hundreds of local businesses responding faster with ReplyStack.
+          <p className="text-xl text-accent-900">
+            Be among the first local businesses to respond faster with
+            Replily.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
-            <Link
-              href="/signup"
-              className="px-8 py-4 bg-white text-primary-700 font-semibold rounded-full hover:bg-accent-50 transition-colors"
-            >
-              Start Your Free Trial
-            </Link>
-            <Link
-              href="/login"
-              className="px-8 py-4 border-2 border-white/70 text-white font-semibold rounded-full hover:bg-white/10 transition-colors"
-            >
-              View the app
-            </Link>
-          </div>
+          <Link
+            href="#waitlist"
+            className="mt-4 px-8 py-4 bg-white text-primary-700 font-semibold rounded-full hover:bg-accent-50 transition-colors"
+          >
+            Join Waitlist
+          </Link>
         </div>
       </section>
 
@@ -665,7 +595,7 @@ export default function LandingPage() {
                 <span className="text-white font-bold text-sm">R</span>
               </div>
               <span className="text-lg font-bold text-foreground">
-                ReplyStack
+                Replily
               </span>
             </div>
 
@@ -677,13 +607,13 @@ export default function LandingPage() {
                 Terms
               </Link>
               <Link
-                href="mailto:support@replystack.com"
+                href="mailto:support@replily.com"
                 className="hover:text-foreground"
               >
                 Contact
               </Link>
               <Link
-                href="mailto:support@replystack.com?subject=Help%20choosing%20a%20plan"
+                href="mailto:support@replily.com?subject=Help%20choosing%20a%20plan"
                 className="hover:text-foreground"
               >
                 Need help choosing?
@@ -691,7 +621,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-foreground-muted">
-              &copy; {new Date().getFullYear()} ReplyStack. All rights reserved.
+              &copy; {new Date().getFullYear()} Replily. All rights reserved.
             </p>
           </div>
         </div>

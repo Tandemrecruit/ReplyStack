@@ -1,17 +1,161 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
+
+type VoiceProfileUpdate =
+  Database["public"]["Tables"]["voice_profiles"]["Update"];
 
 /**
- * Voice profile API: fetch and update the authenticated user's organization voice profile.
+ * Zod schema for validating PUT /api/voice-profile request body
+ */
+const updateVoiceProfileSchema = z.object({
+  tone: z.string().optional(),
+  personality_notes: z.string().optional(),
+  sign_off_style: z.string().optional(),
+  max_length: z.number().int().positive().optional(),
+  words_to_use: z.array(z.string()).optional(),
+  words_to_avoid: z.array(z.string()).optional(),
+  example_responses: z.array(z.string()).optional(),
+});
+
+/**
+ * Request body for PUT /api/voice-profile
+ */
+type UpdateVoiceProfileBody = z.infer<typeof updateVoiceProfileSchema>;
+
+/**
+ * Update the voice profile for the authenticated user's organization.
  *
- * GET  /api/voice-profile -> returns the current voice profile (or defaults when none exist)
- * PUT  /api/voice-profile -> upserts tone/personality/sign-off/max_length for the org
+ * If no voice profile exists, creates one. If one exists, updates it.
+ *
+ * @param request - Request whose JSON body contains voice profile fields to update
+ * @returns JSON object with the updated voice profile, or error with appropriate status
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createServerSupabaseClient();
+
+    // Verify authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user's organization
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+
+    if (userError || !userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (!userData.organization_id) {
+      return NextResponse.json(
+        { error: "Organization not found" },
+        { status: 404 },
+      );
+    }
+
+    // Parse and validate request body
+    let body: UpdateVoiceProfileBody;
+    try {
+      const rawBody = await request.json();
+      const parseResult = updateVoiceProfileSchema.safeParse(rawBody);
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { error: "Invalid request body" },
+          { status: 400 },
+        );
+      }
+      body = parseResult.data;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body: JSON parsing failed" },
+        { status: 400 },
+      );
+    }
+
+    // Build update object with only provided fields (filter out undefined values)
+    const updateData = Object.fromEntries(
+      Object.entries(body).filter(([, value]) => value !== undefined),
+    ) as VoiceProfileUpdate;
+
+    // Check if voice profile exists for this organization
+    const { data: existingProfile } = await supabase
+      .from("voice_profiles")
+      .select("id")
+      .eq("organization_id", userData.organization_id)
+      .maybeSingle();
+
+    if (existingProfile) {
+      // Update existing profile
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from("voice_profiles")
+        .update(updateData)
+        .eq("id", existingProfile.id)
+        .eq("organization_id", userData.organization_id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating voice profile:", updateError);
+        return NextResponse.json(
+          { error: "Failed to update voice profile" },
+          { status: 500 },
+        );
+      }
+
+      return NextResponse.json(updatedProfile);
+    }
+
+    // Create new profile
+    const { data: newProfile, error: createError } = await supabase
+      .from("voice_profiles")
+      .insert({
+        organization_id: userData.organization_id,
+        name: "Default",
+        ...updateData,
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error("Error creating voice profile:", createError);
+      return NextResponse.json(
+        { error: "Failed to create voice profile" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(newProfile);
+  } catch (error) {
+    console.error("Voice profile PUT error:", error);
+    return NextResponse.json(
+      { error: "Failed to update voice profile" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/voice-profile - Fetch the voice profile for the authenticated user's organization
+ *
+ * @returns JSON object with the voice profile, or error with appropriate status
  */
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
+
+    // Verify authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -20,183 +164,42 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: userRow, error: userError } = await supabase
+    // Get user's organization
+    const { data: userData, error: userError } = await supabase
       .from("users")
       .select("organization_id")
       .eq("id", user.id)
-      .maybeSingle();
+      .single();
 
-    if (userError) {
-      console.error("Failed to load user organization", userError);
+    if (userError || !userData || !userData.organization_id) {
       return NextResponse.json(
-        { error: "Failed to load organization" },
-        { status: 500 },
+        { error: "Organization not found" },
+        { status: 404 },
       );
     }
 
-    if (!userRow?.organization_id) {
-      return NextResponse.json(
-        { error: "No organization found for user" },
-        { status: 400 },
-      );
-    }
-
+    // Fetch voice profile
     const { data: profile, error: profileError } = await supabase
       .from("voice_profiles")
       .select("*")
-      .eq("organization_id", userRow.organization_id)
-      .order("created_at", { ascending: true })
-      .limit(1)
+      .eq("organization_id", userData.organization_id)
       .maybeSingle();
 
     if (profileError) {
-      console.error("Failed to load voice profile", profileError);
+      console.error("Error fetching voice profile:", profileError);
       return NextResponse.json(
-        { error: "Failed to load voice profile" },
+        { error: "Failed to fetch voice profile" },
         { status: 500 },
       );
     }
 
-    const fallback = {
-      tone: "friendly",
-      personality_notes: "",
-      sign_off_style: "",
-      max_length: 150,
-    };
-
-    return NextResponse.json({ profile: profile ?? fallback });
+    // Return profile or null if none exists
+    return NextResponse.json(profile ?? null);
   } catch (error) {
     console.error("Voice profile GET error:", error);
     return NextResponse.json(
-      { error: "Failed to load voice profile" },
+      { error: "Failed to fetch voice profile" },
       { status: 500 },
     );
   }
 }
-
-export async function PUT(request: NextRequest) {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json().catch(() => ({}));
-    const {
-      tone,
-      personality_notes,
-      sign_off_style,
-      max_length,
-    } = body as Record<string, unknown>;
-
-    if (typeof tone !== "string" || !tone.trim()) {
-      return NextResponse.json(
-        { error: "tone is required" },
-        { status: 400 },
-      );
-    }
-
-    if (
-      personality_notes !== undefined &&
-      typeof personality_notes !== "string"
-    ) {
-      return NextResponse.json(
-        { error: "personality_notes must be a string" },
-        { status: 400 },
-      );
-    }
-
-    if (sign_off_style !== undefined && typeof sign_off_style !== "string") {
-      return NextResponse.json(
-        { error: "sign_off_style must be a string" },
-        { status: 400 },
-      );
-    }
-
-    if (
-      max_length !== undefined &&
-      (typeof max_length !== "number" || !Number.isFinite(max_length))
-    ) {
-      return NextResponse.json(
-        { error: "max_length must be a number" },
-        { status: 400 },
-      );
-    }
-
-    const { data: userRow, error: userError } = await supabase
-      .from("users")
-      .select("organization_id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (userError) {
-      console.error("Failed to load user organization", userError);
-      return NextResponse.json(
-        { error: "Failed to load organization" },
-        { status: 500 },
-      );
-    }
-
-    if (!userRow?.organization_id) {
-      return NextResponse.json(
-        { error: "No organization found for user" },
-        { status: 400 },
-      );
-    }
-
-    const { data: existing, error: fetchProfileError } = await supabase
-      .from("voice_profiles")
-      .select("id")
-      .eq("organization_id", userRow.organization_id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (fetchProfileError) {
-      console.error("Failed to load voice profile", fetchProfileError);
-      return NextResponse.json(
-        { error: "Failed to load voice profile" },
-        { status: 500 },
-      );
-    }
-
-    const payload = {
-      id: existing?.id,
-      organization_id: userRow.organization_id,
-      tone: tone.trim(),
-      personality_notes: personality_notes?.toString() ?? "",
-      sign_off_style: sign_off_style?.toString() ?? "",
-      max_length: typeof max_length === "number" ? max_length : 150,
-      name: "Default",
-    };
-
-    const { data: upserted, error: upsertError } = await supabase
-      .from("voice_profiles")
-      .upsert(payload)
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (upsertError) {
-      console.error("Failed to upsert voice profile", upsertError);
-      return NextResponse.json(
-        { error: "Failed to save voice profile" },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({ profile: upserted ?? payload });
-  } catch (error) {
-    console.error("Voice profile PUT error:", error);
-    return NextResponse.json(
-      { error: "Failed to save voice profile" },
-      { status: 500 },
-    );
-  }
-}
-

@@ -9,7 +9,7 @@
 | Database | PostgreSQL via Supabase | Relational fits review data, auth included |
 | Auth | Supabase Auth + Google OAuth | Need Google OAuth for Business Profile API |
 | Payments | Stripe | Subscription-native |
-| AI | Claude API (Sonnet) | Best natural tone for business communication |
+| AI | Claude Haiku 4.5 | Best cost/quality ratio for business communication |
 | Styling | Tailwind CSS v4 | Modern utility-first styling |
 | Deployment | Vercel | Natural Next.js fit |
 | Email | Resend | Simple transactional email |
@@ -18,9 +18,35 @@
 
 ## Implementation Status (Dec 2025)
 
-- Implemented: project setup, Supabase client/middleware, base layouts, basic components.
-- Scaffolding only: auth pages, dashboard pages, ReviewCard/VoiceEditor (partial UI), all API routes.
-- Not implemented: Google/Claude/Stripe clients (placeholders), cron polling, Stripe webhooks, response generation.
+- **Fully Implemented:**
+  - Project infrastructure: Next.js 16, React 19, Tailwind v4, TypeScript, Vitest, Biome
+  - Authentication: Email/password, Google OAuth, password reset, email verification, middleware routing
+  - Database: PostgreSQL via Supabase with RLS, multi-tenant architecture, encrypted token storage (AES-256-GCM)
+  - Google Business Profile: OAuth flow, token encryption/rotation, location sync, tier-based review polling (5/10/15 min intervals), review fetching, response publishing
+  - AI Integration: Claude Haiku 4.5 client with retry logic, timeout handling, token tracking
+  - Voice Profile: API with tone selection (5 standard + custom), personality notes, sign-off, max length, custom tones
+  - Tone Quiz: 10-question interactive quiz with AI-generated custom tones
+  - Review Management: GET/POST/PATCH APIs with filtering (status, rating), pagination support
+  - Response Generation: POST /api/responses with voice profile resolution (location → org → default fallback)
+  - Response Publishing: POST /api/reviews/[reviewId]/publish with atomic upsert, preserves generated text
+  - Response Editing: Modal with review context, character/word counts, accessibility features
+  - Dashboard UI: Reviews page with functional filters, generate response button, review cards
+  - Notification Preferences: GET/PUT /api/notifications for email opt-in/opt-out
+  - Landing Page: Hero, features, pricing, FAQ sections
+
+- **Partially Implemented:**
+  - Stripe: Webhook endpoint exists (stub only), checkout/portal/subscription management pending
+  - Email: Notification preferences API/UI complete, Resend sending integration pending
+  - Voice Profile UI: Tone quiz and custom tones complete, missing UI fields for example responses and words to use/avoid (API supports these fields)
+
+- **Not Implemented:**
+  - Stripe checkout session creation and customer portal links
+  - Email sending via Resend (welcome emails, review notifications)
+  - Regenerate response button (API returns existing response)
+  - Review management: ignore status, search, date range filter
+  - Optimistic UI updates for publish operations
+  - Waitlist admin interface (viewing entries, sending invite emails)
+  - Initial bulk import of 200 reviews when location is first connected
 
 ---
 
@@ -61,7 +87,7 @@ CREATE TABLE voice_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT DEFAULT 'Default',
-    tone TEXT DEFAULT 'friendly',
+    tone TEXT DEFAULT 'warm',
     personality_notes TEXT,
     example_responses TEXT[],
     sign_off_style TEXT,
@@ -106,13 +132,41 @@ CREATE TABLE reviews (
 CREATE TABLE responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
-    generated_text TEXT NOT NULL,
+    generated_text TEXT, -- Nullable: null for direct publishes, contains AI-generated text for AI responses
     edited_text TEXT,
     final_text TEXT, -- What was actually published
     status TEXT DEFAULT 'draft', -- draft, published, failed
     published_at TIMESTAMP,
     tokens_used INTEGER,
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMP DEFAULT now(),
+    UNIQUE(review_id) -- One response per review
+);
+
+-- Custom Tones (AI-generated personalized tones from tone quiz)
+CREATE TABLE custom_tones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    enhanced_context TEXT, -- Additional context from quiz for AI prompts
+    quiz_responses JSONB, -- Store quiz answers for reference/regeneration
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Notification Preferences (user-level email notification settings)
+CREATE TABLE notification_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    email_enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Cron Poll State (tracks last processed timestamp per tier for review polling)
+CREATE TABLE cron_poll_state (
+    tier TEXT PRIMARY KEY CHECK (tier IN ('starter', 'growth', 'agency')),
+    last_processed_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Indexes for common queries
@@ -120,6 +174,7 @@ CREATE INDEX idx_reviews_location_status ON reviews(location_id, status);
 CREATE INDEX idx_reviews_location_date ON reviews(location_id, review_date DESC);
 CREATE INDEX idx_responses_review ON responses(review_id);
 CREATE INDEX idx_locations_org ON locations(organization_id);
+CREATE INDEX idx_custom_tones_org ON custom_tones(organization_id);
 ```
 
 ---
@@ -144,9 +199,13 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 **Polling Strategy:**
 - No webhook available from Google for new reviews
-- Poll every 15 minutes per active location
-- Use Vercel Cron for scheduled polling
-- Store `lastFetchedAt` per location to fetch only new reviews
+- Tier-based scheduling: Cron runs every 5 minutes, but processes locations based on organization plan tier
+  - **Agency tier:** Processes every 5 minutes (every cron run)
+  - **Growth tier:** Processes every 10 minutes (every 2nd cron run)
+  - **Starter tier:** Processes every 15 minutes (every 3rd cron run)
+- Uses `cron_poll_state` table to track `last_processed_at` timestamp per tier (not per location)
+- Time-window tolerance: Accepts runs within ±2 minutes of target intervals to handle cron timing variations
+- Best-effort deduplication: Prevents duplicate processing via timestamp checks, but allows concurrent runs (safe due to idempotent review upserts by `external_review_id`)
 - Rate limit: Max 60 requests/minute across all users
 
 **Error Handling:**
@@ -156,19 +215,20 @@ CREATE INDEX idx_locations_org ON locations(organization_id);
 
 ### Claude API
 
-**Model:** `claude-sonnet-4-5-20250929` (alias: `claude-sonnet-4-5`)
+**Model:** `claude-haiku-4-5-20251001` (alias: `claude-haiku-4-5`)
 
 **Cost Estimation:**
 - Average response: ~100 tokens output
 - With context: ~500 tokens input
-- Cost per response: ~$0.003
-- 1000 responses/month: ~$3
+- Cost per response: ~$0.001 (Haiku pricing: $1.00/M input, $5.00/M output)
+- 1000 responses/month: ~$1
 
 **Implementation:**
 - See [PROMPTS.md](./PROMPTS.md) for prompt architecture
 - Streaming disabled (responses are short)
 - Timeout: 30 seconds
-- Retry: 2 attempts on failure
+- Retry: 2 attempts on failure (exponential backoff)
+- Error handling: 401/403/429 errors are not retried
 
 ### Stripe
 
@@ -215,27 +275,60 @@ Benefits: Smaller bundle, faster initial load, simpler data fetching.
 
 ### 2. Token Encryption
 
-Google refresh tokens encrypted at rest:
-- **Option A (preferred):** Supabase Vault for automatic encryption
-- **Option B:** Application-level encryption with `crypto.subtle`
-- Key stored in environment variable, rotated quarterly
+Google refresh tokens are encrypted at the application layer before database storage using AES-256-GCM:
+
+**Implementation:** `lib/crypto/encryption.ts`
+
+- **Algorithm:** AES-256-GCM (authenticated encryption)
+- **Key:** 32-byte (256-bit) key from `TOKEN_ENCRYPTION_KEY` env var
+- **IV:** 12 random bytes per encryption (GCM recommendation)
+- **Auth Tag:** 16 bytes (128-bit) for integrity verification
+- **Storage Format:** `base64(IV || ciphertext || authTag)`
+
+**Key Management:**
+
+- Generate key: `openssl rand -hex 32`
+- Store in environment variable (never in code or logs)
+- Rotate quarterly or upon suspected compromise
+
+**Key Rotation Procedure:**
+
+1. **Prepare:** Set new key in `TOKEN_ENCRYPTION_KEY`, old key in `TOKEN_ENCRYPTION_KEY_OLD`
+2. **Deploy:** The `decryptToken()` function automatically tries primary key first, falls back to old key
+3. **Re-encrypt:** Run `npx tsx scripts/reencrypt-tokens.ts` (use `--dry-run` first to verify)
+4. **Cleanup:** Remove `TOKEN_ENCRYPTION_KEY_OLD` after all tokens are re-encrypted
+
+**Error Handling:**
+
+- Decryption failures (corrupted data, wrong key) throw `TokenDecryptionError`
+- API routes catch this error, clear the corrupted token, and prompt user to re-authenticate
+- Invalid key configuration throws `TokenEncryptionConfigError` at startup
 
 ### 3. Background Jobs via Vercel Cron
 
-Review polling runs on schedule:
+Review polling runs every 5 minutes, with tier-based processing intervals:
 ```
 # vercel.json
 {
   "crons": [{
     "path": "/api/cron/poll-reviews",
-    "schedule": "*/15 * * * *"
+    "schedule": "*/5 * * * *"
   }]
 }
 ```
 
+**Tier-based Scheduling:**
+- Cron executes every 5 minutes
+- Locations are filtered based on organization `plan_tier`:
+  - **Agency:** Processes every run (5-minute interval)
+  - **Growth:** Processes every 2nd run (10-minute interval)
+  - **Starter:** Processes every 3rd run (15-minute interval)
+- Uses `cron_poll_state` table to track `last_processed_at` per tier for deduplication
+- Time-window tolerance (±2 minutes) handles cron timing variations gracefully
+
 Considerations:
 - Max 60-second execution time on Vercel
-- Batch locations if many users
+- Batch locations if many users (max 50 locations per run)
 - Use queue for scale (future: Inngest or similar)
 
 ### 4. Optimistic UI Updates
@@ -252,7 +345,7 @@ Improves perceived performance significantly.
 ## Directory Structure
 
 ```
-ReplyStack/
+Replily/
 ├── app/
 │   ├── (auth)/{login,page.tsx; signup/page.tsx; callback/route.ts; layout.tsx}
 │   ├── (dashboard)/{dashboard/page.tsx; reviews/page.tsx; settings/page.tsx; billing/page.tsx; layout.tsx; settings/settings-client.tsx}
@@ -266,11 +359,40 @@ ReplyStack/
 ├── components/{landing/live-demo.tsx; reviews/review-card.tsx; voice-profile/voice-editor.tsx; settings/google-connect-button.tsx; ui/button.tsx}
 ├── lib/{supabase/*; google/client.ts; claude/client.ts; stripe/client.ts; utils/format.ts}
 ├── docs/
+│   └── templates/ (Code templates for common patterns)
 ├── tests/ (Vitest, mirrors app/lib/components)
-├── python/ (example utilities/tests)
 ├── public/
 └── middleware.ts
 ```
+
+---
+
+## Development Workflow
+
+### Code Templates
+
+The project includes a template system (`docs/templates/`) to standardize code patterns and reduce token usage when building repetitive parts of the system.
+
+**Usage:**
+1. Check `docs/templates/INDEX.md` to find relevant templates
+2. Read only the specific template file needed (e.g., `docs/templates/api-routes.md`)
+3. Navigate to the specific template section using anchor links
+4. Adapt the template for your use case
+
+**Available Categories:**
+- **API Routes**: GET, POST, PATCH, DELETE, cron job patterns
+- **Components**: Form components, display components
+- **Server Components**: Pages with data fetching
+- **Database**: Query patterns, joins, upserts
+- **Patterns**: Error handling, authentication, constants, types
+
+**Benefits:**
+- Reduced context usage (load only needed templates)
+- Consistent patterns across the codebase
+- Faster development with proven patterns
+- Better maintainability
+
+See [docs/templates/INDEX.md](./templates/INDEX.md) for the full template catalog.
 
 ---
 

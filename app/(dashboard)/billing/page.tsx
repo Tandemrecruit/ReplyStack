@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Billing | ReplyStack",
+  title: "Billing | Replily",
   description: "Manage your subscription and billing",
 };
 
@@ -57,7 +57,7 @@ export default function BillingPage() {
         <div className="mt-6 p-6 border border-primary-200 rounded-lg bg-primary-50">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold text-foreground">$49</span>
-            <span className="text-foreground-secondary">/month</span>
+            <span className="text-foreground">/month</span>
           </div>
 
           <ul className="mt-4 space-y-3">

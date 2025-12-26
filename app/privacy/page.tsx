@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | ReplyStack",
-  description: "How ReplyStack handles your data and privacy.",
+  title: "Privacy Policy | Replily",
+  description: "How Replily handles your data and privacy.",
 };
 
 /**
- * Render the ReplyStack Privacy Policy page, including site header, policy content sections, and a last-updated footer note.
+ * Render the Replily Privacy Policy page, including site header, policy content sections, and a last-updated footer note.
  *
  * @returns A React element containing the header (brand and actions), the main privacy policy content, and a footer note with the last-updated date.
  */
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <header className="border-b border-border bg-surface/80 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
           <Link href="/" className="font-bold text-foreground">
-            ReplyStack
+            Replily
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link
@@ -28,9 +28,9 @@ export default function PrivacyPage() {
             </Link>
             <Link
               className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors"
-              href="/signup"
+              href="/#waitlist"
             >
-              Start free trial
+              Join Waitlist
             </Link>
           </div>
         </div>
@@ -39,13 +39,13 @@ export default function PrivacyPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
         <p className="mt-3 text-foreground-secondary">
-          This is a plain-language summary of how ReplyStack handles data. If
+          This is a plain-language summary of how Replily handles data. If
           you have questions, email{" "}
           <a
             className="text-primary-700 hover:underline"
-            href="mailto:support@replystack.com"
+            href="mailto:support@replily.com"
           >
-            support@replystack.com
+            support@replily.com
           </a>
           .
         </p>
@@ -95,9 +95,9 @@ export default function PrivacyPage() {
               Questions, requests, or concerns:{" "}
               <a
                 className="text-primary-700 hover:underline"
-                href="mailto:support@replystack.com"
+                href="mailto:support@replily.com"
               >
-                support@replystack.com
+                support@replily.com
               </a>
               .
             </p>

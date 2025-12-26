@@ -1,0 +1,308 @@
+-- Replily Initial Database Schema (Idempotent Version)
+-- This version can be safely rerun - it won't fail if objects already exist
+-- Use this if you want to ensure your schema matches the current migration
+
+-- Organizations (accounts/tenants)
+CREATE TABLE IF NOT EXISTS organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    plan_tier TEXT DEFAULT 'starter',
+    trial_ends_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT,
+    role TEXT DEFAULT 'owner',
+    google_refresh_token TEXT, -- Encrypted with AES-256-GCM at application layer (see lib/crypto/encryption.ts)
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Voice Profiles (AI personality configuration)
+CREATE TABLE IF NOT EXISTS voice_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT DEFAULT 'Default',
+    tone TEXT DEFAULT 'friendly',
+    personality_notes TEXT,
+    example_responses TEXT[],
+    sign_off_style TEXT,
+    words_to_use TEXT[],
+    words_to_avoid TEXT[],
+    max_length INTEGER DEFAULT 150,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Locations (Google Business Profile locations)
+CREATE TABLE IF NOT EXISTS locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    google_account_id TEXT NOT NULL,
+    google_location_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    address TEXT,
+    is_active BOOLEAN DEFAULT true,
+    voice_profile_id UUID REFERENCES voice_profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(google_account_id, google_location_id)
+);
+
+-- Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    location_id UUID REFERENCES locations(id) ON DELETE CASCADE,
+    platform TEXT DEFAULT 'google',
+    external_review_id TEXT UNIQUE NOT NULL,
+    reviewer_name TEXT,
+    reviewer_photo_url TEXT,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    review_text TEXT,
+    review_date TIMESTAMPTZ,
+    has_response BOOLEAN DEFAULT false,
+    status TEXT DEFAULT 'pending', -- pending, responded, ignored
+    sentiment TEXT, -- positive, neutral, negative
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Responses (AI-generated and published responses)
+CREATE TABLE IF NOT EXISTS responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
+    generated_text TEXT NOT NULL,
+    edited_text TEXT,
+    final_text TEXT, -- What was actually published
+    status TEXT DEFAULT 'draft', -- draft, published, failed
+    published_at TIMESTAMPTZ,
+    tokens_used INTEGER,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Indexes for common queries (using IF NOT EXISTS)
+CREATE INDEX IF NOT EXISTS idx_reviews_location_status ON reviews(location_id, status);
+CREATE INDEX IF NOT EXISTS idx_reviews_location_date ON reviews(location_id, review_date DESC);
+CREATE INDEX IF NOT EXISTS idx_responses_review ON responses(review_id);
+CREATE INDEX IF NOT EXISTS idx_locations_org ON locations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
+-- Note: idx_users_email is not needed - users.email has UNIQUE constraint which creates an index automatically
+DROP INDEX IF EXISTS idx_users_email;
+
+-- Row Level Security (RLS) Policies
+-- Enable RLS on all tables (idempotent - safe to run multiple times)
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE voice_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
+
+-- Organizations: Users can only access their own organization
+-- Drop and recreate policies to ensure they match current version
+DROP POLICY IF EXISTS "Users can view their own organization" ON organizations;
+CREATE POLICY "Users can view their own organization"
+    ON organizations FOR SELECT
+    USING (
+        id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update their own organization" ON organizations;
+CREATE POLICY "Users can update their own organization"
+    ON organizations FOR UPDATE
+    USING (
+        id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Authenticated users can create organizations" ON organizations;
+CREATE POLICY "Authenticated users can create organizations"
+    ON organizations FOR INSERT
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Users can delete their own organization" ON organizations;
+CREATE POLICY "Users can delete their own organization"
+    ON organizations FOR DELETE
+    USING (
+        id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+-- Users: Users can view/update users in their organization
+DROP POLICY IF EXISTS "Users can view users in their organization" ON users;
+CREATE POLICY "Users can view users in their organization"
+    ON users FOR SELECT
+    USING (
+        organization_id = (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+        OR id = auth.uid()
+    );
+
+DROP POLICY IF EXISTS "Users can update users in their organization" ON users;
+CREATE POLICY "Users can update users in their organization"
+    ON users FOR UPDATE
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+        OR id = auth.uid()
+    );
+
+DROP POLICY IF EXISTS "Users can insert their own record" ON users;
+CREATE POLICY "Users can insert their own record"
+    ON users FOR INSERT
+    WITH CHECK (id = auth.uid());
+
+-- Voice Profiles: Users can manage voice profiles in their organization
+DROP POLICY IF EXISTS "Users can view voice profiles in their organization" ON voice_profiles;
+CREATE POLICY "Users can view voice profiles in their organization"
+    ON voice_profiles FOR SELECT
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can insert voice profiles in their organization" ON voice_profiles;
+CREATE POLICY "Users can insert voice profiles in their organization"
+    ON voice_profiles FOR INSERT
+    WITH CHECK (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update voice profiles in their organization" ON voice_profiles;
+CREATE POLICY "Users can update voice profiles in their organization"
+    ON voice_profiles FOR UPDATE
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can delete voice profiles in their organization" ON voice_profiles;
+CREATE POLICY "Users can delete voice profiles in their organization"
+    ON voice_profiles FOR DELETE
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+-- Locations: Users can manage locations in their organization
+DROP POLICY IF EXISTS "Users can view locations in their organization" ON locations;
+CREATE POLICY "Users can view locations in their organization"
+    ON locations FOR SELECT
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can insert locations in their organization" ON locations;
+CREATE POLICY "Users can insert locations in their organization"
+    ON locations FOR INSERT
+    WITH CHECK (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update locations in their organization" ON locations;
+CREATE POLICY "Users can update locations in their organization"
+    ON locations FOR UPDATE
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can delete locations in their organization" ON locations;
+CREATE POLICY "Users can delete locations in their organization"
+    ON locations FOR DELETE
+    USING (
+        organization_id IN (
+            SELECT organization_id FROM users WHERE id = auth.uid()
+        )
+    );
+
+-- Reviews: Users can view/manage reviews for their organization's locations
+DROP POLICY IF EXISTS "Users can view reviews for their organization's locations" ON reviews;
+CREATE POLICY "Users can view reviews for their organization's locations"
+    ON reviews FOR SELECT
+    USING (
+        location_id IN (
+            SELECT l.id FROM locations l
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can insert reviews for their organization's locations" ON reviews;
+CREATE POLICY "Users can insert reviews for their organization's locations"
+    ON reviews FOR INSERT
+    WITH CHECK (
+        location_id IN (
+            SELECT l.id FROM locations l
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update reviews for their organization's locations" ON reviews;
+CREATE POLICY "Users can update reviews for their organization's locations"
+    ON reviews FOR UPDATE
+    USING (
+        location_id IN (
+            SELECT l.id FROM locations l
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+
+-- Responses: Users can manage responses for their organization's reviews
+DROP POLICY IF EXISTS "Users can view responses for their organization's reviews" ON responses;
+CREATE POLICY "Users can view responses for their organization's reviews"
+    ON responses FOR SELECT
+    USING (
+        review_id IN (
+            SELECT r.id FROM reviews r
+            JOIN locations l ON r.location_id = l.id
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can insert responses for their organization's reviews" ON responses;
+CREATE POLICY "Users can insert responses for their organization's reviews"
+    ON responses FOR INSERT
+    WITH CHECK (
+        review_id IN (
+            SELECT r.id FROM reviews r
+            JOIN locations l ON r.location_id = l.id
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update responses for their organization's reviews" ON responses;
+CREATE POLICY "Users can update responses for their organization's reviews"
+    ON responses FOR UPDATE
+    USING (
+        review_id IN (
+            SELECT r.id FROM reviews r
+            JOIN locations l ON r.location_id = l.id
+            JOIN users u ON l.organization_id = u.organization_id
+            WHERE u.id = auth.uid()
+        )
+    );
+

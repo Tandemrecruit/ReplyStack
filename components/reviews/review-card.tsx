@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import type { Review } from "@/lib/supabase/types";
 
 interface ReviewCardProps {
   review: Review;
   onGenerateResponse?: (reviewId: string) => void;
+  generateResponseButton?: ReactNode;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,7 +38,11 @@ function StatusBadge({ status }: { status: string }) {
  * @param review - The review data to display (rating, reviewer_name, review_date, review_text, status, id).
  * @param onGenerateResponse - Optional callback invoked as `onGenerateResponse(reviewId)` when the "Generate Response" button is clicked.
  */
-export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
+export function ReviewCard({
+  review,
+  onGenerateResponse,
+  generateResponseButton,
+}: ReviewCardProps) {
   const stars = Array.from({ length: 5 }, (_, i) => i < (review.rating ?? 0));
 
   return (
@@ -73,6 +79,7 @@ export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
               aria-hidden="true"
               focusable="false"
               viewBox="0 0 20 20"
+              data-testid={filled ? "star-filled" : "star-empty"}
             >
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
@@ -87,17 +94,19 @@ export function ReviewCard({ review, onGenerateResponse }: ReviewCardProps) {
 
       {/* Actions */}
       <div className="mt-4 flex items-center justify-between">
-        <StatusBadge status={review.status} />
+        <StatusBadge status={review.status ?? "pending"} />
 
-        {review.status === "pending" && onGenerateResponse && (
-          <button
-            onClick={() => onGenerateResponse(review.id)}
-            type="button"
-            className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
-          >
-            Generate Response
-          </button>
-        )}
+        {(review.status ?? "pending") === "pending" &&
+          (generateResponseButton ||
+            (onGenerateResponse && (
+              <button
+                onClick={() => onGenerateResponse(review.id)}
+                type="button"
+                className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors"
+              >
+                Generate Response
+              </button>
+            )))}
       </div>
     </div>
   );

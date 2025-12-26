@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-const TONES = ["Warm", "Direct", "Concise"] as const;
+const TONES = ["Warm", "Direct", "Professional", "Friendly", "Casual"] as const;
 
 type Tone = (typeof TONES)[number];
 
@@ -61,7 +61,7 @@ function detectTopics(review: string) {
  * tone-appropriate sentences that address any detected topics, then appends a closing line.
  *
  * @param review - The review text to analyze and respond to.
- * @param tone - The reply voice to use (`"Warm" | "Direct" | "Concise"`).
+ * @param tone - The reply voice to use (`"Warm" | "Direct" | "Professional" | "Friendly" | "Casual"`).
  * @returns The composed reply text that addresses detected topics and matches the selected tone.
  */
 function buildDraftReply(review: string, tone: Tone): string {
@@ -71,56 +71,78 @@ function buildDraftReply(review: string, tone: Tone): string {
   const openerByTone: Record<Tone, string> = {
     Warm: "Thanks so much for the thoughtful review.",
     Direct: "Thanks for the review—appreciate you sharing the details.",
-    Concise: "Thanks for the review.",
+    Professional: "Thank you for taking the time to share your feedback.",
+    Friendly: "Thanks for the review! We really appreciate it.",
+    Casual: "Thanks for the review!",
   };
 
   const gratitudeByTone: Record<Tone, string> = {
-    Warm: "I’m really glad you had a good experience overall.",
-    Direct: "I’m glad the visit went well overall.",
-    Concise: "Glad it went well overall.",
+    Warm: "I'm really glad you had a good experience overall.",
+    Direct: "I'm glad the visit went well overall.",
+    Professional: "We're pleased to hear you had a positive experience.",
+    Friendly: "So glad everything went well for you!",
+    Casual: "Glad it went well!",
   };
 
   const closeByTone: Record<Tone, string> = {
-    Warm: "If you’re ever back in, say hi—I’d love to take care of you again. — Alex (owner)",
-    Direct: "If you’re back in, we’d love to see you again. — Alex (owner)",
-    Concise: "Hope to see you again. — Alex (owner)",
+    Warm: "If you're ever back in, say hi—I'd love to take care of you again. — Alex (owner)",
+    Direct: "If you're back in, we'd love to see you again. — Alex (owner)",
+    Professional: "We look forward to serving you again. — Alex (owner)",
+    Friendly: "Hope to see you again soon! — Alex (owner)",
+    Casual: "See you next time! — Alex (owner)",
   };
 
   const sentences: string[] = [];
   sentences.push(openerByTone[tone]);
 
   if (topics.mentionsWait) {
-    if (tone === "Concise") {
-      sentences.push("Sorry about the wait—our goal is to stay on schedule.");
-    } else {
-      sentences.push(
-        "I’m sorry about the wait—that’s not the experience we want for you, and we’re tightening our scheduling so it doesn’t happen again.",
-      );
-    }
+    const waitByTone: Record<Tone, string> = {
+      Warm: "I'm sorry about the wait—that's not the experience we want for you, and we're tightening our scheduling so it doesn't happen again.",
+      Direct: "Sorry about the wait—we're working on improving our scheduling.",
+      Professional:
+        "We apologize for the wait and are taking steps to improve our scheduling process.",
+      Friendly:
+        "Sorry about the wait! We're working on making sure that doesn't happen again.",
+      Casual: "Sorry about the wait—we're fixing that!",
+    };
+    sentences.push(waitByTone[tone]);
   }
 
   if (topics.mentionsBooking) {
-    sentences.push(
-      tone === "Concise"
-        ? "Glad booking was easy."
-        : "I’m glad the online booking was easy—making things simple is a big priority for us.",
-    );
+    const bookingByTone: Record<Tone, string> = {
+      Warm: "I'm glad the online booking was easy—making things simple is a big priority for us.",
+      Direct: "Glad booking was easy.",
+      Professional:
+        "We're pleased to hear the booking process was straightforward.",
+      Friendly: "So glad booking was easy for you!",
+      Casual: "Glad booking was easy!",
+    };
+    sentences.push(bookingByTone[tone]);
   }
 
   if (topics.mentionsParking) {
-    sentences.push(
-      tone === "Concise"
-        ? "Parking can be tricky—we’re improving directions."
-        : "Parking can definitely be tricky. We’re updating our directions and signage so it’s easier next time.",
-    );
+    const parkingByTone: Record<Tone, string> = {
+      Warm: "Parking can definitely be tricky. We're updating our directions and signage so it's easier next time.",
+      Direct: "Parking can be tricky—we're improving directions.",
+      Professional:
+        "We're aware parking can be challenging and are working to improve our directions and signage.",
+      Friendly:
+        "Parking can be a bit tricky—we're working on making it easier!",
+      Casual: "Parking's tricky—we're fixing that!",
+    };
+    sentences.push(parkingByTone[tone]);
   }
 
   if (topics.mentionsPrice) {
-    sentences.push(
-      tone === "Concise"
-        ? "Appreciate the note on pricing."
-        : "Thanks for mentioning pricing—we try to keep things straightforward and fair.",
-    );
+    const priceByTone: Record<Tone, string> = {
+      Warm: "Thanks for mentioning pricing—we try to keep things straightforward and fair.",
+      Direct: "Appreciate the note on pricing.",
+      Professional:
+        "Thank you for your feedback regarding pricing—we strive to maintain fair and transparent pricing.",
+      Friendly: "Thanks for the note on pricing—we always try to keep it fair!",
+      Casual: "Thanks for the pricing note!",
+    };
+    sentences.push(priceByTone[tone]);
   }
 
   // If none of the above topics hit, add a generic gratitude line for balance.
@@ -143,7 +165,7 @@ function buildDraftReply(review: string, tone: Tone): string {
  * Interactive demo that generates an owner reply draft from a review and a chosen tone.
  *
  * Renders a self-contained "Try a sample reply" UI where users can paste or pick a sample
- * review, choose a tone (Warm, Direct, Concise), and see a live preview of the incoming
+ * review, choose a tone (Warm, Direct, Professional, Friendly, Casual), and see a live preview of the incoming
  * review and the generated draft reply. Controls include tone buttons, a review textarea,
  * a sample selector, and action links for starting a trial or viewing the app.
  *
@@ -242,41 +264,40 @@ export function LiveDemo() {
                 </select>
               </div>
 
-              <div className="flex gap-3">
-                <Link
-                  href="/signup"
-                  className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center"
-                >
-                  Start your free trial
-                </Link>
-                <Link
-                  href="/login"
-                  className="px-6 py-3 border border-dashed border-primary-400 text-primary-700 font-semibold rounded-full hover:bg-primary-50 transition-colors text-center"
-                >
-                  View the app
-                </Link>
-              </div>
+              <Link
+                href="#waitlist"
+                className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center"
+              >
+                Join Waitlist
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="p-6 rounded-2xl bg-background border border-border shadow-sm space-y-4">
           <div className="rounded-xl border border-border bg-background-secondary p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex" aria-hidden="true">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <svg
-                    key={star}
-                    aria-hidden="true"
-                    className="w-4 h-4 text-star"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg
+                      key={star}
+                      aria-hidden="true"
+                      className="w-4 h-4 text-star"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <span className="text-xs text-foreground-muted">
+                  New review
+                </span>
               </div>
-              <span className="text-xs text-foreground-muted">New review</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-foreground-muted/10 text-foreground-muted">
+                Simulated
+              </span>
             </div>
             <p className="text-sm text-foreground">
               “{normalize(reviewText) || "…"}”

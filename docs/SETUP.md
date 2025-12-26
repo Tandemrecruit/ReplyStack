@@ -1,7 +1,6 @@
 # Setup & Runbook
 
-Status: early scaffolding (auth, APIs, Google/Claude/Stripe integrations are not
-implemented yet). Use this to bootstrap local dev and fill env values.
+Status: **MVP near complete.** Implemented: authentication; Google Business Profile integration (OAuth, location sync, tier-based review polling); AI response generation (Claude Haiku 4.5); voice profile management (tone quiz + custom tones); response editing modal; notification preferences; and landing page. Remaining: Stripe checkout/portal + webhook implementation, email sending (Resend), voice profile UI fields (example responses, words to use/avoid), and waitlist management. Use this guide to set up local development.
 
 ## Prerequisites
 
@@ -42,11 +41,23 @@ npm run dev
 # visits http://localhost:3000
 ```
 
-## Supabase Notes
+## Supabase Setup
 
-- Use Supabase project console to configure auth (email + Google) and enable RLS.
-- Regenerate types after schema changes:
+**📖 For detailed Supabase setup instructions, see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)**
 
+Quick steps:
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your API credentials from Settings → API
+3. Add credentials to `.env.local`
+4. Run the migration SQL from `supabase/migrations/001_initial_schema.sql` in the Supabase SQL Editor
+5. Configure authentication providers (Email + Google OAuth)
+6. Generate TypeScript types:
+
+```bash
+npm run supabase:types
+```
+
+Or manually:
 ```bash
 npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
 ```

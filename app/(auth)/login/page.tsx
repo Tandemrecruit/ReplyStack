@@ -1,17 +1,32 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+
+import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Login | ReplyStack",
-  description: "Sign in to your ReplyStack account",
+  title: "Login | Replily",
+  description: "Sign in to your Replily account",
 };
 
 /**
- * Renders the login page layout and a placeholder for the sign-in form.
+ * Skeleton placeholder for the login form shown while the real form is loading.
  *
- * The component displays a centered heading and subheading, followed by a boxed
- * placeholder area indicating that the login form will be added later.
+ * Renders three simple rectangular skeleton blocks that visually represent form controls and a submit action; intended for use as a Suspense fallback or other loading state.
  *
- * @returns The JSX element for the login page.
+ * @returns A JSX element containing three skeleton blocks that mimic the layout of the login form.
+ */
+function LoginFormSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-16 bg-surface rounded-md" />
+      <div className="h-16 bg-surface rounded-md" />
+      <div className="h-10 bg-surface rounded-md" />
+    </div>
+  );
+}
+
+/**
+ * Login page with email/password and Google OAuth authentication.
  */
 export default function LoginPage() {
   return (
@@ -23,12 +38,9 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* TODO: Add login form */}
-      <div className="p-6 bg-surface rounded-lg border border-border">
-        <p className="text-foreground-muted text-center">
-          Login form coming soon
-        </p>
-      </div>
+      <Suspense fallback={<LoginFormSkeleton />}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }
