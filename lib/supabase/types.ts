@@ -124,7 +124,7 @@ export type Database = {
           },
         ];
       };
-      reviews: {
+      notification_preferences: {
         Row: {
           created_at: string | null;
           email_enabled: boolean | null;
@@ -255,7 +255,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      cron_poll_state: {
+      reviews: {
         Row: {
           created_at: string | null;
           external_review_id: string;
