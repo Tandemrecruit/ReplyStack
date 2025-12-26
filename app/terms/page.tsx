@@ -28,8 +28,8 @@ export default function TermsPage() {
 
         <p>
           These Terms of Service ("Terms") govern your access to and use of
-          Replily's website, products, and services. By creating an account
-          or using the Service, you agree to these Terms.
+          Replily's website, products, and services. By creating an account or
+          using the Service, you agree to these Terms.
         </p>
 
         <h2>1. Eligibility</h2>
@@ -84,9 +84,9 @@ export default function TermsPage() {
 
         <h2>7. Disclaimers</h2>
         <p>
-          THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
-          Replily does not guarantee that generated responses will be
-          error-free, appropriate, or meet your specific requirements.
+          THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. Replily
+          does not guarantee that generated responses will be error-free,
+          appropriate, or meet your specific requirements.
         </p>
 
         <h2>8. Limitation of Liability</h2>

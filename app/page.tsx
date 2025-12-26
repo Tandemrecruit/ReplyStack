@@ -29,9 +29,7 @@ export default function LandingPage() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-400 flex items-center justify-center shadow-md">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="text-xl font-bold text-foreground">
-                Replily
-              </span>
+              <span className="text-xl font-bold text-foreground">Replily</span>
             </Link>
 
             <div className="flex items-center gap-4">
@@ -574,8 +572,7 @@ export default function LandingPage() {
             Ready to transform your review management?
           </h2>
           <p className="text-xl text-accent-900">
-            Be among the first local businesses to respond faster with
-            Replily.
+            Be among the first local businesses to respond faster with Replily.
           </p>
           <Link
             href="#waitlist"
@@ -594,9 +591,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="text-lg font-bold text-foreground">
-                Replily
-              </span>
+              <span className="text-lg font-bold text-foreground">Replily</span>
             </div>
 
             <div className="flex items-center gap-6 text-sm text-foreground-secondary">

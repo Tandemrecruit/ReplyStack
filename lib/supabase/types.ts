@@ -14,6 +14,65 @@ export type Database = {
   };
   public: {
     Tables: {
+      cron_poll_state: {
+        Row: {
+          last_processed_at: string;
+          tier: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          last_processed_at?: string;
+          tier: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          last_processed_at?: string;
+          tier?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      custom_tones: {
+        Row: {
+          created_at: string | null;
+          description: string;
+          enhanced_context: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          quiz_responses: Json | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          description: string;
+          enhanced_context?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          quiz_responses?: Json | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string;
+          enhanced_context?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          quiz_responses?: Json | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "custom_tones_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       locations: {
         Row: {
           address: string | null;
@@ -154,11 +213,47 @@ export type Database = {
           {
             foreignKeyName: "responses_review_id_fkey";
             columns: ["review_id"];
-            isOneToOne: false;
+            isOneToOne: true;
             referencedRelation: "reviews";
             referencedColumns: ["id"];
           },
         ];
+      };
+      responses_duplicates_backup_2025_12_25_19_14_36: {
+        Row: {
+          created_at: string | null;
+          edited_text: string | null;
+          final_text: string | null;
+          generated_text: string | null;
+          id: string | null;
+          published_at: string | null;
+          review_id: string | null;
+          status: string | null;
+          tokens_used: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          edited_text?: string | null;
+          final_text?: string | null;
+          generated_text?: string | null;
+          id?: string | null;
+          published_at?: string | null;
+          review_id?: string | null;
+          status?: string | null;
+          tokens_used?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          edited_text?: string | null;
+          final_text?: string | null;
+          generated_text?: string | null;
+          id?: string | null;
+          published_at?: string | null;
+          review_id?: string | null;
+          status?: string | null;
+          tokens_used?: number | null;
+        };
+        Relationships: [];
       };
       reviews: {
         Row: {
@@ -304,83 +399,24 @@ export type Database = {
           },
         ];
       };
-      custom_tones: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          description: string;
-          enhanced_context: string | null;
-          quiz_responses: Json | null;
-          created_at: string | null;
-          updated_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          description: string;
-          enhanced_context?: string | null;
-          quiz_responses?: Json | null;
-          created_at?: string | null;
-          updated_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          organization_id?: string;
-          name?: string;
-          description?: string;
-          enhanced_context?: string | null;
-          quiz_responses?: Json | null;
-          created_at?: string | null;
-          updated_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "custom_tones_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      cron_poll_state: {
-        Row: {
-          tier: string;
-          last_processed_at: string;
-          updated_at: string | null;
-        };
-        Insert: {
-          tier: string;
-          last_processed_at: string;
-          updated_at?: string | null;
-        };
-        Update: {
-          tier?: string;
-          last_processed_at?: string;
-          updated_at?: string | null;
-        };
-        Relationships: [];
-      };
       waitlist: {
         Row: {
-          id: string;
-          email: string;
-          review_volume: string;
           created_at: string;
+          email: string;
+          id: string;
+          review_volume: string;
         };
         Insert: {
-          id?: string;
-          email: string;
-          review_volume: string;
           created_at?: string;
+          email: string;
+          id?: string;
+          review_volume: string;
         };
         Update: {
-          id?: string;
-          email?: string;
-          review_volume?: string;
           created_at?: string;
+          email?: string;
+          id?: string;
+          review_volume?: string;
         };
         Relationships: [];
       };
@@ -391,23 +427,23 @@ export type Database = {
     Functions: {
       upsert_response: {
         Args: {
-          p_review_id: string;
-          p_generated_text: string | null;
           p_final_text: string;
-          p_status: string;
+          p_generated_text: string;
           p_published_at: string;
+          p_review_id: string;
+          p_status: string;
         };
-        Returns: Array<{
+        Returns: {
+          created_at: string;
+          edited_text: string;
+          final_text: string;
+          generated_text: string;
           id: string;
-          review_id: string | null;
-          generated_text: string | null;
-          edited_text: string | null;
-          final_text: string | null;
-          status: string | null;
-          published_at: string | null;
-          tokens_used: number | null;
-          created_at: string | null;
-        }>;
+          published_at: string;
+          review_id: string;
+          status: string;
+          tokens_used: number;
+        }[];
       };
     };
     Enums: {
@@ -545,16 +581,25 @@ export const Constants = {
   },
 } as const;
 
-// Type aliases for convenience
-export type Review = Tables<"reviews">;
-export type ReviewInsert = TablesInsert<"reviews">;
-export type VoiceProfile = Tables<"voice_profiles">;
-export type VoiceProfileInsert = TablesInsert<"voice_profiles">;
-export type Location = Tables<"locations">;
-export type LocationInsert = TablesInsert<"locations">;
-export type User = Tables<"users">;
-export type UserInsert = TablesInsert<"users">;
-export type Organization = Tables<"organizations">;
-export type OrganizationInsert = TablesInsert<"organizations">;
-export type Response = Tables<"responses">;
-export type ResponseInsert = TablesInsert<"responses">;
+// Re-export type aliases for convenience (these are defined in type-aliases.ts)
+// This allows existing imports from "./types" to continue working
+export type {
+  Location,
+  LocationInsert,
+  LocationUpdate,
+  Organization,
+  OrganizationInsert,
+  OrganizationUpdate,
+  Response,
+  ResponseInsert,
+  ResponseUpdate,
+  Review,
+  ReviewInsert,
+  ReviewUpdate,
+  User,
+  UserInsert,
+  UserUpdate,
+  VoiceProfile,
+  VoiceProfileInsert,
+  VoiceProfileUpdate,
+} from "./type-aliases";
