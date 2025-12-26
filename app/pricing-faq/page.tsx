@@ -39,11 +39,11 @@ const faqs = [
 ];
 
 /**
- * Renders the Pricing FAQ page with a list of common billing and feature questions and a contact call-to-action.
+ * Page component that displays common billing and feature questions and a contact call-to-action.
  *
- * Displays a centered content area with a heading, subheading, a question-and-answer list sourced from the module-level `faqs` array, and a contact panel containing a mailto link to support@replily.com.
+ * Shows a heading, subtitle, a list of question-and-answer pairs from the module-level `faqs` array, and a contact panel linking to support@replily.com.
  *
- * @returns The JSX element for the pricing FAQ page.
+ * @returns The JSX element for the Pricing FAQ page
  */
 export default function PricingFAQPage() {
   return (
