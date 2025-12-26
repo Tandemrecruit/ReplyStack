@@ -11,7 +11,7 @@
  */
 
 const { spawnSync } = require("node:child_process");
-const { readFileSync, createWriteStream } = require("node:fs");
+const { readFileSync, createWriteStream, appendFileSync } = require("node:fs");
 const { join } = require("node:path");
 
 const rootDir = join(__dirname, "..");
@@ -167,13 +167,16 @@ if (!accessToken) {
     if (isWindows) {
       // On Windows, use shell: true with single command string to avoid deprecation warning
       // projectId is validated alphanumeric, so safe to interpolate
-      command = `npx supabase gen types typescript --project-id ${projectId}`;
+      // --yes flag auto-accepts package installation prompts from npx
+      command = `npx --yes supabase gen types typescript --project-id ${projectId}`;
       args = [];
       shellOption = true;
     } else {
       // On Unix-like systems, use array format without shell for better security
+      // --yes flag auto-accepts package installation prompts from npx
       command = "npx";
       args = [
+        "--yes",
         "supabase",
         "gen",
         "types",
@@ -209,6 +212,35 @@ if (!accessToken) {
       outputStream.on("finish", resolve);
       outputStream.on("error", reject);
     });
+
+    // Append re-exports for type aliases (defined in type-aliases.ts)
+    // This allows existing imports from "./types" to continue working
+    const reExportStatement = `
+// Re-export type aliases for convenience (these are defined in type-aliases.ts)
+// This allows existing imports from "./types" to continue working
+export type {
+  Location,
+  LocationInsert,
+  LocationUpdate,
+  Organization,
+  OrganizationInsert,
+  OrganizationUpdate,
+  Response,
+  ResponseInsert,
+  ResponseUpdate,
+  Review,
+  ReviewInsert,
+  ReviewUpdate,
+  User,
+  UserInsert,
+  UserUpdate,
+  VoiceProfile,
+  VoiceProfileInsert,
+  VoiceProfileUpdate,
+} from "./type-aliases";
+`;
+
+    appendFileSync(outputPath, reExportStatement, "utf-8");
 
     console.log("✅ Types generated successfully!");
   } catch (error) {

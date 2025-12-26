@@ -39,8 +39,8 @@ export default function PrivacyPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
         <p className="mt-3 text-foreground-secondary">
-          This is a plain-language summary of how Replily handles data. If
-          you have questions, email{" "}
+          This is a plain-language summary of how Replily handles data. If you
+          have questions, email{" "}
           <a
             className="text-primary-700 hover:underline"
             href="mailto:support@replily.com"

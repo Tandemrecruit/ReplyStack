@@ -1,5 +1,14 @@
 # Changelog
 
+## 2025-12-26
+
+### Infrastructure
+
+- Fixed Supabase type generation script to auto-accept npx package installation prompts by adding `--yes` flag, preventing prompt text from being written to types file
+- Created `lib/supabase/type-aliases.ts` for convenience type aliases (Review, VoiceProfile, Location, etc.) that persist across type regeneration
+- Updated type generation script to automatically append type alias re-exports to generated types file
+- Fixed Vercel deployment failure caused by cached cron job configuration by adding explicit empty `crons: []` array to `vercel.json`
+
 ## 2025-12-25
 
 ### UI/UX

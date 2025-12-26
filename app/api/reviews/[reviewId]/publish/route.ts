@@ -234,6 +234,8 @@ export async function POST(
     // This handles concurrent publish requests by using ON CONFLICT at the database level
     // The function preserves generated_text on update and sets edited_text appropriately
     // For direct publishes (no existing response), pass null for generated_text to distinguish from AI-generated
+    // Note: Type assertion needed because generated types don't reflect that p_generated_text can be null
+    // (PostgreSQL function accepts nullable TEXT, but Supabase types show it as string)
     const { data: responseRecords, error: responseError } = await supabase.rpc(
       "upsert_response",
       {
@@ -244,7 +246,8 @@ export async function POST(
         p_final_text: responseText,
         p_status: "published",
         p_published_at: now,
-      },
+        // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed - Supabase types don't reflect nullable TEXT parameter
+      } as any,
     );
 
     const responseRecord = responseRecords?.[0] ?? null;
