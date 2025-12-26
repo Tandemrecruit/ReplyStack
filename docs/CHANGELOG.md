@@ -1,5 +1,11 @@
 # Changelog
 
+## 2025-12-26
+
+### Infrastructure
+
+- Fixed Vercel deployment failure caused by cached cron job configuration by adding explicit empty `crons: []` array to `vercel.json`
+
 ## 2025-12-25
 
 ### UI/UX
