@@ -2,6 +2,9 @@
 
 import { useCallback, useState } from "react";
 
+/**
+ * Review volume options for the waitlist form
+ */
 const REVIEW_VOLUME_OPTIONS = [
   { value: "less_than_10", label: "Less than 10" },
   { value: "10_to_50", label: "10-50" },
@@ -9,6 +12,16 @@ const REVIEW_VOLUME_OPTIONS = [
   { value: "100_plus", label: "100+" },
 ] as const;
 
+/**
+ * Waitlist signup form for the landing page.
+ *
+ * Features:
+ * - Email and review volume collection
+ * - Client-side validation before submit
+ * - Loading states during submission
+ * - Success state replaces form
+ * - Error display
+ */
 export function WaitlistForm() {
   const [formData, setFormData] = useState({
     email: "",
@@ -25,9 +38,12 @@ export function WaitlistForm() {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+
+      // Clear previous errors
       setFieldErrors({});
       setGeneralError(null);
 
+      // Validate fields
       const errors: { email?: string; review_volume?: string } = {};
 
       if (!formData.email) {
@@ -63,6 +79,7 @@ export function WaitlistForm() {
           return;
         }
 
+        // Success - show success state
         setIsSuccess(true);
       } catch {
         setGeneralError("An unexpected error occurred. Please try again.");
@@ -70,15 +87,16 @@ export function WaitlistForm() {
         setIsLoading(false);
       }
     },
-    [formData]
+    [formData],
   );
 
+  // Success state replaces the form
   if (isSuccess) {
     return (
-      <div className="p-8 rounded-2xl bg-surface border border-border shadow-xl text-center">
-        <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-gradient-to-br from-accent-400 to-accent-500 flex items-center justify-center shadow-lg shadow-accent-500/25">
+      <div className="p-6 rounded-2xl bg-surface border border-border shadow-md text-center">
+        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-accent-50 border border-accent-200 flex items-center justify-center">
           <svg
-            className="w-8 h-8 text-white"
+            className="w-6 h-6 text-accent-700"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -87,25 +105,20 @@ export function WaitlistForm() {
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2.5}
+              strokeWidth={2}
               d="M5 13l4 4L19 7"
             />
           </svg>
         </div>
-        <h3 className="text-2xl font-bold text-foreground mb-2">
-          You&apos;re in!
+        <h3 className="text-xl font-semibold text-foreground mb-2">
+          You&apos;re on the list!
         </h3>
-        <p className="text-foreground-secondary mb-4">
-          We&apos;ll email you when it&apos;s your turn to try Replily.
+        <p className="text-foreground-secondary">
+          We&apos;ll reach out soon with early access details.
         </p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-50 border border-accent-200">
-          <span className="relative flex h-2 w-2">
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
-          </span>
-          <span className="text-sm font-semibold text-accent-700">
-            Early access confirmed
-          </span>
-        </div>
+        <span className="inline-block mt-4 px-2 py-1 rounded-full text-xs font-semibold bg-accent-50 text-accent-700 border border-accent-200">
+          Early access confirmed
+        </span>
       </div>
     );
   }
@@ -113,25 +126,15 @@ export function WaitlistForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-8 rounded-2xl bg-surface border border-border shadow-xl"
+      className="p-6 rounded-2xl bg-surface border border-border shadow-md"
       noValidate
     >
-      <div className="space-y-5">
-        {/* Header */}
-        <div className="text-center mb-2">
-          <h3 className="text-xl font-bold text-foreground mb-1">
-            Get early access
-          </h3>
-          <p className="text-sm text-foreground-secondary">
-            Be first to try Replily when we launch
-          </p>
-        </div>
-
-        {/* General error */}
+      <div className="space-y-4">
+        {/* General error banner */}
         {generalError && (
           <div
             role="alert"
-            className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center"
+            className="p-3 rounded-full bg-red-50 border border-red-200 text-red-700 text-sm text-center"
           >
             {generalError}
           </div>
@@ -143,7 +146,7 @@ export function WaitlistForm() {
             htmlFor="waitlist-email"
             className="block text-sm font-semibold text-foreground mb-2"
           >
-            Work email
+            Email address
           </label>
           <input
             type="email"
@@ -155,12 +158,12 @@ export function WaitlistForm() {
             }
             placeholder="you@yourbusiness.com"
             disabled={isLoading}
-            className={`w-full rounded-xl border bg-background text-foreground px-4 py-3.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all disabled:opacity-50 ${
+            className={`w-full rounded-full border bg-surface text-foreground px-4 py-3 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors disabled:opacity-50 ${
               fieldErrors.email ? "border-red-500" : "border-border"
             }`}
           />
           {fieldErrors.email && (
-            <p className="mt-1.5 text-sm text-red-600">{fieldErrors.email}</p>
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
           )}
         </div>
 
@@ -170,7 +173,7 @@ export function WaitlistForm() {
             htmlFor="waitlist-review-volume"
             className="block text-sm font-semibold text-foreground mb-2"
           >
-            Monthly Google reviews
+            How many Google reviews does your business get per month?
           </label>
           <select
             id="waitlist-review-volume"
@@ -180,7 +183,7 @@ export function WaitlistForm() {
               setFormData({ ...formData, review_volume: e.target.value })
             }
             disabled={isLoading}
-            className={`w-full rounded-xl border bg-background text-foreground px-4 py-3.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all disabled:opacity-50 appearance-none cursor-pointer ${
+            className={`w-full rounded-full border bg-surface text-foreground px-4 py-3 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors disabled:opacity-50 appearance-none cursor-pointer ${
               fieldErrors.review_volume ? "border-red-500" : "border-border"
             }`}
             style={{
@@ -191,7 +194,7 @@ export function WaitlistForm() {
               paddingRight: "2.5rem",
             }}
           >
-            <option value="">Select...</option>
+            <option value="">Select volume...</option>
             {REVIEW_VOLUME_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -199,66 +202,23 @@ export function WaitlistForm() {
             ))}
           </select>
           {fieldErrors.review_volume && (
-            <p className="mt-1.5 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-600">
               {fieldErrors.review_volume}
             </p>
           )}
+          <p className="mt-1 text-sm text-foreground-muted">
+            This helps us prioritize your access
+          </p>
         </div>
 
         {/* Submit button */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-8 py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full px-8 py-4 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? (
-            <>
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Joining...
-            </>
-          ) : (
-            <>
-              Join the Waitlist
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </>
-          )}
+          {isLoading ? "Joining..." : "Join the Waitlist"}
         </button>
-
-        {/* Trust line */}
-        <p className="text-center text-xs text-foreground-muted">
-          No spam, ever. We&apos;ll only email you about Replily.
-        </p>
       </div>
     </form>
   );

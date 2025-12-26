@@ -7,618 +7,328 @@ import { WaitlistForm } from "@/components/landing/waitlist-form";
 export const metadata: Metadata = {
   title: "Replily | AI-Powered Review Responses for Local Businesses",
   description:
-    "Get AI-generated review responses within minutes—as fast as 5 minutes on Pro plans. Replies that sound like you, not canned AI. Built for restaurants, dental practices, and local service businesses.",
+    "Respond to every Google review in minutes with replies that sound like you. Built for restaurants, dental practices, and local service businesses.",
 };
 
-/**
- * Render the Replily marketing landing page including navigation, hero,
- * live demo, features, benefits, pricing, CTAs, and footer.
- *
- * @returns The complete landing page JSX element containing site header, hero
- * visuals and CTAs, live demo, social proof, feature steps, benefits and proof
- * cards, pricing information, final CTA, and footer.
- */
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Navigation - Minimal */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-400 flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-sm">R</span>
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:shadow-primary-500/40 transition-shadow">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="w-5 h-5 text-white"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
               </div>
-              <span className="text-xl font-bold text-foreground">Replily</span>
+              <span className="text-xl font-bold text-foreground tracking-tight">
+                Replily
+              </span>
             </Link>
 
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="text-sm font-medium text-foreground-secondary hover:text-foreground transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="#waitlist"
-                className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/25"
-              >
-                Join Waitlist
-              </Link>
-            </div>
+            <Link
+              href="#waitlist"
+              className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-full hover:bg-primary-700 transition-all shadow-md shadow-primary-500/25 hover:shadow-lg hover:shadow-primary-500/30"
+            >
+              Get Early Access
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(233,95,51,0.12),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(244,180,26,0.14),transparent_28%)]" />
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center relative">
-          <div className="text-left space-y-6">
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight tracking-tight">
-              Respond to every review{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-accent-400">
-                within minutes
-              </span>{" "}
-              with replies that sound like you.
-            </h1>
+      {/* Hero Section - Form Above Fold */}
+      <section className="relative pt-24 pb-16 px-4 sm:px-6">
+        {/* Background decoration */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-primary-500/20 to-accent-400/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 -left-24 w-72 h-72 bg-gradient-to-tr from-accent-400/15 to-primary-500/10 rounded-full blur-3xl" />
+        </div>
 
-            <p className="text-xl text-foreground-secondary max-w-2xl">
-              Owner-quality replies, drafted for you in seconds—without the
-              canned “AI voice.” Built for busy restaurants, dental practices,
-              and service shops that need to sound like the real you.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <Link
-                href="#waitlist"
-                className="w-full sm:w-auto px-8 py-4 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-all shadow-sm shadow-primary-500/25"
-              >
-                Join Waitlist
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="w-full sm:w-auto px-8 py-4 border border-foreground text-foreground font-semibold rounded-full hover:border-primary-500 hover:text-primary-700 transition-colors bg-surface"
-              >
-                See How It Works
-              </Link>
-              <Link
-                href="#live-demo"
-                className="w-full sm:w-auto px-8 py-4 border border-dashed border-primary-400 text-primary-700 font-semibold rounded-full hover:bg-primary-50 transition-colors bg-surface"
-              >
-                See a live example
-              </Link>
-            </div>
-
-            <p className="text-sm text-foreground-muted">
-              Be the first to know when we launch.
-            </p>
-          </div>
-
-          {/* Hero Visual */}
-          <div className="relative">
-            <div className="absolute -left-6 -top-6 w-28 h-28 rounded-3xl border border-accent-200 bg-accent-50/80 blur-0" />
-            <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full border border-primary-200 bg-primary-50/70" />
-
-            <div className="relative space-y-4">
-              <div className="p-6 rounded-2xl bg-surface border border-border shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-bold">
-                      GB
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Green Bistro
-                      </p>
-                      <p className="text-xs text-foreground-muted">
-                        Austin, TX · Google
-                      </p>
-                    </div>
-                  </div>
-                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-accent-50 text-accent-700 border border-accent-200">
-                    New review
-                  </span>
-                </div>
-
-                <div className="rounded-xl border border-border bg-background-secondary p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex" aria-hidden="true">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg
-                          key={star}
-                          className="w-4 h-4 text-star"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          aria-hidden="true"
-                        >
-                          <title>Star rating</title>
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <span className="text-xs text-foreground-muted">
-                      Sarah M.
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground">
-                    "Best pizza in Austin! The thin crust is perfect and
-                    delivery was super fast."
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-primary-200 bg-surface-elevated p-4 mt-4 space-y-2 shadow-sm shadow-primary-500/10">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-primary-700">
-                      Draft reply
-                    </p>
-                    <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-2 py-1 rounded-full border border-primary-100">
-                      Owner tone
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground">
-                    Sarah, thanks for the kind words. The thin crust is my
-                    dad&apos;s recipe from 1994, and our team hustles to keep
-                    deliveries quick. Can&apos;t wait to have you back. — Joe
-                    (owner)
-                  </p>
-                  <div className="text-xs text-foreground-muted">
-                    <span>Voice: Warm • Neighborly • First-person</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-foreground-secondary">
-                    <div className="flex gap-1">
-                      {["Warm", "Direct", "Professional"].map((tone) => (
-                        <span
-                          key={tone}
-                          className="px-2 py-1 rounded-full border border-border bg-surface text-foreground"
-                        >
-                          {tone}
-                        </span>
-                      ))}
-                    </div>
-                    <span className="ml-auto text-foreground-muted">
-                      Tap to preview
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="px-4 py-2 rounded-full bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
-                  >
-                    Publish
-                  </button>
-                  <button
-                    type="button"
-                    className="px-4 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:border-primary-500 hover:text-primary-700 transition-colors"
-                  >
-                    Edit reply
-                  </button>
-                </div>
+        <div className="max-w-5xl mx-auto relative">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left: Copy */}
+            <div className="text-center lg:text-left space-y-6">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-50 border border-accent-200">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
+                </span>
+                <span className="text-sm font-medium text-accent-700">
+                  Limited early access — 47 spots left
+                </span>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Waitlist Section */}
-      <section
-        id="waitlist"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-secondary border-y border-border"
-      >
-        <div className="max-w-md mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-            Get early access
-          </h2>
-          <p className="text-foreground-secondary mb-6">
-            Join the waitlist and be first to try Replily when we launch.
-          </p>
-          <WaitlistForm />
-        </div>
-      </section>
-
-      <LiveDemo />
-
-      {/* Features Section */}
-      <section
-        id="how-it-works"
-        className="py-24 px-4 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_30%_20%,rgba(233,95,51,0.06),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(244,180,26,0.08),transparent_26%)]"
-      >
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-              How Replily Works
-            </h2>
-            <p className="mt-4 text-lg text-foreground-secondary max-w-2xl mx-auto">
-              Three simple steps, built for local owners—not AI tinkerers
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Connect Google",
-                description:
-                  "Link your Google Business Profile in one click. We import your last 200 reviews in about a minute.",
-              },
-              {
-                title: "Set Your Voice",
-                description:
-                  "We learn from your past replies + a 10-question tone quiz. Choose from 5 tone options (Warm, Direct, Professional, Friendly, Casual) on each draft.",
-              },
-              {
-                title: "Respond Instantly",
-                description:
-                  "Generate, tweak, and publish straight to Google—no copy/paste. Most owners publish the first draft without edits.",
-              },
-            ].map((item, index) => (
-              <div
-                key={item.title}
-                className="relative p-8 bg-surface rounded-2xl border border-accent-200 shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mb-6 border border-primary-200">
-                  <span className="text-lg font-bold text-primary-700">
-                    {index + 1}
-                  </span>
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
-                  {item.title}
-                </h3>
-                <p className="text-foreground-secondary">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-background-secondary">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+              {/* Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold text-foreground leading-[1.1] tracking-tight">
                 Stop ignoring reviews.
                 <br />
-                <span className="text-primary-600">
-                  Start building relationships.
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-accent-500">
+                  Start replying in minutes.
                 </span>
-              </h2>
-              <p className="mt-6 text-lg text-foreground-secondary">
-                Every unanswered review is a missed opportunity. Customers
-                expect a human reply—and 89% read business responses before
-                choosing.
+              </h1>
+
+              {/* Subheadline */}
+              <p className="text-lg sm:text-xl text-foreground-secondary max-w-lg mx-auto lg:mx-0">
+                AI-powered responses that sound like{" "}
+                <em className="not-italic font-semibold text-foreground">
+                  you
+                </em>{" "}
+                wrote them. Built for restaurants, dental practices, and local
+                shops.
               </p>
 
-              <ul className="mt-8 space-y-4">
-                <li className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-success flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <title>Included</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-foreground">
-                    <strong>Save 10+ hours per week</strong> on review
-                    management (avg across single-location shops)
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-success flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <title>Included</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-foreground">
-                    <strong>100% response rate</strong> without hiring extra
-                    help
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-success flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <title>Included</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-foreground">
-                    <strong>Replies that sound owner-written</strong> with your
-                    tone locked in
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-success flex-shrink-0 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <title>Included</title>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-foreground">
-                    <strong>Defuse tough reviews</strong> with calm, accountable
-                    replies you approve
-                  </span>
-                </li>
-              </ul>
+              {/* Social proof - simple and honest */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border">
+                <span className="text-sm text-foreground-secondary">
+                  Built for{" "}
+                  <span className="font-semibold text-foreground">
+                    local businesses
+                  </span>{" "}
+                  who actually respond to reviews
+                </span>
+              </div>
             </div>
 
-            {/* Proof points */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-foreground-muted">
-                    Avg. detection time
+            {/* Right: Waitlist Form */}
+            <div id="waitlist" className="lg:pl-8">
+              <div className="relative">
+                {/* Glow effect behind form */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 via-accent-400/20 to-primary-500/20 rounded-3xl blur-2xl opacity-60" />
+                <div className="relative">
+                  <WaitlistForm />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Demo Section */}
+      <section className="py-16 px-4 sm:px-6 bg-surface/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+              See it in action
+            </h2>
+            <p className="text-foreground-secondary max-w-xl mx-auto">
+              Paste any review, pick your tone, get a reply you&apos;d actually
+              send.
+            </p>
+          </div>
+          <LiveDemo />
+        </div>
+      </section>
+
+      {/* Benefits Section - Bento Grid */}
+      <section className="py-20 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Section header - more personality */}
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-primary-600 uppercase tracking-wide mb-3">
+              The end of &quot;I&apos;ll reply later&quot;
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Every review answered. None of the guilt.
+            </h2>
+          </div>
+
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Large card - Speed, not time saved */}
+            <div className="md:col-span-4 p-8 rounded-3xl bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 relative overflow-hidden group">
+              <div className="relative z-10">
+                <p className="text-sm font-semibold text-primary-600 uppercase tracking-wide mb-2">
+                  From review to reply
+                </p>
+                <h3 className="text-4xl sm:text-5xl font-bold text-foreground mb-3">
+                  Under 30 seconds
+                </h3>
+                <p className="text-foreground-secondary max-w-md">
+                  New review comes in. You tap a button. A reply—in your
+                  voice—is ready to publish. That&apos;s it.
+                </p>
+              </div>
+              {/* Decorative element */}
+              <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-primary-200/50 rounded-full blur-2xl group-hover:bg-primary-300/50 transition-colors" />
+              <div className="absolute right-8 bottom-8 text-primary-300/40">
+                <svg
+                  className="w-32 h-32"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.92 6-4.72 7.28L13 17v5l5-5h-1.53c2.79-1.64 4.53-4.65 4.53-8 0-5.18-4.16-9.41-9-9.95zM11 2.05C6.03 2.52 2 6.74 2 12c0 3.35 1.74 6.36 4.53 8H5l5 5v-5l-2.28 2.28C4.92 20 3 17.21 3 14c0-4.08 3.05-7.44 7-7.93V2.05z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Tall card - Your voice */}
+            <div className="md:col-span-2 md:row-span-2 p-6 rounded-3xl bg-gradient-to-b from-accent-50 to-accent-100 border border-accent-200 flex flex-col relative overflow-hidden">
+              <div>
+                <p className="text-sm font-semibold text-accent-600 uppercase tracking-wide mb-3">
+                  Your voice
+                </p>
+                <h3 className="text-xl font-bold text-foreground mb-2">
+                  Sounds like you wrote it
+                </h3>
+                <p className="text-foreground-secondary text-sm">
+                  Not generic AI. Your tone, your personality.
+                </p>
+              </div>
+
+              {/* Mini example */}
+              <div className="mt-4 p-4 rounded-2xl bg-surface border border-border flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">J</span>
+                  </div>
+                  <p className="text-xs font-semibold text-foreground">
+                    Joe&apos;s Pizza
                   </p>
-                  <span className="text-[11px] px-2 py-1 rounded-full border border-primary-200 bg-primary-50 text-primary-700">
-                    Live
+                </div>
+                <p className="text-sm text-foreground">
+                  &quot;Hey Sarah! That thin crust is my dad&apos;s recipe from
+                  &apos;94—glad it&apos;s still a hit. See you next time! —
+                  Joe&quot;
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-accent-100 text-accent-700 text-xs font-medium">
+                    Warm
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-xs font-medium">
+                    Personal
                   </span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground mt-1">
-                  5-15 min
-                </p>
-                <p className="text-xs text-foreground-muted">
-                  Based on plan tier
-                </p>
               </div>
-              <div className="p-5 rounded-2xl border border-accent-200 bg-surface shadow-sm flex flex-col gap-1">
-                <p className="text-sm text-foreground-muted">
-                  Hours saved weekly
-                </p>
-                <p className="text-2xl font-semibold text-foreground mt-1">
-                  10+
-                </p>
-                <p className="text-xs text-foreground-muted">
-                  Single-location average
-                </p>
+            </div>
+
+            {/* Wide card - Response rate - FIXED: items-center instead of items-start */}
+            <div className="md:col-span-2 p-5 rounded-3xl bg-foreground text-background relative overflow-hidden">
+              <div className="flex items-center gap-3">
+                <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400">
+                  100%
+                </div>
+                <div>
+                  <p className="font-semibold text-background">Response rate</p>
+                  <p className="text-sm opacity-70">
+                    Finally answer every single one
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Small card - Tough reviews */}
+            <div className="md:col-span-2 p-5 rounded-3xl bg-surface border border-border relative overflow-hidden group hover:border-primary-300 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-2xl">
+                  <span>😤</span>
+                  <span className="text-foreground-muted text-base">→</span>
+                  <span>🤝</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Tough reviews?
+                  </h3>
+                  <p className="text-sm text-foreground-secondary">
+                    Turn them into second chances
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            Simple, Transparent Pricing
+      {/* Final CTA Section */}
+      <section className="py-20 px-4 sm:px-6 bg-gradient-to-b from-surface/50 to-background">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+            Ready to reply faster?
           </h2>
-          <p className="mt-4 text-lg text-foreground-secondary">
-            One plan, all features. No hidden fees.
-          </p>
-          <p className="mt-2 text-sm text-foreground-muted">
-            Best for single-location shops getting 10–200 reviews per month.
-          </p>
-
-          {/* Pricing Card */}
-          <div className="mt-12 max-w-md mx-auto p-8 bg-surface rounded-2xl border border-border shadow-lg shadow-primary-500/10">
-            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-primary-700 mb-4">
-              <span className="inline-block h-1.5 w-10 rounded-full bg-primary-500" />
-              PRO PLAN
-              <span className="inline-block h-1.5 w-10 rounded-full bg-accent-400" />
-            </div>
-            <div className="flex items-baseline justify-center gap-2">
-              <span className="text-5xl font-bold text-foreground">$49</span>
-              <span className="text-foreground-secondary">/month</span>
-            </div>
-
-            <ul className="mt-8 space-y-4 text-left">
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-success"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <title>Included</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-foreground">Unlimited AI responses</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-success"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <title>Included</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-foreground">1 business location</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-success"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <title>Included</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-foreground">Custom voice profile</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-success"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <title>Included</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-foreground">Email notifications</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-success"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <title>Included</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-foreground">Priority support</span>
-              </li>
-            </ul>
-
-            <Link
-              href="#waitlist"
-              className="mt-8 block w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors text-center shadow-sm shadow-primary-500/25"
-            >
-              Join Waitlist
-            </Link>
-            <p className="mt-3 text-sm text-foreground-muted">
-              Be first to try when we launch
-            </p>
-            <div className="mt-4 text-sm text-foreground-secondary space-y-2">
-              <p>
-                Questions?{" "}
-                <Link
-                  href="mailto:support@replily.com"
-                  className="text-primary-700 hover:underline"
-                >
-                  Email us
-                </Link>
-              </p>
-              <p>
-                Quick answers:{" "}
-                <Link
-                  href="/pricing-faq"
-                  className="text-primary-700 hover:underline"
-                >
-                  Pricing FAQ
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0f3d3e] via-[#0c3233] to-[#0f3d3e] text-white">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            Ready to transform your review management?
-          </h2>
-          <p className="text-xl text-accent-900">
-            Be among the first local businesses to respond faster with Replily.
+          <p className="text-foreground-secondary mb-8 max-w-md mx-auto">
+            Join the waitlist and be first to try Replily when we launch.
           </p>
           <Link
             href="#waitlist"
-            className="mt-4 px-8 py-4 bg-white text-primary-700 font-semibold rounded-full hover:bg-accent-50 transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30"
           >
-            Join Waitlist
+            Get Early Access
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 12h14m-7-7l7 7-7 7"
+              />
+            </svg>
           </Link>
+          <p className="mt-4 text-sm text-foreground-muted">
+            No credit card required • Free during beta
+          </p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">R</span>
-              </div>
-              <span className="text-lg font-bold text-foreground">Replily</span>
-            </div>
-
-            <div className="flex items-center gap-6 text-sm text-foreground-secondary">
-              <Link href="/privacy" className="hover:text-foreground">
-                Privacy
-              </Link>
-              <Link href="/terms" className="hover:text-foreground">
-                Terms
-              </Link>
-              <Link
-                href="mailto:support@replily.com"
-                className="hover:text-foreground"
+      {/* Footer - Minimal */}
+      <footer className="py-8 px-4 sm:px-6 border-t border-border">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-accent-400 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="w-4 h-4 text-white"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                Contact
-              </Link>
-              <Link
-                href="mailto:support@replily.com?subject=Help%20choosing%20a%20plan"
-                className="hover:text-foreground"
-              >
-                Need help choosing?
-              </Link>
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
             </div>
-
-            <p className="text-sm text-foreground-muted">
-              &copy; {new Date().getFullYear()} Replily. All rights reserved.
-            </p>
+            <span className="font-semibold text-foreground">Replily</span>
           </div>
+
+          <div className="flex items-center gap-6 text-sm text-foreground-secondary">
+            <Link
+              href="/privacy"
+              className="hover:text-foreground transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="hover:text-foreground transition-colors"
+            >
+              Terms
+            </Link>
+            <Link
+              href="mailto:support@replily.com"
+              className="hover:text-foreground transition-colors"
+            >
+              Contact
+            </Link>
+          </div>
+
+          <p className="text-sm text-foreground-muted">© 2025 Replily</p>
         </div>
       </footer>
     </div>

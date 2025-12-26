@@ -21,12 +21,6 @@ export default function PrivacyPage() {
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link
-              className="text-foreground-secondary hover:text-foreground"
-              href="/login"
-            >
-              Sign in
-            </Link>
-            <Link
               className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-full hover:bg-primary-700 transition-colors"
               href="/#waitlist"
             >
